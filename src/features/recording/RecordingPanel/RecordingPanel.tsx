@@ -1,28 +1,30 @@
 // Main recording interface — orchestrates timer, button, and upload flow
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAudioRecorder } from '@/features/recording/useAudioRecorder';
+import { useUploadSession } from '@/features/session';
 import { RecordButton } from '@/components/ui/RecordButton';
 import { SessionTimer } from '@/components/ui/SessionTimer';
 import type { RecordingPanelProps } from './RecordingPanel.types';
 
-export function RecordingPanel({ onUpload }: RecordingPanelProps) {
-  const { state, duration, audioBlob, error, startRecording, stopRecording, resetRecording } =
+export function RecordingPanel({ topic }: RecordingPanelProps) {
+  const router = useRouter();
+  const { state, duration, audioBlob, error: recordError, startRecording, stopRecording, resetRecording } =
     useAudioRecorder();
-  const [isUploading, setIsUploading] = useState(false);
+  const { upload, isUploading, error: uploadError } = useUploadSession();
+
+  // Combined error from either recording or upload
+  const error = recordError ?? uploadError;
 
   const handleUpload = async () => {
     if (!audioBlob) return;
 
-    setIsUploading(true);
     try {
-      await onUpload(audioBlob, duration);
-      resetRecording();
-    } catch (err) {
-      console.error('Upload failed:', err);
-    } finally {
-      setIsUploading(false);
+      const sessionId = await upload(audioBlob, duration, topic);
+      router.push(`/session/${sessionId}`);
+    } catch {
+      // Error displayed via uploadError state from the hook
     }
   };
 
