@@ -8,7 +8,7 @@
 ## Phase 1: Core Feature (v0.4.0 – v0.8.0)
 - [x] App shell + navigation layout
 - [x] Audio recording UI (MediaRecorder)
-- [ ] Audio upload API + R2 temp storage
+- [x] Audio upload API + R2 temp storage
 - [ ] Processing pipeline (QStash + Whisper + Claude)
 - [ ] Results display + polling
 
