@@ -5,6 +5,7 @@ import { findOrCreateUser } from '@/lib/db-utils';
 import { uploadAudio, generateAudioKey } from '@/lib/storage/r2';
 import { validateAudioFile, successResponse, errorResponse } from '@/lib/api';
 import { SessionStatus } from '@prisma/client';
+import { enqueueProcessing } from '@/lib/queue/qstash';
 
 /**
  * POST /api/sessions
@@ -73,7 +74,8 @@ export async function POST(request: Request) {
       },
     });
 
-    // TODO: Trigger QStash processing pipeline (PACKET-07)
+    // Trigger QStash processing pipeline
+    await enqueueProcessing(updatedSession.id);
 
     return successResponse(
       {
