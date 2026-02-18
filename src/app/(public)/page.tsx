@@ -1,7 +1,7 @@
 // Landing page for unauthenticated users
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-b from-blue-50 to-white">
       <div className="container flex max-w-2xl flex-col items-center gap-8 px-4 text-center">
         <h1 className="text-5xl font-bold tracking-tight text-gray-900">
           Learning Speaking App
