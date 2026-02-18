@@ -1,0 +1,11 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running lint..."
+npm run lint || exit 1
+
+echo "🔎 Running typecheck..."
+npm run typecheck || exit 1
+
+echo "🧪 Running tests..."
+npm run test || exit 1
