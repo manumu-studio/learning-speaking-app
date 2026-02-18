@@ -9,7 +9,7 @@
 - [x] App shell + navigation layout
 - [x] Audio recording UI (MediaRecorder)
 - [x] Audio upload API + R2 temp storage
-- [ ] Processing pipeline (QStash + Whisper + Claude)
+- [x] Processing pipeline (QStash + Whisper + Claude)
 - [ ] Results display + polling
 
 ## Phase 2: Completeness (v0.9.0 – v1.0.0)
