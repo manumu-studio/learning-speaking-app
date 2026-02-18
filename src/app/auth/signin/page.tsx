@@ -43,7 +43,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <p className="text-sm text-gray-500">
           Don&apos;t have an account?{' '}
           <a
-            href="https://auth.manumustudio.com/register"
+            href="https://auth.manumustudio.com/?mode=signup"
             className="text-blue-600 hover:underline"
             target="_blank"
             rel="noopener noreferrer"
