@@ -1,0 +1,262 @@
+# Learning Speaking App — Project Rules
+
+## Project Identity
+- **Name**: Learning Speaking App (LSA)
+- **Purpose**: Web tool for English learners (B2–C1+) to practice speaking and receive pattern-based feedback
+- **Type**: Website (desktop-first, responsive)
+- **Stack**: Next.js 15 (App Router), TypeScript, Tailwind CSS, Prisma, Neon Postgres
+- **Auth**: External OIDC provider at `auth.manumustudio.com` — do NOT build auth here
+
+## References
+- Full architecture: `docs/architecture/SYSTEM_SPEC.md`
+- Current task: check `docs/build-packets/PACKET-XX.md`
+
+## TypeScript Standards
+- `strict: true` in tsconfig — no exceptions
+- **No `any`** — use `unknown` + type guards
+- **No non-null assertions** (`!`) — use explicit `| null`
+- **Union types** over enums: `'grammar' | 'vocabulary' | 'structure'`
+- **`satisfies`** for type-safe object literals
+- **Discriminated unions** for state machines
+- Named exports only (except Next.js pages/layouts/routes)
+
+## File Standards
+- Every code file starts with a **one-line comment** describing what it does
+- Section comments for main logic blocks — minimal and purposeful
+- No excessive JSDoc
+
+## Component Structure (4-file pattern — mandatory)
+```
+ComponentName/
+├── ComponentName.tsx        # React component ('use client' when needed)
+├── ComponentName.types.ts   # All interfaces/types exported here
+├── index.ts                 # Barrel export
+└── useComponentName.ts      # Custom hook (only when needed)
+```
+- Props always in `.types.ts` as exported interfaces
+- No inline type definitions in component files
+- Barrel exports from `index.ts`
+- `'use client'` only when component uses browser APIs or hooks
+
+## Project Structure
+```
+src/
+├── app/
+│   ├── (app)/                    # Authenticated pages
+│   │   ├── layout.tsx
+│   │   ├── session/
+│   │   │   ├── new/page.tsx      # Recording page
+│   │   │   └── [id]/page.tsx     # Results page
+│   │   └── history/page.tsx      # Past sessions
+│   ├── (public)/                 # Public pages
+│   │   └── page.tsx              # Landing page
+│   └── api/
+│       ├── auth/[...nextauth]/   # NextAuth handler
+│       ├── sessions/             # Session CRUD
+│       ├── profile/              # User profile + consent
+│       └── internal/             # QStash webhooks (not user-facing)
+├── components/
+│   └── ui/                       # Shared UI (4-file pattern)
+├── features/
+│   ├── auth/                     # OIDC client config
+│   ├── recording/                # Audio recording
+│   ├── session/                  # Session domain
+│   └── insights/                 # Feedback display
+├── lib/
+│   ├── ai/                       # Claude + Whisper clients
+│   ├── queue/                    # QStash integration
+│   ├── storage/                  # R2 temp storage
+│   ├── env.ts                    # Zod env validation
+│   ├── prisma.ts                 # Prisma singleton
+│   └── utils.ts                  # Shared utilities (max ~50 lines)
+└── prisma/
+    └── schema.prisma
+```
+
+## Hard Rules
+1. Never install packages not in the current build packet
+2. Never modify files outside the current packet scope
+3. 4-file component pattern — no exceptions
+4. All API routes validate auth before DB ops
+5. No `console.log` in production code
+6. Env vars only via Zod-validated `env` from `lib/env.ts`
+7. HTTP errors: `{ error: string, code?: string }` with proper status codes
+8. Prisma queries always scoped to `userId`
+9. No default exports except Next.js framework requirements
+10. Use `@/` path alias for all imports
+
+## Development Workflow
+- Branch per feature: `feature/kebab-case-name`
+- Journal entry per feature: `docs/journal/ENTRY-N.md`
+- PR doc per feature: `docs/pull-requests/PR-X.Y.Z.md`
+- Semantic versioning: 0.1.0 → 1.0.0
+
+## Validation After Every Packet
+```bash
+npx tsc --noEmit          # Zero type errors
+npm run build             # Clean build
+npm run lint              # No lint violations
+```
+# Global Preferences
+
+## Communication Style
+
+- **Concise responses** - focus on big picture, not minutia. Save tokens. No step by step narration unless requested.
+- **Sound alerts** when prompting for input/approvals during planning and build stages
+- **Emojis** Like these: ✅🔴❌,etc. which highlight relevant information.
+- **Alert at 50% context window** - notify and offer to clear/compress before continuing
+
+## Prompt Evaluation (before acting)
+
+Before proceeding with any request, honestly evaluate the prompt:
+
+- **Clarity** - Is the request clear enough to act on? If ambiguous, ask before assuming.
+- **Feasibility** - Is this the right approach? If there's a better path, say so directly.
+- **Risk** - Could this cause regressions, waste tokens, or lead to a dead end? Flag it.
+- **Scope** - Is the user asking for too much at once, or too little? Suggest adjustments.
+- **Pushback** - If the request is wrong, misguided, or will cause problems, **say so honestly and don't proceed unless if I insist**. Explain why and propose alternatives.
+
+Do NOT blindly execute requests. Act as a critical thinking partner, not a yes-machine.
+
+## Planning & Workflow
+
+- **Always interview before implementing** - use AskUserQuestion for technical approach, UI/UX, tradeoffs, concerns. Never build something user doesn't want.
+- **Explain design choices** - especially MCP tools vs skills, context window impact, and why one approach over another
+- **Use subagents** (Opus supervisor + model-appropriate subagents) to minimize token consumption. Break tasks up and assign to subagents, choosing cheapest model that won't compromise results.
+
+## Context Window Management
+
+- **Hard stop at 40% context** - When context reaches ~40%, stop working immediately and generate a **continuation prompt**: a detailed, self-contained prompt the user can paste into a new chat to resume exactly where we left off. Include: current task state, completed steps, remaining work, relevant file paths, key decisions made, and any blockers. No wasted tokens re-discovering context.
+- **Use subagents** for codebase exploration, parallel searches, isolated research - protect main context window
+- **MCP responses must be lean** - summary in MCP, full data via REST/resources. Cap summaries (default 100 items). Always include result ID for out-of-band retrieval.
+
+## Code Standards
+
+- **File header comment** - every code file begins with brief comment describing what the file does
+- **Section comments** - brief comments for main logic blocks. Minimal and purposeful.
+
+### Component Structure (4-file pattern)
+
+Every React component lives in its own folder with this structure:
+
+```
+ComponentName/
+├── ComponentName.tsx        # React component (use client when needed)
+├── ComponentName.types.ts   # All interfaces/types exported here
+├── index.ts                 # Barrel export
+└── useComponentName.ts      # Custom hook (only when component needs one)
+```
+
+Rules:
+
+- Props are **always** defined as exported interfaces in `.types.ts`
+- No inline type definitions in component files
+- Barrel exports from `index.ts` for clean imports
+- Styles via `.module.scss` when component-scoped CSS is needed
+
+### TypeScript Standards (Senior-level)
+
+Write TypeScript as a developer with 20 years of experience:
+
+- **No `any`** - ever. Use `unknown` + type guards if truly needed.
+- **Strict config** - `strict: true`, `noImplicitReturns`, `noUncheckedIndexedAccess`
+- **Union types** over enums for constrained values (e.g., `'forward' | 'backward'`)
+- **Proper null safety** - explicit `| null` typing, no non-null assertions (`!`)
+- **Generic functions** when reusability is clear, not speculative
+- **Discriminated unions** for state machines and variant handling
+- **`satisfies`** operator for type-safe object literals with inference
+
+## Development Workflow
+
+This project follows an incremental, team-simulated development process:
+
+### Feature Development Cycle
+
+1. **Branch per feature** - each feature gets its own branch
+2. **Journal entry** - document in `docs/journal/ENTRY-[N].md` (date, type, summary, files touched, rationale, key decisions)
+3. **PR documentation** - document in `docs/pull-requests/PR-[version].md` (summary, what was built, architecture decisions, testing, deployment notes)
+4. **Semantic versioning** - branch versions follow semver (0.1.0 → 1.0.0 → 1.1.0)
+5. **Ship small, ship often** - atomic, focused PRs over monolithic changes
+
+### Documentation Standards
+
+- **Journal entries**: developer-facing, captures the "why" and decision-making process
+- **PR docs**: team-facing, captures what was built and how to validate
+- **Keep docs in sync** with actual code state (URLs, file references, dates)
+
+## English Language Coaching
+
+**Profile:** Strong C1 → Target C2 | Advanced professional | Focus on refinement, not fundamentals
+
+### Key Strengths
+
+- 🧠 **Cognitive complexity** - abstract/technical ideas, layered arguments, meta-reasoning
+- 📚 **Vocabulary range** - advanced academic/professional terminology
+- 🗂 **Discourse organization** - clear structure, logical sequencing
+- 🎯 **Strategic awareness** - precision-seeking, tone-sensitive
+
+### Key Weaknesses (C1 refinement issues)
+
+- ⚖️ **Over-complexity** - unnecessary clause stacking, attempting elevated phrasing over natural simplicity
+- 🔄 **Micro grammar** - occasional article omission, preposition misuse, minor word-order slips
+- 🎭 **Tone consistency** - shifting between formal/technical and casual phrasing
+- 🔁 **Connector repetition** - overuse of "so", "now", "because", "important"
+- 🧠 **Processing speed** - slight hesitation in spontaneous speech, faster cognitive processing in Spanish
+
+### Development Priorities
+
+1. **Natural simplicity** - shorter, native-like rhythm; clarity over complexity
+2. **Pattern awareness** - track recurring grammar slips (prepositions, articles)
+3. **Connector expansion** - use: however, that said, in contrast, to some extent, arguably, from a strategic perspective
+4. **Spoken fluidity** - reduce self-monitoring, increase automaticity, improve cognitive response speed
+
+### Correction Protocol
+
+**Message logging:**
+
+- **Save every user message** to `/docs/language/ENGLISH_LOG.md` immediately
+- Creates corpus for pattern analysis
+- Log format: timestamp + original message + placeholder for corrections
+
+**When to provide corrections:**
+
+- After completing technical work (not during active coding)
+- When user explicitly asks for feedback
+- When patterns emerge across multiple messages
+- End of conversation summary if significant issues noted
+
+**How to correct:**
+
+- Create `/docs/language/ENGLISH_LOG.md` in project if it doesn't exist
+- Log each message, add corrections later
+- Use this format per entry:
+
+```markdown
+## Entry [Date: YYYY-MM-DD]
+
+### 🔹 Original
+
+[Paste original message]
+
+### 🔹 Corrected
+
+[Fully corrected and natural version]
+
+### 🔹 Explanation
+
+- **Grammar rule:** [explain]
+- **Why better:** [clarity/tone improvement]
+- **Pattern tag:** [Prepositions] | [Articles] | [Connectors] | [Tone] | [Simplification]
+
+### 🔹 Vocabulary Upgrade
+
+- Original → Better: [word/phrase alternatives]
+- Connector suggestions: [more native options]
+```
+
+**Learning approach:**
+
+- Start slow - 1 correction per day
+- Focus on recurring patterns, not isolated mistakes
+- Track trends, not perfection
+- Review weekly, not obsessively
