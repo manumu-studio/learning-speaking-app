@@ -6,8 +6,8 @@
 - [x] OIDC auth integration with auth.manumustudio.com
 
 ## Phase 1: Core Feature (v0.4.0 – v0.8.0)
-- [ ] App shell + navigation layout
-- [ ] Audio recording UI (MediaRecorder)
+- [x] App shell + navigation layout
+- [x] Audio recording UI (MediaRecorder)
 - [ ] Audio upload API + R2 temp storage
 - [ ] Processing pipeline (QStash + Whisper + Claude)
 - [ ] Results display + polling
