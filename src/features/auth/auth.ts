@@ -8,7 +8,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       id: 'manumustudio',
       name: 'ManuMuStudio',
       type: 'oidc',
-      issuer: 'https://auth.manumustudio.com',
+      issuer: env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://auth.manumustudio.com',
       clientId: env.AUTH_CLIENT_ID,
       clientSecret: env.AUTH_CLIENT_SECRET,
       authorization: {
