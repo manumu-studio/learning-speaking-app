@@ -1,6 +1,4 @@
-// Prisma schema file
-// Database schema will be added in PACKET-02
-
+// Complete database schema for Learning Speaking App
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,4 +6,99 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum SessionStatus {
+  CREATED
+  UPLOADED
+  TRANSCRIBING
+  ANALYZING
+  DONE
+  FAILED
+}
+
+enum ConsentFlag {
+  AUDIO_STORAGE
+  TRANSCRIPT_STORAGE
+  PATTERN_TRACKING
+}
+
+model User {
+  id             String           @id @default(cuid())
+  externalId     String           @unique
+  email          String?
+  displayName    String?
+  sessions       SpeakingSession[]
+  consents       UserConsent[]
+  patternProfile PatternProfile?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  @@map("users")
+}
+
+model UserConsent {
+  id        String      @id @default(cuid())
+  userId    String
+  flag      ConsentFlag
+  granted   Boolean
+  grantedAt DateTime    @default(now())
+  revokedAt DateTime?
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, flag])
+  @@map("user_consents")
+}
+
+model SpeakingSession {
+  id             String        @id @default(cuid())
+  userId         String
+  status         SessionStatus @default(CREATED)
+  durationSecs   Int?
+  language       String        @default("en")
+  topic          String?
+  promptUsed     String?
+  audioUrl       String?
+  audioDeletedAt DateTime?
+  errorMessage   String?
+  focusNext      String?       @db.Text
+  transcript     Transcript?
+  insights       Insight[]
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  @@index([userId, createdAt])
+  @@map("speaking_sessions")
+}
+
+model Transcript {
+  id        String          @id @default(cuid())
+  sessionId String          @unique
+  text      String          @db.Text
+  wordCount Int?
+  session   SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  @@map("transcripts")
+}
+
+model Insight {
+  id         String          @id @default(cuid())
+  sessionId  String
+  category   String
+  pattern    String
+  detail     String          @db.Text
+  frequency  Int?
+  severity   String?
+  examples   Json?
+  suggestion String?         @db.Text
+  session    SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  @@index([sessionId])
+  @@map("insights")
+}
+
+model PatternProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  patterns    Json
+  focusAreas  Json?
+  lastUpdated DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("pattern_profiles")
 }

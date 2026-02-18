@@ -2,7 +2,7 @@
 
 ## Phase 0: Foundation (v0.1.0 – v0.3.0)
 - [x] Project scaffold + TypeScript + Tailwind
-- [ ] Database schema + Prisma migrations
+- [x] Database schema + Prisma migrations
 - [ ] OIDC auth integration with auth.manumustudio.com
 
 ## Phase 1: Core Feature (v0.4.0 – v0.8.0)
