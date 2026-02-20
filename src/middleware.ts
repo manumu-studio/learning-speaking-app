@@ -1,37 +1,29 @@
-// Middleware for protecting authenticated routes
-import { auth } from '@/features/auth/auth';
+// Middleware — launch mode allowlist: only /launch and /explanation are publicly accessible
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default auth((req) => {
-  const isAuthenticated = !!req.auth;
+// Paths allowed during launch mode
+const ALLOWED_PATHS = [
+  '/launch',
+  '/explanation',
+  '/api/launch/validate',
+];
 
-  // Define protected route patterns
-  const protectedPatterns = [
-    '/session',
-    '/history',
-    '/profile',
-    '/settings',
-  ];
+export function middleware(req: NextRequest): NextResponse {
+  const { pathname } = req.nextUrl;
 
-  const isProtectedRoute = protectedPatterns.some((pattern) =>
-    req.nextUrl.pathname.startsWith(pattern)
-  );
+  const isAllowed = ALLOWED_PATHS.some((path) => pathname.startsWith(path));
 
-  // Redirect to sign-in if accessing protected route without auth
-  if (isProtectedRoute && !isAuthenticated) {
-    const signInUrl = new URL('/auth/signin', req.url);
-    signInUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+  if (!isAllowed) {
+    return NextResponse.redirect(new URL('/launch', req.url));
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
+  // Run on all routes except Next.js internals and static files
   matcher: [
-    '/session/:path*',
-    '/history/:path*',
-    '/profile/:path*',
-    '/settings/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|assets|qr-codes|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js)).*)',
   ],
 };
