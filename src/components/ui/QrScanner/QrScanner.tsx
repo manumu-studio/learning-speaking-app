@@ -19,14 +19,19 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
       if (hasScannedRef.current) return;
       hasScannedRef.current = true;
 
-      // Stop scanner before navigating
-      if (scannerRef.current) {
+      if (scannerRef.current?.isScanning) {
         scannerRef.current.stop().catch(() => {});
       }
       onScan(decodedText);
     },
     [onScan]
   );
+
+  const stopScanner = useCallback((scanner: Html5Qrcode) => {
+    if (scanner.isScanning) {
+      scanner.stop().catch(() => {});
+    }
+  }, []);
 
   // Initialize and cleanup scanner
   useEffect(() => {
@@ -38,7 +43,7 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         handleScan,
-        () => {} // Ignore non-QR scan attempts
+        () => {}
       )
       .catch(() => {
         setError(
@@ -47,17 +52,17 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
       });
 
     return () => {
-      scanner.stop().catch(() => {});
+      stopScanner(scanner);
     };
-  }, [handleScan]);
+  }, [handleScan, stopScanner]);
 
   // Close handler — stop scanner first
   const handleClose = useCallback(() => {
     if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
+      stopScanner(scannerRef.current);
     }
     onClose();
-  }, [onClose]);
+  }, [onClose, stopScanner]);
 
   return (
     <div className={styles.overlay}>
