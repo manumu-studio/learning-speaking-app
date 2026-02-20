@@ -7,8 +7,8 @@ import Image from "next/image";
 import styles from "./launch.module.css";
 import { QrScanner } from "@/components/ui/QrScanner";
 
-// Target date: February 25, 2026 at 14:00 local time
-const LAUNCH_DATE = new Date(2026, 1, 25, 14, 0, 0);
+// Target date: February 26, 2026 at 14:00 local time
+const LAUNCH_DATE = new Date(2026, 1, 26, 14, 0, 0);
 
 interface TimeLeft {
   days: number;
@@ -174,7 +174,7 @@ export default function LaunchContent() {
 
         {/* Date */}
         <p className={`${styles.date} ${styles.animItem} ${styles.delay4}`}>
-          February 25, 2026 &middot; 2:00 PM
+          February 26, 2026 &middot; 2:00 PM
         </p>
 
         {/* Countdown */}
