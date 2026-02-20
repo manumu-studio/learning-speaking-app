@@ -47,6 +47,7 @@
 /* Page container */
 .page {
   height: 100vh;
+  height: 100dvh; /* dynamic viewport — accounts for mobile browser chrome */
   overflow: hidden;
   display: flex;
   flex-direction: column;
