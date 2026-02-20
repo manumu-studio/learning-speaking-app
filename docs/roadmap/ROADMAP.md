@@ -12,6 +12,12 @@
 - [x] Processing pipeline (QStash + Whisper + Claude)
 - [ ] Results display + polling — 08a ✅ (polling hook + status component), 08b pending
 
+## Launch Event (v0.8.1)
+- [x] QR-gated exclusive access for 5 invited guests
+- [x] Personalized scroll experience at `/explanation`
+- [x] Launch-mode middleware — all non-event routes locked to `/launch`
+- [x] Print-ready QR code generation script
+
 ## Phase 2: Completeness (v0.9.0 – v1.0.0)
 - [ ] Session history + pagination
 - [ ] GDPR compliance (delete, export, consent)
