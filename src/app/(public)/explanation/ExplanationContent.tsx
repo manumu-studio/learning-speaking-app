@@ -119,7 +119,7 @@ export default function ExplanationContent({ guestName }: ExplanationContentProp
           A private gathering.
         </h2>
         <p className={styles.sectionBody}>
-          On February 25, 2026, at 2:00 PM — five people will sit together in a
+          On February 26, 2026, at 2:00 PM — five people will sit together in a
           private setting to experience something entirely new. No audience. No
           cameras. Just a small group of people whose opinion matters most.
         </p>
@@ -184,7 +184,7 @@ export default function ExplanationContent({ guestName }: ExplanationContentProp
           This means more than you know.
         </p>
         <p className={styles.dateText}>
-          February 25, 2026 · 2:00 PM
+          February 26, 2026 · 2:00 PM
         </p>
       </ScrollSection>
 
