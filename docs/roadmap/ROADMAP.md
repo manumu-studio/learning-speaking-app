@@ -10,7 +10,7 @@
 - [x] Audio recording UI (MediaRecorder)
 - [x] Audio upload API + R2 temp storage
 - [x] Processing pipeline (QStash + Whisper + Claude)
-- [ ] Results display + polling
+- [ ] Results display + polling — 08a ✅ (polling hook + status component), 08b pending
 
 ## Phase 2: Completeness (v0.9.0 – v1.0.0)
 - [ ] Session history + pagination
