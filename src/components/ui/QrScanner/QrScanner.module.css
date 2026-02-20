@@ -1,0 +1,76 @@
+/* QrScanner overlay styles — full-screen camera modal for QR code scanning */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.95);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scanner viewport container */
+.scannerContainer {
+  position: relative;
+  width: min(85vw, 320px);
+  height: min(85vw, 320px);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Instruction text */
+.instruction {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2rem;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Error message */
+.error {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  font-weight: 300;
+  margin-top: 1.5rem;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Close button */
+.closeButton {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 101;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.125rem;
+  transition: all 0.3s ease;
+}
+
+.closeButton:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: white;
+}
