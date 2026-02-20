@@ -32,10 +32,10 @@ async function generateQrCodes(): Promise<void> {
       width: 1000,
       errorCorrectionLevel: 'H',
       color: {
-        dark: '#FFFFFF',  // white modules
-        light: '#000000', // black background
+        dark: '#000000',  // black modules — standard, universally scannable
+        light: '#FFFFFF', // white background
       },
-      margin: 2,
+      margin: 4,
     });
 
     console.log(`✓ Generated: public/qr-codes/${filename}`);
