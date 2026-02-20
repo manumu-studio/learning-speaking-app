@@ -1,2 +1,9 @@
 /* Global styles — Tailwind CSS v4 import */
 @import "tailwindcss";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
