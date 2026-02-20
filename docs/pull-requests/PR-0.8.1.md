@@ -1,6 +1,6 @@
 # PR-0.8.1 — Launch Event QR Access System
 
-**Branch:** `feature/processing-pipeline` → `main`
+**Branch:** `feature/launch-experience` → `main`
 **Version:** `0.8.1`
 **Date:** 2026-02-20
 **Status:** ✅ Ready to merge
@@ -48,6 +48,7 @@ Exclusive QR-gated access experience for the LSA launch event (Feb 25, 2026). Fi
 | File | Purpose |
 |---|---|
 | `src/middleware.ts` | Launch-mode allowlist — only `/launch`, `/explanation`, `/api/launch/validate` pass through |
+| `src/app/globals.css` | Base reset (`html`/`body` margin/padding) to prevent mobile bounce scroll |
 | `scripts/generate-qr-codes.ts` | Generates 5 print-ready QR PNGs (1000×1000px, white-on-black, error correction H) |
 | `scripts/tsconfig.json` | CommonJS override for ts-node |
 | `public/qr-codes/qr-*.png` | Generated QR codes for all 5 guests |
@@ -64,6 +65,9 @@ Exclusive QR-gated access experience for the LSA launch event (Feb 25, 2026). Fi
 | Server component validates token | No client-side token exposure; redirect on invalid token without loading states |
 | Middleware allowlist | Single control point — guarantees no accidental route exposure without per-route guards |
 | QR error correction H | Survives up to 30% physical damage on printed cards |
+| Mobile/desktop split on `window.innerWidth` | Camera scanner on mobile (< 768px); token input modal on desktop — avoids camera permission prompts on non-touch devices |
+| `isScanning` guard before `stop()` | `html5-qrcode` throws if `stop()` is called on a scanner that never started; guard prevents crash when camera is denied or component unmounts before start resolves |
+| `height: 100vh` + `overflow: hidden` on `.page` | Prevents scroll on a fixed-layout page; paired with `html`/`body` reset to eliminate iOS bounce |
 
 ---
 
