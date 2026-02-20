@@ -1,0 +1,339 @@
+/* Explanation page styles — Apple WWDC-inspired scroll experience with luxury monochrome aesthetic */
+
+/* Theme variables — Light */
+.page[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #000000;
+  --fg-muted: #6e6e73;
+  --fg-subtle: #86868b;
+  --border: rgba(0, 0, 0, 0.08);
+  --section-alt: #fafafa;
+}
+
+/* Theme variables — Dark */
+.page[data-theme="dark"] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --fg-muted: #a1a1a6;
+  --fg-subtle: #6e6e73;
+  --border: rgba(255, 255, 255, 0.08);
+  --section-alt: #0a0a0a;
+}
+
+/* Page container */
+.page {
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--fg);
+  transition: background-color 0.5s ease, color 0.5s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Theme toggle */
+.themeToggle {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--fg);
+  font-size: 0.9rem;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.themeToggle:hover {
+  border-color: var(--fg-muted);
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+/* ========== SECTIONS ========== */
+
+/* Generic section */
+.section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .section {
+    padding: 10rem 2rem;
+  }
+}
+
+/* Full viewport hero section */
+.heroSection {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  position: relative;
+}
+
+/* ========== SCROLL ANIMATIONS ========== */
+
+/* Base scroll-triggered element */
+.scrollReveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.9s cubic-bezier(0.25, 0.1, 0.25, 1),
+              transform 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.scrollReveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Delayed reveals for staggered entrance */
+.scrollDelay1 {
+  transition-delay: 0.15s;
+}
+
+.scrollDelay2 {
+  transition-delay: 0.3s;
+}
+
+.scrollDelay3 {
+  transition-delay: 0.45s;
+}
+
+/* ========== HERO ENTRANCE ========== */
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.heroAnim {
+  opacity: 0;
+  animation: heroFadeUp 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.heroAnimDelay1 {
+  animation-delay: 0.4s;
+}
+
+.heroAnimDelay2 {
+  animation-delay: 0.7s;
+}
+
+.heroAnimDelay3 {
+  animation-delay: 1s;
+}
+
+.heroAnimDelay4 {
+  animation-delay: 1.4s;
+}
+
+/* ========== TYPOGRAPHY ========== */
+
+/* Hero welcome — massive text */
+.heroTitle {
+  font-size: clamp(2.5rem, 10vw, 6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* Hero name — even larger, bolder */
+.heroName {
+  font-size: clamp(3rem, 14vw, 8rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 0.25rem 0 0;
+}
+
+/* Hero scroll indicator */
+.scrollIndicator {
+  position: absolute;
+  bottom: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0;
+  animation: heroFadeUp 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) 2s forwards;
+}
+
+.scrollIndicatorText {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.scrollArrow {
+  font-size: 1.25rem;
+  color: var(--fg-muted);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(6px);
+  }
+  60% {
+    transform: translateY(3px);
+  }
+}
+
+/* Exclusivity text — medium display */
+.exclusiveLabel {
+  font-size: clamp(0.875rem, 2vw, 1.125rem);
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin-bottom: 1.5rem;
+}
+
+.exclusiveTitle {
+  font-size: clamp(1.5rem, 5vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.exclusiveHighlight {
+  font-style: italic;
+  font-weight: 300;
+}
+
+/* Section titles */
+.sectionTitle {
+  font-size: clamp(1.25rem, 4vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 2rem;
+}
+
+/* Section body text */
+.sectionBody {
+  font-size: clamp(0.9375rem, 2vw, 1.125rem);
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--fg-muted);
+  max-width: 580px;
+  margin: 0;
+}
+
+.sectionBody + .sectionBody {
+  margin-top: 1.5rem;
+}
+
+/* Separator line */
+.separator {
+  width: 40px;
+  height: 1px;
+  background-color: var(--border);
+  margin: 3rem 0;
+}
+
+@media (min-width: 768px) {
+  .separator {
+    width: 60px;
+    margin: 4rem 0;
+  }
+}
+
+/* Feature list */
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 480px;
+}
+
+.featureItem {
+  font-size: clamp(0.875rem, 1.8vw, 1rem);
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--fg-muted);
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.featureItem::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--fg);
+  opacity: 0.3;
+}
+
+/* Closing section */
+.closingText {
+  font-size: clamp(1rem, 2.5vw, 1.375rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+  color: var(--fg);
+  max-width: 520px;
+  margin: 0;
+}
+
+/* Date emphasis */
+.dateText {
+  font-size: clamp(0.875rem, 2vw, 1.125rem);
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  margin-top: 2rem;
+}
+
+/* Footer */
+.footer {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.footerText {
+  font-size: 0.6875rem;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
