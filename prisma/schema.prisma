@@ -60,6 +60,7 @@ model SpeakingSession {
   audioDeletedAt DateTime?
   errorMessage   String?
   focusNext      String?       @db.Text
+  summary        String?       @db.Text
   transcript     Transcript?
   insights       Insight[]
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)

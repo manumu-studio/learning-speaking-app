@@ -15,8 +15,8 @@
 ┌────────────────────────────────────────────────────────────┐
 │        NEXT.JS 15  (speak.manumustudio.com)                │
 │                                                            │
-│  API Routes (/api/sessions, /api/profile, /api/internal)   │
-│  Middleware (JWT validation via JWKS)                       │
+│  API Routes (/api/sessions, /api/internal, /api/dev, /api/launch)  │
+│  Middleware (JWT validation via JWKS + launch mode redirect)│
 │                                                            │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  Async Pipeline (triggered via QStash)              │   │
@@ -164,6 +164,7 @@ model SpeakingSession {
   audioDeletedAt DateTime?
   errorMessage   String?
   focusNext      String?       @db.Text
+  summary        String?       @db.Text
   transcript     Transcript?
   insights       Insight[]
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -216,10 +217,9 @@ model PatternProfile {
 | GET | /api/sessions | Yes | List sessions (paginated) |
 | GET | /api/sessions/:id | Yes | Session status + results |
 | DELETE | /api/sessions/:id | Yes | Delete session + data |
-| GET | /api/profile | Yes | User profile + consents |
-| PUT | /api/profile/consents | Yes | Update consent flags |
-| GET | /api/profile/export | Yes | GDPR data export |
-| POST | /api/internal/process | QStash sig | Pipeline webhook |
+| POST | /api/internal/process | QStash sig | Pipeline webhook (production) |
+| POST | /api/dev/process | None (dev only) | Pipeline webhook (development, NODE_ENV check) |
+| POST | /api/launch/validate | None | QR token validation (launch mode) |
 
 ### State Machine
 ```
