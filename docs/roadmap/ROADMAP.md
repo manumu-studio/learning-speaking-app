@@ -10,13 +10,21 @@
 - [x] Audio recording UI (MediaRecorder)
 - [x] Audio upload API + R2 temp storage
 - [x] Processing pipeline (QStash + Whisper + Claude)
-- [ ] Results display + polling — 08a ✅ (polling hook + status component), 08b pending
+- [x] Results display + polling (v0.8.0–v0.8.3) — polling hook, status component, full results UI
 
 ## Launch Event (v0.8.1)
 - [x] QR-gated exclusive access for 5 invited guests
 - [x] Personalized scroll experience at `/explanation`
 - [x] Launch-mode middleware — all non-event routes locked to `/launch`
 - [x] Print-ready QR code generation script
+
+## Dev Infrastructure (v0.8.2–v0.8.3)
+- [x] Database seed script with dev user + sample session
+- [x] Dev-only sync pipeline (`/api/dev/process`)
+- [x] Auto-trigger dev pipeline in development mode
+- [x] Vitest setup + unit tests for analysis module
+- [x] Cleanup: dead code, memory leak, dynamic import, SYSTEM_SPEC drift
+- [x] Cursor task system — 15/15 tasks executed (TASK-001 through TASK-015)
 
 ## Phase 2: Completeness (v0.9.0 – v1.0.0)
 - [ ] Session history + pagination

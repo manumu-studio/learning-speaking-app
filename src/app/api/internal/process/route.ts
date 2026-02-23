@@ -71,8 +71,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 4: Guard — must be UPLOADED to proceed
-    if (session.status !== SessionStatus.UPLOADED) {
+    // Step 4: Guard — allow re-entry for QStash retries from intermediate states
+    const retriableStatuses: SessionStatus[] = [
+      SessionStatus.UPLOADED,
+      SessionStatus.TRANSCRIBING,
+      SessionStatus.ANALYZING,
+    ];
+
+    if (!retriableStatuses.includes(session.status)) {
       return NextResponse.json(
         { error: 'Session already processed or in wrong state', code: 'INVALID_STATE' },
         { status: 400 }
@@ -131,10 +137,13 @@ export async function POST(request: NextRequest) {
       })),
     });
 
-    // Step 13: Store focusNext on the session
+    // Step 13: Store focusNext and summary on the session
     await prisma.speakingSession.update({
       where: { id },
-      data: { focusNext: analysis.focusNext },
+      data: {
+        focusNext: analysis.focusNext,
+        summary: analysis.summary,
+      },
     });
 
     // Step 14: Aggregate insights into user's long-term pattern profile
@@ -148,18 +157,34 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    // Mark session as FAILED with error detail to prevent stuck states
-    if (sessionId) {
-      await prisma.speakingSession.update({
-        where: { id: sessionId },
-        data: {
-          status: SessionStatus.FAILED,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        },
-      });
+    console.error('Processing pipeline error:', error);
+
+    // Determine if QStash will retry — only mark FAILED on final attempt
+    const retriedHeader = request.headers.get('upstash-retried');
+    const maxRetriesHeader = request.headers.get('upstash-max-retries');
+    const retried = retriedHeader !== null ? parseInt(retriedHeader, 10) : null;
+    const maxRetries = maxRetriesHeader !== null ? parseInt(maxRetriesHeader, 10) : null;
+
+    const isFinalAttempt =
+      retried === null ||
+      maxRetries === null ||
+      retried >= maxRetries - 1;
+
+    // Only mark session as FAILED on the final retry attempt
+    if (sessionId && isFinalAttempt) {
+      try {
+        await prisma.speakingSession.update({
+          where: { id: sessionId },
+          data: {
+            status: SessionStatus.FAILED,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          },
+        });
+      } catch (dbError) {
+        console.error('Failed to update session status to FAILED:', dbError);
+      }
     }
 
-    console.error('Processing pipeline error:', error);
     return NextResponse.json(
       { error: 'Processing failed', code: 'PROCESSING_ERROR' },
       { status: 500 }

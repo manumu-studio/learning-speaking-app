@@ -109,7 +109,10 @@ export async function analyzeTranscript(
     throw new Error('Unexpected response type from Claude');
   }
 
+  // Strip markdown code fences Claude sometimes wraps around JSON
+  const rawText = content.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
   // Parse and validate response with Zod — throws ZodError on schema mismatch
-  const parsed: unknown = JSON.parse(content.text);
+  const parsed: unknown = JSON.parse(rawText);
   return analysisResultSchema.parse(parsed);
 }

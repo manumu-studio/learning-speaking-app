@@ -48,3 +48,51 @@ yarn-error.log*
 
 # _docs
 /_docs/
+
+# Session continuity (transient baton pass — not historical)
+/CONTINUATION_PROMPT_NEXT_SESSION.md
+
+# Project map
+/PROJECT_MAP.md
+
+# Cursor rules
+/.cursorrules
+
+# Memory
+/memory/MEMORY.md
+
+# session prompts
+/docs/session-prompts/
+
+# CLAUDE.md
+/docs/CLAUDE.md
+
+# DEVELOPMENT_PLAYBOOK.md
+/docs/DEVELOPMENT_PLAYBOOK.md
+
+# cursor-tasks
+/docs/cursor-tasks/
+
+# cursor-task-reports
+/docs/cursor-task-reports/
+
+# Internal process docs (journals, build packets, PR docs)
+/docs/journal/
+/docs/build-packets/
+/docs/build-packet-reports/
+/docs/pull-requests/
+
+# template
+/_template/
+
+# public
+/public/qr-codes/
+
+# scripts
+/scripts
+
+# vscode
+.vscode/
+
+# Claude Code
+.claude/
