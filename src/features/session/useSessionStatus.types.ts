@@ -6,6 +6,7 @@ export interface SessionDetail {
   durationSecs: number | null;
   topic: string | null;
   focusNext: string | null;
+  summary: string | null;
   errorMessage: string | null;
   createdAt: string;
   transcript?: {

@@ -2,14 +2,13 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
 import styles from './QrScanner.module.css';
 import type { QrScannerProps } from './QrScanner.types';
 
 const SCANNER_ID = 'qr-scanner-viewport';
 
 export default function QrScanner({ onScan, onClose }: QrScannerProps) {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<import('html5-qrcode').Html5Qrcode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasScannedRef = useRef(false);
 
@@ -27,7 +26,7 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
     [onScan]
   );
 
-  const stopScanner = useCallback((scanner: Html5Qrcode) => {
+  const stopScanner = useCallback((scanner: import('html5-qrcode').Html5Qrcode) => {
     if (scanner.isScanning) {
       scanner.stop().catch(() => {});
     }
@@ -35,24 +34,30 @@ export default function QrScanner({ onScan, onClose }: QrScannerProps) {
 
   // Initialize and cleanup scanner
   useEffect(() => {
-    const scanner = new Html5Qrcode(SCANNER_ID);
-    scannerRef.current = scanner;
+    let scanner: import('html5-qrcode').Html5Qrcode | null = null;
 
-    scanner
-      .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        handleScan,
-        () => {}
-      )
-      .catch(() => {
-        setError(
-          'Camera access denied. Please allow camera permissions and try again.'
-        );
-      });
+    import('html5-qrcode').then(({ Html5Qrcode }) => {
+      scanner = new Html5Qrcode(SCANNER_ID);
+      scannerRef.current = scanner;
+
+      scanner
+        .start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          handleScan,
+          () => {}
+        )
+        .catch(() => {
+          setError(
+            'Camera access denied. Please allow camera permissions and try again.'
+          );
+        });
+    }).catch(() => {
+      setError('Failed to load QR scanner library.');
+    });
 
     return () => {
-      stopScanner(scanner);
+      if (scanner) stopScanner(scanner);
     };
   }, [handleScan, stopScanner]);
 

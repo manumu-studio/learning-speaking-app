@@ -1,6 +1,7 @@
 // Main recording interface — orchestrates timer, button, and upload flow
 'use client';
 
+import { useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAudioRecorder } from '@/features/recording/useAudioRecorder';
 import { useUploadSession } from '@/features/session';
@@ -16,6 +17,18 @@ export function RecordingPanel({ topic }: RecordingPanelProps) {
 
   // Combined error from either recording or upload
   const error = recordError ?? uploadError;
+
+  // Create stable Object URL from audio blob — revoke on cleanup to prevent memory leak
+  const audioPreviewUrl = useMemo(() => {
+    if (audioBlob) return URL.createObjectURL(audioBlob);
+    return null;
+  }, [audioBlob]);
+
+  useEffect(() => {
+    return () => {
+      if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+    };
+  }, [audioPreviewUrl]);
 
   const handleUpload = async () => {
     if (!audioBlob) return;
@@ -108,9 +121,9 @@ export function RecordingPanel({ topic }: RecordingPanelProps) {
       </div>
 
       {/* Audio preview */}
-      {audioBlob && state === 'stopped' && !isUploading && (
+      {audioPreviewUrl && state === 'stopped' && !isUploading && (
         <div className="mt-4">
-          <audio controls src={URL.createObjectURL(audioBlob)} className="w-80" />
+          <audio controls src={audioPreviewUrl} className="w-80" />
         </div>
       )}
     </div>

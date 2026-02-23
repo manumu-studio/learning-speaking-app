@@ -7,9 +7,16 @@ const ALLOWED_PATHS = [
   '/launch',
   '/explanation',
   '/api/launch/validate',
+  '/api/internal',          // QStash webhooks must bypass launch mode
+  '/api/dev',               // Dev-only pipeline routes (self-guarded by NODE_ENV check)
 ];
 
 export function middleware(req: NextRequest): NextResponse {
+  // Skip restrictions in local development
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next();
+  }
+
   const { pathname } = req.nextUrl;
 
   const isAllowed = ALLOWED_PATHS.some((path) => pathname.startsWith(path));
