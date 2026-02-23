@@ -12,7 +12,7 @@ const LAUNCH_GUESTS: Record<string, LaunchGuest> = {
   'X7kP9mQwRtY2sVnL4hJ8dF': { name: 'Sandra', slug: 'sandra' },
   'M3bN5xC1pK8qW2vT4zL9rA': { name: 'Umut', slug: 'umut' },
   'J6fH2yD8sE4nU7wG1iO5kR': { name: 'Gabrielle', slug: 'gabrielle' },
-  'Q9tV3aP7lB6mX1cZ8jW5nY': { name: 'Guest Four', slug: 'guest-four' },
+  'Q9tV3aP7lB6mX1cZ8jW5nY': { name: 'Felipe', slug: 'felipe' },
   'R4uI8eK2gS6hL3oF7dN9wM': { name: 'Guest Five', slug: 'guest-five' },
 } as const satisfies Record<string, LaunchGuest>;
 

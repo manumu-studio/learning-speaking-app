@@ -1,6 +1,12 @@
 // OpenAI Whisper client for speech-to-text transcription
-import OpenAI from 'openai';
+import { File as NodeFile } from 'node:buffer';
+import OpenAI, { toFile } from 'openai';
 import { env } from '@/lib/env';
+
+// Node.js 18 has File in node:buffer but not as a global — polyfill for OpenAI SDK
+if (typeof globalThis.File === 'undefined') {
+  (globalThis as Record<string, unknown>).File = NodeFile;
+}
 
 // Runtime validation — OPENAI_API_KEY is optional in env.ts but required here
 function requireEnv(value: string | undefined, name: string): string {
@@ -32,12 +38,8 @@ export async function transcribeAudio(
 ): Promise<string> {
   const client = getOpenAIClient();
 
-  // Convert Buffer to File object for Whisper API (slice() returns a plain ArrayBuffer)
-  const arrayBuffer = audioBuffer.buffer.slice(
-    audioBuffer.byteOffset,
-    audioBuffer.byteOffset + audioBuffer.byteLength
-  ) as ArrayBuffer;
-  const file = new File([arrayBuffer], filename, { type: 'audio/webm' });
+  // toFile handles Buffer → File conversion without relying on Node.js global File (unavailable in Node 18)
+  const file = await toFile(audioBuffer, filename, { type: 'audio/webm' });
 
   const response = await client.audio.transcriptions.create({
     model: 'whisper-1',
