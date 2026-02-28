@@ -25,7 +25,7 @@ const COPY = {
     exclusivityBody2: 'You are one of them.',
     gatheringTitle: 'A private gathering.',
     gatheringBody1:
-      'On February 26, 2026, at 2:00 PM — five people will sit together in a private setting to experience something entirely new. No audience. No cameras. Just a small group of people whose opinion matters most.',
+      'On March 6, 2026, at 2:00 PM — five people will sit together in a private setting to experience something entirely new. No audience. No cameras. Just a small group of people whose opinion matters most.',
     gatheringBody2:
       "This is the first time LSA will be used by anyone outside its creator. Your feedback, your reactions, your honest experience — that is the entire point.",
     introducing: 'Introducing',
@@ -42,7 +42,7 @@ const COPY = {
     expectBody2:
       "Then we talk. What worked. What didn't. What surprised you. Your experience will directly shape what LSA becomes.",
     closing: 'Thank you for being here.\nThis means more than you know.',
-    date: 'February 26, 2026 · 2:00 PM',
+    date: 'March 6, 2026 · 2:00 PM',
     footer: 'LSA — ManuMu Studio',
     scroll: 'Scroll',
   },
@@ -57,7 +57,7 @@ const COPY = {
     exclusivityBody2: 'Tú eres una de ellas.',
     gatheringTitle: 'Una reunión privada.',
     gatheringBody1:
-      'El 26 de febrero de 2026, a las 2:00 PM — cinco personas se reunirán en un entorno privado para vivir algo completamente nuevo. Sin público. Sin cámaras. Solo un pequeño grupo de personas cuya opinión importa más.',
+      'El 6 de marzo de 2026, a las 2:00 PM — cinco personas se reunirán en un entorno privado para vivir algo completamente nuevo. Sin público. Sin cámaras. Solo un pequeño grupo de personas cuya opinión importa más.',
     gatheringBody2:
       'Esta es la primera vez que alguien fuera de su creador usará LSA. Tu opinión, tus reacciones, tu experiencia honesta — ese es el punto.',
     introducing: 'Presentamos',
@@ -74,7 +74,7 @@ const COPY = {
     expectBody2:
       'Luego conversamos. Qué funcionó. Qué no. Qué te sorprendió. Tu experiencia dará forma directamente a lo que LSA se convierte.',
     closing: 'Gracias por estar aquí.\nEsto significa más de lo que imaginas.',
-    date: '26 de febrero de 2026 · 2:00 PM',
+    date: '6 de marzo de 2026 · 2:00 PM',
     footer: 'LSA — ManuMu Studio',
     scroll: 'Deslizar',
   },

@@ -15,8 +15,8 @@
 ┌────────────────────────────────────────────────────────────┐
 │        NEXT.JS 15  (speak.manumustudio.com)                │
 │                                                            │
-│  API Routes (/api/sessions, /api/internal, /api/dev, /api/launch)  │
-│  Middleware (JWT validation via JWKS + launch mode redirect)│
+│  API Routes (/api/sessions, /api/internal, /api/dev, /api/launch, /api/auth/federated-signout)  │
+│  Middleware (launch mode toggle via LAUNCH_MODE env)         │
 │                                                            │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  Async Pipeline (triggered via QStash)              │   │
@@ -95,6 +95,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 - Client secret only server-side
 - Validate `iss` and `aud` claims (automatic with next-auth OIDC)
 - No refresh tokens in MVP — re-auth on expiry
+- Federated sign-out uses RP-initiated logout via auth server `/oauth/logout`
+- `id_token` is stored only in JWT server token state (never exposed in session payload)
 
 ### Prerequisite
 - Register OAuth client on auth.manumustudio.com
@@ -220,6 +222,13 @@ model PatternProfile {
 | POST | /api/internal/process | QStash sig | Pipeline webhook (production) |
 | POST | /api/dev/process | None (dev only) | Pipeline webhook (development, NODE_ENV check) |
 | POST | /api/launch/validate | None | QR token validation (launch mode) |
+| GET | /api/auth/federated-signout | Auth cookie | Clear local cookies + redirect to auth RP logout |
+
+## Access Control Modes
+
+- `LAUNCH_MODE=true`: launch lock enabled; only allowlisted launch routes are accessible
+- `LAUNCH_MODE=false` (or unset): normal mode; middleware does not lock routes
+- Protected app routes remain gated by server auth checks in `src/app/(app)/layout.tsx`
 
 ### State Machine
 ```
@@ -282,6 +291,7 @@ QSTASH_CURRENT_SIGNING_KEY=
 QSTASH_NEXT_SIGNING_KEY=
 APP_URL=
 NODE_ENV=
+LAUNCH_MODE=
 ```
 
 ## Privacy Requirements
