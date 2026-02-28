@@ -77,10 +77,10 @@ yarn-error.log*
 /docs/cursor-task-reports/
 
 # Internal process docs (journals, build packets, PR docs)
-/docs/journal/
+
 /docs/build-packets/
 /docs/build-packet-reports/
-/docs/pull-requests/
+
 
 # template
 /_template/

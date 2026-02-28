@@ -41,6 +41,7 @@ const analysisResultSchema = z.object({
   insights: z.array(insightSchema).max(5),
   focusNext: z.string(),
   summary: z.string(),
+  intentLabel: z.string(),
 });
 
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
@@ -67,6 +68,7 @@ For each pattern found, provide:
 Also provide:
 - focusNext: ONE concrete focus area for the next speaking session (specific and measurable, e.g., "Practice using 'however' and 'in contrast' instead of 'but' and 'so'")
 - summary: 2-3 sentence overall assessment of speaking proficiency and main strengths/weaknesses
+- intentLabel: A concise 3-5 word label describing the main topic of this conversation (e.g., "Daily routine discussion", "Job interview practice", "Travel experiences sharing")
 
 CRITICAL: Respond with ONLY valid JSON. No markdown, no explanations. Just the JSON object.
 
@@ -84,7 +86,8 @@ Schema:
     }
   ],
   "focusNext": "string",
-  "summary": "string"
+  "summary": "string",
+  "intentLabel": "string"
 }`;
 
 // Analyze transcript using Claude Haiku — returns structured insights validated against Prisma schema

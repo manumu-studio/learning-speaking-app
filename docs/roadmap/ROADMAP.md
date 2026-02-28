@@ -26,6 +26,13 @@
 - [x] Cleanup: dead code, memory leak, dynamic import, SYSTEM_SPEC drift
 - [x] Cursor task system — 15/15 tasks executed (TASK-001 through TASK-015)
 
+## Auth Hardening (v0.10.0)
+- [x] Federated sign-out (OIDC RP-initiated logout)
+- [x] Persist `id_token` in JWT-only token state for logout hinting
+- [x] Server logout bridge route (`/api/auth/federated-signout`)
+- [x] Cookie cleanup + auth server logout redirect + post-logout return
+- [x] Launch lock moved to env toggle (`LAUNCH_MODE`) for safe production switching
+
 ## Phase 2: Completeness (v0.9.0 – v1.0.0)
 - [ ] Session history + pagination
 - [ ] GDPR compliance (delete, export, consent)
