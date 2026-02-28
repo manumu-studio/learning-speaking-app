@@ -19,6 +19,7 @@ const analysisResultSchema = z.object({
   insights: z.array(insightSchema).max(5),
   focusNext: z.string(),
   summary: z.string(),
+  intentLabel: z.string(),
 });
 
 describe('Analysis result schema', () => {
@@ -37,6 +38,7 @@ describe('Analysis result schema', () => {
       ],
       focusNext: 'Focus on using articles consistently.',
       summary: 'Strong vocabulary but recurring grammar issues with articles.',
+      intentLabel: 'Language learning daily habits',
     };
 
     expect(analysisResultSchema.parse(valid)).toEqual(valid);
@@ -53,6 +55,7 @@ describe('Analysis result schema', () => {
       ],
       focusNext: 'test',
       summary: 'test',
+      intentLabel: 'test',
     };
 
     expect(() => analysisResultSchema.parse(invalid)).toThrow();
@@ -67,6 +70,7 @@ describe('Analysis result schema', () => {
       })),
       focusNext: 'test',
       summary: 'test',
+      intentLabel: 'test',
     };
 
     expect(() => analysisResultSchema.parse(tooMany)).toThrow();
@@ -83,6 +87,7 @@ describe('Analysis result schema', () => {
       ],
       focusNext: 'Expand connector vocabulary.',
       summary: 'Adequate but repetitive.',
+      intentLabel: 'Connector usage practice',
     };
 
     expect(analysisResultSchema.parse(minimal)).toEqual(minimal);
@@ -92,6 +97,7 @@ describe('Analysis result schema', () => {
     const noFocus = {
       insights: [],
       summary: 'Good overall.',
+      intentLabel: 'test',
     };
 
     expect(() => analysisResultSchema.parse(noFocus)).toThrow();
@@ -101,8 +107,19 @@ describe('Analysis result schema', () => {
     const noSummary = {
       insights: [],
       focusNext: 'Practice more.',
+      intentLabel: 'test',
     };
 
     expect(() => analysisResultSchema.parse(noSummary)).toThrow();
+  });
+
+  it('rejects missing intentLabel', () => {
+    const noLabel = {
+      insights: [],
+      focusNext: 'Practice more.',
+      summary: 'Good overall.',
+    };
+
+    expect(() => analysisResultSchema.parse(noLabel)).toThrow();
   });
 });

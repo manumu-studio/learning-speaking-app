@@ -125,12 +125,13 @@ export async function POST(request: NextRequest) {
       })),
     });
 
-    // Step 12: Store focusNext and summary
+    // Step 12: Store focusNext, summary, and intentLabel
     await prisma.speakingSession.update({
       where: { id },
       data: {
         focusNext: analysis.focusNext,
         summary: analysis.summary,
+        intentLabel: analysis.intentLabel,
       },
     });
 

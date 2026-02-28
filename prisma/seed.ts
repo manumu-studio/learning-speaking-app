@@ -1,4 +1,4 @@
-// Dev seed script — inserts a complete DONE session for visual testing of results UI
+// Dev seed script — inserts multiple sessions across days for visual testing of history + results UI
 import { PrismaClient, SessionStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -102,6 +102,7 @@ async function seed(): Promise<void> {
       durationSecs: 180,
       language: 'en',
       topic: 'Daily routine and language learning habits',
+      intentLabel: 'Language learning daily habits',
       summary: MOCK_SUMMARY,
       focusNext: MOCK_FOCUS_NEXT,
       audioDeletedAt: new Date(),
@@ -135,6 +136,54 @@ async function seed(): Promise<void> {
   });
   console.log(`✅ Insights: ${MOCK_INSIGHTS.length} patterns`);
 
+  // Session 2 — yesterday, DONE
+  const session2 = await prisma.speakingSession.create({
+    data: {
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 120,
+      language: 'en',
+      topic: 'Job interview preparation',
+      intentLabel: 'Job interview practice',
+      summary: 'Good fluency under pressure. Needs work on past tense consistency and formal register.',
+      focusNext: 'Practice answering "Tell me about yourself" using past simple consistently.',
+      audioDeletedAt: new Date(),
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log(`✅ Session 2: ${session2.id} (DONE, yesterday)`);
+
+  // Session 3 — 2 days ago, DONE
+  const session3 = await prisma.speakingSession.create({
+    data: {
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 240,
+      language: 'en',
+      topic: 'Travel experiences',
+      intentLabel: 'Travel stories sharing',
+      summary: 'Rich vocabulary for describing places. Article usage still inconsistent.',
+      focusNext: 'Practice using "the" with specific places you have already mentioned.',
+      audioDeletedAt: new Date(),
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log(`✅ Session 3: ${session3.id} (DONE, 2 days ago)`);
+
+  // Session 4 — today, FAILED (tests fallback label display — no intentLabel)
+  const session4 = await prisma.speakingSession.create({
+    data: {
+      userId: user.id,
+      status: 'FAILED',
+      durationSecs: 60,
+      language: 'en',
+      topic: 'Free conversation',
+      errorMessage: 'Whisper transcription timed out',
+      audioDeletedAt: new Date(),
+    },
+  });
+  console.log(`✅ Session 4: ${session4.id} (FAILED, today — tests fallback)`);
+
   // Create/update pattern profile
   const patterns: Record<string, number> = {};
   for (const insight of MOCK_INSIGHTS) {
@@ -148,6 +197,7 @@ async function seed(): Promise<void> {
   });
   console.log(`✅ Pattern profile updated`);
 
+  console.log(`\n📊 Seeded 4 sessions across 3 days (3 DONE + 1 FAILED)`);
   console.log('\n──────────────────────────────────────');
   console.log(`🔗 View results: http://localhost:3000/session/${session.id}`);
   console.log('──────────────────────────────────────\n');

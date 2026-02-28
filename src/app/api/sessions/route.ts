@@ -128,6 +128,8 @@ export async function GET(request: Request) {
           durationSecs: true,
           language: true,
           topic: true,
+          intentLabel: true,
+          summary: true,
           createdAt: true,
           updatedAt: true,
         },
