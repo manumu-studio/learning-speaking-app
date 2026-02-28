@@ -1,4 +1,4 @@
-// Middleware — launch mode allowlist: only /launch and /explanation are publicly accessible
+// Middleware — launch mode allowlist controlled by LAUNCH_MODE env
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -12,8 +12,10 @@ const ALLOWED_PATHS = [
 ];
 
 export function middleware(req: NextRequest): NextResponse {
-  // Skip restrictions in local development
-  if (process.env.NODE_ENV === 'development') {
+  // Launch lock is opt-in: set LAUNCH_MODE=true to enforce allowlist.
+  // In normal mode, app route protection is handled by server auth checks in (app)/layout.tsx.
+  const isLaunchMode = process.env.LAUNCH_MODE === 'true';
+  if (!isLaunchMode) {
     return NextResponse.next();
   }
 

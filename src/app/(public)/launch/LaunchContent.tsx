@@ -7,8 +7,8 @@ import Image from "next/image";
 import styles from "./launch.module.css";
 import { QrScanner } from "@/components/ui/QrScanner";
 
-// Target date: February 26, 2026 at 14:00 local time
-const LAUNCH_DATE = new Date(2026, 1, 26, 14, 0, 0);
+// Target date: March 6, 2026 at 14:00 local time
+const LAUNCH_DATE = new Date(2026, 2, 6, 14, 0, 0);
 
 interface TimeLeft {
   days: number;
@@ -168,13 +168,13 @@ export default function LaunchContent() {
 
         {/* Tagline */}
         <p className={`${styles.tagline} ${styles.animItem} ${styles.delay3}`}>
-          A tutor that will always truly listens — then helps you<br />
+          A tutor that will always truly listen — then helps you<br />
           sound exactly the way you&apos;ve always wanted.
         </p>
 
         {/* Date */}
         <p className={`${styles.date} ${styles.animItem} ${styles.delay4}`}>
-          February 26, 2026 &middot; 2:00 PM
+          March 6, 2026 &middot; 2:00 PM
         </p>
 
         {/* Countdown */}

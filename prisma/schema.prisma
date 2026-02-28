@@ -61,6 +61,8 @@ model SpeakingSession {
   errorMessage   String?
   focusNext      String?       @db.Text
   summary        String?       @db.Text
+  intentLabel    String?       @db.Text
+  location       String?
   transcript     Transcript?
   insights       Insight[]
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
