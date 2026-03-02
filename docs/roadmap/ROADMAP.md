@@ -33,6 +33,13 @@
 - [x] Cookie cleanup + auth server logout redirect + post-logout return
 - [x] Launch lock moved to env toggle (`LAUNCH_MODE`) for safe production switching
 
+## UX + Compliance Increment (v0.8.4)
+- [x] Removed redundant `/auth/signin` intermediate step
+- [x] Merged sign-in action directly into landing page (`/`)
+- [x] Added landing-page auth error feedback (`?error=...`)
+- [x] Added persistent cookie consent banner with auth-provider disclosure
+- [x] Kept consent flow non-blocking and persistent across sessions
+
 ## Phase 2: Completeness (v0.9.0 – v1.0.0)
 - [ ] Session history + pagination
 - [ ] GDPR compliance (delete, export, consent)
