@@ -42,6 +42,13 @@ Each feature produces:
 - **Journal entry**: `docs/journal/ENTRY-N.md` — dev-facing, captures the "why"
 - **PR doc**: `docs/pull-requests/PR-X.Y.Z.md` — team-facing, captures what was built
 
+## Current Documentation Status
+
+- Latest journal entry: `docs/journal/ENTRY-10a.md`
+- Latest PR doc: `docs/pull-requests/PR-0.8.4.md`
+- Product direction: `docs/roadmap/ROADMAP.md`
+- Source-of-truth architecture: `docs/architecture/SYSTEM_SPEC.md`
+
 ## Quality Gates
 
 After every packet:

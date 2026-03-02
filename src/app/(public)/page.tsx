@@ -1,12 +1,19 @@
 // Public landing page with conditional CTAs based on auth state
-import { auth } from '@/features/auth/auth';
+import { CookieConsent } from '@/components/ui/CookieConsent';
+import { auth, signIn } from '@/features/auth/auth';
 import Link from 'next/link';
 
-export default async function HomePage() {
+interface HomePageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
   const session = await auth();
+  const params = await searchParams;
+  const error = params.error;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-2xl mx-auto px-4 text-center">
         <h1 className="text-5xl font-bold text-gray-900 mb-6">
           Learning Speaking App
@@ -24,14 +31,43 @@ export default async function HomePage() {
             Go to Dashboard
           </Link>
         ) : (
-          <Link
-            href="/auth/signin"
-            className="inline-block px-8 py-3 text-lg font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Sign In to Start
-          </Link>
+          <>
+            {error && (
+              <div className="w-full max-w-md mx-auto rounded-md bg-red-50 p-4 text-sm text-red-800 mb-6">
+                Authentication failed. Please try again.
+              </div>
+            )}
+
+            <form
+              action={async () => {
+                'use server';
+                await signIn('manumustudio', { redirectTo: '/session/new' });
+              }}
+              className="w-full max-w-md mx-auto"
+            >
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-blue-600 px-8 py-3 text-lg font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Sign in with ManuMuStudio
+              </button>
+            </form>
+
+            <p className="text-sm text-gray-500 mt-4">
+              Don&apos;t have an account?{' '}
+              <a
+                href="https://auth.manumustudio.com/?mode=signup"
+                className="text-blue-600 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Create one here
+              </a>
+            </p>
+          </>
         )}
       </div>
+      <CookieConsent />
     </div>
   );
 }
