@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await auth();
 
   if (!session?.user?.externalId) {
-    redirect('/auth/signin');
+    redirect('/');
   }
 
   await syncUser({

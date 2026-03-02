@@ -37,6 +37,12 @@ Browser (Results UI) ← Poll status ← Next.js API
 4. **Results** — User sees categorized insights (grammar, vocabulary, fluency, pronunciation, pragmatics), a summary, and a focused next-step recommendation
 5. **Privacy** — Audio is deleted from R2 immediately after transcription
 
+## Recent Updates
+
+- **Landing auth simplification:** Sign-in now starts directly on `/` (no intermediate `/auth/signin` page).
+- **Cookie consent banner:** First-visit consent notice is shown on landing page and persisted in local storage.
+- **Federated sign-out support:** Sign-out now clears local session and logs out from the external auth provider.
+
 ## Getting Started
 
 ### Prerequisites
