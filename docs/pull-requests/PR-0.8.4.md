@@ -1,6 +1,6 @@
 # PR-0.8.4 — Landing Auth Simplification + Cookie Consent
 
-**Branch:** `main` → `main`
+**Branch:** `feature/landing-page-signin` → `main`
 **Version:** `0.8.4` (planned)
 **Date:** 2026-03-02
 **Status:** ✅ Ready to merge

@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-02
 **Type:** UX + Compliance
-**Branch:** `main`
+**Branch:** `feature/landing-page-signin`
 **Version:** `0.8.4` (planned)
 
 ---
