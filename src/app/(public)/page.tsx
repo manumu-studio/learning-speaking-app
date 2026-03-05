@@ -53,17 +53,23 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               </button>
             </form>
 
-            <p className="text-sm text-gray-500 mt-4">
+            <div className="text-sm text-gray-500 mt-4">
               Don&apos;t have an account?{' '}
-              <a
-                href="https://auth.manumustudio.com/?mode=signup"
-                className="text-blue-600 hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
+              <form
+                action={async () => {
+                  'use server';
+                  await signIn('manumustudio', { redirectTo: '/session/new' }, { mode: 'signup' });
+                }}
+                className="inline"
               >
-                Create one here
-              </a>
-            </p>
+                <button
+                  type="submit"
+                  className="text-blue-600 hover:underline"
+                >
+                  Create one here
+                </button>
+              </form>
+            </div>
           </>
         )}
       </div>
