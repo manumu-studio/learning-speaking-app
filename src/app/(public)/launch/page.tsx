@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import LaunchContent from "./LaunchContent";
 
 export const metadata: Metadata = {
-  title: "LSA - MM Studio",
+  title: "LSA - ManuMu Studio",
   description:
     "LSA by ManuMu Studio launches March 6, 2026. A new way to learn, speak, and achieve.",
   openGraph: {
