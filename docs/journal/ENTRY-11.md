@@ -1,7 +1,7 @@
-# ENTRY-11 — Landing Sign-In Merge + Cookie Consent (TASK-025/TASK-026)
+# ENTRY-11 — fix(auth): route signup link through OAuth flow, fix docs branch refs
 
-**Date:** 2026-03-02
-**Type:** UX + Compliance
+**Date:** 2026-03-05
+**Type:** Fix
 **Branch:** `feature/landing-page-signin`
 **Version:** `0.11.0`
 
@@ -11,7 +11,7 @@
 
 Removed the redundant intermediate sign-in page and merged authentication entry directly into the public landing page (`/`). Added a persistent cookie consent banner that explains session cookie usage and third-party authentication handling.
 
-The result is a shorter auth journey (one fewer hop) and explicit consent messaging for users before they begin.
+**Follow-up fixes:** (1) Signup link ("Create one here") routes through OAuth with `signIn(..., { mode: 'signup' })`; moved form out of `<p>` into `<div>` for valid HTML. (2) Updated docs branch/version refs (README → PR-0.11.0, ENTRY-11).
 
 ---
 
@@ -19,7 +19,7 @@ The result is a shorter auth journey (one fewer hop) and explicit consent messag
 
 | File | Action | Notes |
 |---|---|---|
-| `src/app/(public)/page.tsx` | Modified | Added server-action sign-in form, auth error handling, signup link, and cookie banner mount |
+| `src/app/(public)/page.tsx` | Modified | Auth CTA form, error handling, signup link in `<div>` (OAuth `mode: 'signup'`), cookie banner mount |
 | `src/features/auth/auth.ts` | Modified | Updated NextAuth `pages.signIn` to `/` |
 | `src/app/(app)/layout.tsx` | Modified | Redirects unauthenticated users to `/` |
 | `src/app/auth/signin/page.tsx` | Deleted | Removed redundant intermediate sign-in page |
@@ -27,6 +27,7 @@ The result is a shorter auth journey (one fewer hop) and explicit consent messag
 | `src/components/ui/CookieConsent/useCookieConsent.ts` | Created | localStorage-backed acceptance state with no-flash initialization |
 | `src/components/ui/CookieConsent/CookieConsent.types.ts` | Created | Component props interface |
 | `src/components/ui/CookieConsent/index.ts` | Created | Barrel export |
+| `docs/README.md` | Modified | Latest PR doc → PR-0.11.0, journal → ENTRY-11 |
 
 ---
 
