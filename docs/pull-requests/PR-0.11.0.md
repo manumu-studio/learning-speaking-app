@@ -1,8 +1,8 @@
-# PR-0.11.0 — Landing Auth Simplification + Cookie Consent
+# PR-0.11.0 — fix(auth): route signup link through OAuth flow, fix docs branch refs
 
 **Branch:** `feature/landing-page-signin` → `main`
 **Version:** `0.11.0`
-**Date:** 2026-03-02
+**Date:** 2026-03-05
 **Status:** ✅ Ready to merge
 
 ---
@@ -10,6 +10,8 @@
 ## Summary
 
 This update removes the redundant `/auth/signin` intermediate step and moves sign-in directly into the landing page. It also adds a persistent cookie consent banner with clear disclosure that authentication is handled by ManuMu Studio Auth.
+
+**Fixes in this PR:** (1) Signup link ("Create one here") now routes correctly through OAuth with `mode: 'signup'`; semantic HTML fix — signup form moved out of `<p>` into `<div>` to avoid invalid nesting and hydration issues. (2) Docs branch/version references updated for consistency.
 
 ---
 
@@ -19,7 +21,7 @@ This update removes the redundant `/auth/signin` intermediate step and moves sig
 
 | File | Purpose |
 |---|---|
-| `src/app/(public)/page.tsx` | Landing page now contains auth CTA form (`signIn`) + error surface from `searchParams` |
+| `src/app/(public)/page.tsx` | Landing page auth CTA form (`signIn`) + error surface; signup link in valid `<div>` (OAuth `mode: 'signup'`) |
 | `src/features/auth/auth.ts` | NextAuth `pages.signIn` changed to `/` |
 | `src/app/(app)/layout.tsx` | Protected app routes now redirect unauthenticated users to `/` |
 | `src/app/auth/signin/page.tsx` | Removed obsolete page |
@@ -68,7 +70,7 @@ npm run lint       # ✅ no lint violations
 
 ## Testing Checklist
 
-- [x] Landing page shows sign-in form + signup link when unauthenticated
+- [x] Landing page shows sign-in form + signup link (OAuth `mode: 'signup'`) when unauthenticated
 - [x] Landing page shows "Go to Dashboard" when authenticated
 - [x] Auth errors render on landing page via `?error=...`
 - [x] `/auth/signin` is removed
