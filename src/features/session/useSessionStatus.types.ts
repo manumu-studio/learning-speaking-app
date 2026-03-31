@@ -1,5 +1,14 @@
 // Type definitions for useSessionStatus hook
 
+export interface SessionMetricSnapshot {
+  id: string;
+  key: string;
+  level: string;
+  score: number;
+  note: string | null;
+  createdAt: string;
+}
+
 export interface SessionDetail {
   id: string;
   status: 'CREATED' | 'UPLOADED' | 'TRANSCRIBING' | 'ANALYZING' | 'DONE' | 'FAILED';
@@ -24,13 +33,7 @@ export interface SessionDetail {
     examples: string[] | null;
     suggestion: string | null;
   }>;
-  metrics: Array<{
-    id: string;
-    key: string;
-    level: string;
-    score: number;
-    note: string | null;
-  }>;
+  metrics?: SessionMetricSnapshot[];
 }
 
 export interface UseSessionStatusReturn {
