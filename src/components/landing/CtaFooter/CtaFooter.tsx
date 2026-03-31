@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { CtaFooterProps } from './CtaFooter.types';
 
 export function CtaFooter({ isAuthenticated, signInAction, className = '' }: CtaFooterProps) {
@@ -31,12 +32,12 @@ export function CtaFooter({ isAuthenticated, signInAction, className = '' }: Cta
             </Link>
           ) : (
             <form action={signInAction}>
-              <button
-                type="submit"
+              <SubmitButton
                 className="px-10 py-4 text-lg font-semibold text-black bg-white rounded-full hover:bg-white/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black cursor-pointer"
+                pendingText="Signing in..."
               >
                 Get Started Free
-              </button>
+              </SubmitButton>
             </form>
           )}
         </ScrollReveal>

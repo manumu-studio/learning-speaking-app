@@ -8,6 +8,7 @@ import { transcribeAudio } from '@/lib/ai/whisper';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
+import { log } from '@/lib/logger';
 
 // Runtime validation — QStash signing keys are optional in env.ts but required here
 function requireEnv(value: string | undefined, name: string): string {
@@ -33,6 +34,7 @@ function getReceiver(): Receiver {
 export async function POST(request: NextRequest) {
   // sessionId declared outside try so catch block can mark session as FAILED
   let sessionId: string | null = null;
+  const startTime = Date.now();
 
   try {
     // Step 1: Verify QStash signature — body must be read once as text
@@ -98,6 +100,13 @@ export async function POST(request: NextRequest) {
       data: { status: SessionStatus.TRANSCRIBING },
     });
 
+    log({
+      level: 'info',
+      message: 'Starting transcription',
+      sessionId: id,
+      userId: session.userId,
+    });
+
     // Step 7: Transcribe audio with Whisper
     const transcriptText = await transcribeAudio(audioBuffer, `session-${id}.webm`);
 
@@ -105,6 +114,14 @@ export async function POST(request: NextRequest) {
     const wordCount = transcriptText.trim().split(/\s+/).length;
     await prisma.transcript.create({
       data: { sessionId: id, text: transcriptText, wordCount },
+    });
+
+    log({
+      level: 'info',
+      message: 'Transcription complete',
+      sessionId: id,
+      userId: session.userId,
+      metadata: { wordCount },
     });
 
     // Step 9: Delete audio from R2 immediately after transcription (privacy + cost)
@@ -122,6 +139,14 @@ export async function POST(request: NextRequest) {
 
     // Step 11: Analyze transcript with Claude
     const analysis = await analyzeTranscript(transcriptText);
+
+    log({
+      level: 'info',
+      message: 'Analysis complete',
+      sessionId: id,
+      userId: session.userId,
+      metadata: { insightCount: analysis.insights.length },
+    });
 
     // Step 12: Store insights (up to 5 per session)
     await prisma.insight.createMany({
@@ -156,9 +181,23 @@ export async function POST(request: NextRequest) {
       data: { status: SessionStatus.DONE },
     });
 
+    const processingDuration = Date.now() - startTime;
+    log({
+      level: 'info',
+      message: 'Processing complete',
+      sessionId: id,
+      userId: session.userId,
+      duration: processingDuration,
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('Processing pipeline error:', error);
+    log({
+      level: 'error',
+      message: 'Processing failed',
+      sessionId: sessionId ?? undefined,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
     // Determine if QStash will retry — only mark FAILED on final attempt
     const retriedHeader = request.headers.get('upstash-retried');
@@ -182,7 +221,12 @@ export async function POST(request: NextRequest) {
           },
         });
       } catch (dbError) {
-        console.error('Failed to update session status to FAILED:', dbError);
+        log({
+          level: 'error',
+          message: 'Failed to update session status to FAILED',
+          sessionId: sessionId ?? undefined,
+          error: dbError instanceof Error ? dbError.message : 'Unknown error',
+        });
       }
     }
 
