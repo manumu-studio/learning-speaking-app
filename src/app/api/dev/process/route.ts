@@ -7,6 +7,7 @@ import { transcribeAudio } from '@/lib/ai/whisper';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
+import { log } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   // Hard block — never accessible outside development
@@ -66,11 +67,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[dev-pipeline] Starting for session ${id}`);
+    log({ level: 'info', message: 'Dev pipeline starting', sessionId: id });
 
     // Step 4: Download audio from R2
     const audioBuffer = await getAudio(session.audioUrl);
-    console.log(`[dev-pipeline] Audio downloaded (${audioBuffer.length} bytes)`);
+    log({ level: 'info', message: 'Audio downloaded', sessionId: id, metadata: { bytes: audioBuffer.length } });
 
     // Step 5: Mark TRANSCRIBING
     await prisma.speakingSession.update({
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Step 6: Transcribe audio with Whisper
     const transcriptText = await transcribeAudio(audioBuffer, `session-${id}.webm`);
-    console.log(`[dev-pipeline] Transcribed (${transcriptText.length} chars)`);
+    log({ level: 'info', message: 'Transcription complete', sessionId: id, metadata: { chars: transcriptText.length } });
 
     // Step 7: Store transcript with word count
     const wordCount = transcriptText.trim().split(/\s+/).length;
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
       where: { id },
       data: { audioDeletedAt: new Date() },
     });
-    console.log(`[dev-pipeline] Audio deleted from R2`);
+    log({ level: 'info', message: 'Audio deleted from R2', sessionId: id });
 
     // Step 9: Mark ANALYZING
     await prisma.speakingSession.update({
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     // Step 10: Analyze transcript with Claude
     const analysis = await analyzeTranscript(transcriptText);
-    console.log(`[dev-pipeline] Analysis complete (${analysis.insights.length} insights)`);
+    log({ level: 'info', message: 'Analysis complete', sessionId: id, metadata: { insightCount: analysis.insights.length } });
 
     // Step 11: Delete existing insights for re-run safety, then create new ones
     await prisma.insight.deleteMany({ where: { sessionId: id } });
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
       data: { status: SessionStatus.DONE },
     });
 
-    console.log(`[dev-pipeline] ✅ Session ${id} → DONE`);
+    log({ level: 'info', message: 'Dev pipeline complete', sessionId: id });
 
     return NextResponse.json({
       ok: true,
@@ -154,7 +155,12 @@ export async function POST(request: NextRequest) {
       summary: analysis.summary,
     });
   } catch (error) {
-    console.error('[dev-pipeline] Error:', error);
+    log({
+      level: 'error',
+      message: 'Dev pipeline failed',
+      sessionId: sessionId ?? undefined,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
     // Mark FAILED in dev (no retry logic needed)
     if (sessionId) {
@@ -167,7 +173,12 @@ export async function POST(request: NextRequest) {
           },
         });
       } catch (dbError) {
-        console.error('[dev-pipeline] Failed to update session status:', dbError);
+        log({
+          level: 'error',
+          message: 'Failed to update session status to FAILED',
+          sessionId: sessionId ?? undefined,
+          error: dbError instanceof Error ? dbError.message : 'Unknown error',
+        });
       }
     }
 

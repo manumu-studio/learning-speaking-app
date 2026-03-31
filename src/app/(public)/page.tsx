@@ -6,6 +6,7 @@ import { HowItWorks } from '@/components/landing/HowItWorks';
 import { CtaFooter } from '@/components/landing/CtaFooter';
 import { auth, signIn } from '@/features/auth/auth';
 import Link from 'next/link';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 
 interface HomePageProps {
   searchParams: Promise<{ error?: string }>;
@@ -74,12 +75,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 )}
 
                 <form action={handleSignIn} className="w-full max-w-md mx-auto">
-                  <button
-                    type="submit"
+                  <SubmitButton
                     className="w-full rounded-full bg-white px-8 py-3 text-lg font-semibold text-black transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black"
+                    pendingText="Signing in..."
                   >
                     Sign in with ManuMuStudio
-                  </button>
+                  </SubmitButton>
                 </form>
 
                 <div className="text-sm text-white/50 mt-4">
@@ -91,12 +92,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                     }}
                     className="inline"
                   >
-                    <button
-                      type="submit"
+                    <SubmitButton
                       className="text-white/80 hover:text-white hover:underline transition"
+                      pendingText="Redirecting..."
                     >
                       Create one here
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </>
