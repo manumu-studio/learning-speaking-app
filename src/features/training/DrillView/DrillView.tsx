@@ -7,6 +7,7 @@ import { useAudioRecorder } from '@/features/recording/useAudioRecorder';
 import { DrillTimer } from '@/features/training/DrillTimer';
 import { DrillPromptCard } from '@/features/training/DrillPromptCard';
 import { DrillFeedback } from '@/features/training/DrillFeedback';
+import { MicroWin } from '@/features/training/MicroWin';
 import type { DrillViewProps } from './DrillView.types';
 import { useDrill } from './useDrill';
 
@@ -176,13 +177,16 @@ export function DrillView({ drillId }: DrillViewProps) {
       )}
 
       {state === 'feedback' && feedback && (
-        <DrillFeedback
-          feedback={feedback.feedback}
-          improved={feedback.improved}
-          onTryAgain={() => void handleTryAgain()}
-          onBackToResults={handleBackToResults}
-          onGoToDashboard={handleGoToDashboard}
-        />
+        <div className="space-y-4">
+          <MicroWin improved={feedback.improved} metricLabel={drill.metricLabel} />
+          <DrillFeedback
+            feedback={feedback.feedback}
+            improved={feedback.improved}
+            onTryAgain={() => void handleTryAgain()}
+            onBackToResults={handleBackToResults}
+            onGoToDashboard={handleGoToDashboard}
+          />
+        </div>
       )}
     </div>
   );

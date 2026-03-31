@@ -37,6 +37,7 @@ export function DashboardView({ className }: DashboardViewProps) {
         weeklySessionCount={data.weeklySessionCount}
         currentFocus={focus?.focusLabel ?? null}
         currentStreak={data.currentStreak}
+        totalDrillsCompleted={data.drillStats.totalCompleted}
       />
 
       {/* Metric cards grid */}
@@ -59,6 +60,7 @@ export function DashboardView({ className }: DashboardViewProps) {
                 }
               }}
               lastTrainedToday={metric.lastTrainedToday}
+              drillCount={data.drillStats.byMetric[metric.key]}
             />
           ))}
         </div>

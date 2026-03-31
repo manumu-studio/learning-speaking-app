@@ -116,6 +116,54 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     },
   });
 
+  const weekAgoDrills = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const [drillTotal, drillWeekly, drillImproved, drillByMetric] = await Promise.all([
+    prisma.drillAttempt.count({
+      where: { userId, completedAt: { not: null } },
+    }),
+    prisma.drillAttempt.count({
+      where: {
+        userId,
+        completedAt: { not: null, gte: weekAgoDrills },
+      },
+    }),
+    prisma.drillAttempt.count({
+      where: { userId, completedAt: { not: null }, improved: true },
+    }),
+    prisma.drillAttempt.groupBy({
+      by: ['metricKey'],
+      where: { userId, completedAt: { not: null } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const improvementRate =
+    drillTotal > 0 ? (drillImproved / drillTotal) * 100 : 0;
+
+  const byMetric: Record<MetricKey, number> = {
+    connectorRepetition: 0,
+    structuralVariety: 0,
+    vocabularyPrecision: 0,
+    verbAccuracy: 0,
+    argumentClosure: 0,
+    fillerUsage: 0,
+  };
+
+  for (const row of drillByMetric) {
+    const key = row.metricKey;
+    if (key in byMetric) {
+      byMetric[key as MetricKey] = row._count._all;
+    }
+  }
+
+  const drillStats = {
+    totalCompleted: drillTotal,
+    weeklyCompleted: drillWeekly,
+    improvementRate,
+    byMetric,
+  };
+
   return {
     weeklyMinutes,
     weeklySessionCount,
@@ -124,6 +172,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     currentFocus: null,
     metrics,
     recentSessions,
+    drillStats,
   };
 }
 
