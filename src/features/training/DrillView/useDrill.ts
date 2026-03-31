@@ -10,8 +10,8 @@ const DRILL_TIME_LIMIT_SECONDS: Record<DrillType, number> = {
   rephrase: 90,
   constraint: 120,
   vocabUpgrade: 60,
-  precision: 90,
-  conclusion: 240,
+  precision: 60,
+  conclusion: 120,
 };
 
 const DRILL_TYPES: readonly DrillType[] = [
@@ -64,6 +64,7 @@ export interface UseDrillReturn {
 
 interface SessionForDrillPayload {
   focusNext: string | null;
+  intentLabel?: string | null;
   transcript?: { text: string };
   insights: Array<{ pattern: string; examples: unknown }>;
 }
@@ -226,6 +227,8 @@ export function useDrill(drillId: string): UseDrillReturn {
       const recentExamples = buildRecentExamples(session);
       const focusPattern = focusPatternFromSession(session);
 
+      const sessionTranscript = session.transcript?.text?.trim();
+
       const res = await fetch('/api/drills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,6 +238,10 @@ export function useDrill(drillId: string): UseDrillReturn {
           metricKey: current.metricKey,
           recentExamples,
           focusPattern,
+          intentLabel: session.intentLabel ?? null,
+          ...(sessionTranscript && sessionTranscript.length > 0
+            ? { sessionTranscript }
+            : {}),
         }),
       });
 

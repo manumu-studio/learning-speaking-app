@@ -43,6 +43,7 @@ export async function recommendDrill(sessionId: string): Promise<DrillRecommenda
     select: {
       id: true,
       focusMetricKey: true,
+      intentLabel: true,
       transcript: { select: { text: true } },
       insights: {
         select: { pattern: true, detail: true, examples: true },
@@ -101,6 +102,8 @@ export async function recommendDrill(sessionId: string): Promise<DrillRecommenda
     metricKey: targetMetricKey,
     recentExamples,
     focusPattern,
+    intentLabel: session.intentLabel,
+    sessionTranscript: transcriptText,
   });
 
   return {

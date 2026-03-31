@@ -7,4 +7,5 @@ export type {
   DashboardMetric,
   RecentSession,
   DashboardData,
+  DrillStatsData,
 } from './dashboard.types';

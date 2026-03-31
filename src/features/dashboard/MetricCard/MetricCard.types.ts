@@ -11,4 +11,6 @@ export interface MetricCardProps {
   isSelected: boolean;
   onSelect: (key: MetricKey) => void;
   lastTrainedToday?: boolean;
+  /** Completed drills targeting this metric */
+  drillCount?: number;
 }
