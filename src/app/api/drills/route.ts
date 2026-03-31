@@ -1,4 +1,4 @@
-// API route: Create a new drill attempt from a recommendation
+// API route: List drill history (GET) and create a new drill attempt (POST)
 
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
@@ -8,6 +8,94 @@ import { generateDrill } from '@/features/training/generateDrill';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
 
+const METRIC_LABELS: Record<string, string> = {
+  connectorRepetition: 'Connector Repetition',
+  structuralVariety: 'Structural Variety',
+  vocabularyPrecision: 'Vocabulary Precision',
+  verbAccuracy: 'Verb Accuracy',
+  argumentClosure: 'Argument Closure',
+  fillerUsage: 'Filler Usage',
+};
+
+export async function GET() {
+  try {
+    const authSession = await auth();
+    if (!authSession?.user?.externalId) {
+      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+    }
+
+    const user = await findOrCreateUser(authSession.user.externalId, {
+      email: authSession.user.email ?? undefined,
+      displayName: authSession.user.name ?? undefined,
+    });
+
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const [drills, totalCompleted, weeklyCompleted, improvedCount, metricGroups] = await Promise.all([
+      prisma.drillAttempt.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          drillType: true,
+          metricKey: true,
+          improved: true,
+          completedAt: true,
+          createdAt: true,
+        },
+      }),
+      prisma.drillAttempt.count({
+        where: { userId: user.id, completedAt: { not: null } },
+      }),
+      prisma.drillAttempt.count({
+        where: {
+          userId: user.id,
+          completedAt: { not: null, gte: weekAgo },
+        },
+      }),
+      prisma.drillAttempt.count({
+        where: { userId: user.id, completedAt: { not: null }, improved: true },
+      }),
+      prisma.drillAttempt.groupBy({
+        by: ['metricKey'],
+        where: { userId: user.id, completedAt: { not: null } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const improvementRate = totalCompleted > 0 ? (improvedCount / totalCompleted) * 100 : 0;
+
+    const drillsWithLabels = drills.map((d) => ({
+      id: d.id,
+      drillType: d.drillType,
+      metricKey: d.metricKey,
+      metricLabel: METRIC_LABELS[d.metricKey] ?? d.metricKey,
+      improved: d.improved,
+      createdAt: d.createdAt.toISOString(),
+      completedAt: d.completedAt?.toISOString() ?? null,
+    }));
+
+    return successResponse({
+      drills: drillsWithLabels,
+      stats: {
+        totalCompleted,
+        weeklyCompleted,
+        improvementRate,
+        byMetric: Object.fromEntries(metricGroups.map((g) => [g.metricKey, g._count._all])),
+      },
+    });
+  } catch (error) {
+    log({
+      level: 'error',
+      message: 'Drill list failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return errorResponse('Failed to load drills', 'INTERNAL_ERROR', 500);
+  }
+}
+
 const drillTypeEnum = z.enum(['rephrase', 'constraint', 'vocabUpgrade', 'precision', 'conclusion']);
 
 const createDrillSchema = z.object({
@@ -16,6 +104,8 @@ const createDrillSchema = z.object({
   metricKey: z.string(),
   recentExamples: z.array(z.string()).min(1).max(5),
   focusPattern: z.string(),
+  intentLabel: z.string().nullable().optional(),
+  sessionTranscript: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -42,13 +132,16 @@ export async function POST(request: Request) {
       return errorResponse('Invalid request', 'INVALID_BODY', 400);
     }
 
-    const { sessionId, drillType, metricKey, recentExamples, focusPattern } = parsed.data;
+    const { sessionId, drillType, metricKey, recentExamples, focusPattern, intentLabel, sessionTranscript } =
+      parsed.data;
 
     const drillPrompt = await generateDrill({
       drillType,
       metricKey,
       recentExamples,
       focusPattern,
+      intentLabel: intentLabel ?? undefined,
+      sessionTranscript,
     });
 
     const drill = await prisma.drillAttempt.create({

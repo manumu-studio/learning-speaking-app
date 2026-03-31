@@ -33,6 +33,7 @@ export function MetricCard({
   isSelected,
   onSelect,
   lastTrainedToday,
+  drillCount = 0,
 }: MetricCardProps) {
   const levelStyle = LEVEL_STYLES[currentLevel];
   const trendDisplay = TREND_DISPLAY[trend];
@@ -83,6 +84,23 @@ export function MetricCard({
           height={28}
         />
       </div>
+      {drillCount > 0 ? (
+        <span className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden
+          >
+            <rect x="1" y="4" width="2" height="4" rx="0.5" fill="currentColor" />
+            <rect x="9" y="4" width="2" height="4" rx="0.5" fill="currentColor" />
+            <rect x="3" y="5" width="6" height="2" rx="0.5" fill="currentColor" />
+          </svg>
+          {drillCount} drill{drillCount !== 1 ? 's' : ''}
+        </span>
+      ) : null}
     </button>
   );
 }

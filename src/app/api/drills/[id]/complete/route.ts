@@ -5,9 +5,22 @@ import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';
 import { transcribeAudio } from '@/lib/ai/whisper';
 import { evaluateDrill } from '@/features/training/evaluateDrill';
+import type { DrillType } from '@/features/training/training.types';
 import { uploadAudio, deleteAudio } from '@/lib/storage/r2';
 import { validateAudioFile, errorResponse, successResponse } from '@/lib/api';
 import { log } from '@/lib/logger';
+
+const DRILL_TYPES: readonly DrillType[] = [
+  'rephrase',
+  'constraint',
+  'vocabUpgrade',
+  'precision',
+  'conclusion',
+];
+
+function isDrillType(value: string): value is DrillType {
+  return (DRILL_TYPES as readonly string[]).includes(value);
+}
 
 const METRIC_LABELS: Record<string, string> = {
   connectorRepetition: 'Connector Repetition',
@@ -93,7 +106,11 @@ export async function POST(
     }
 
     const metricLabel = METRIC_LABELS[drill.metricKey] ?? drill.metricKey;
+    if (!isDrillType(drill.drillType)) {
+      return errorResponse('Invalid drill type', 'INVALID_DRILL', 400);
+    }
     const feedbackResult = await evaluateDrill({
+      drillType: drill.drillType,
       drillPrompt: drill.prompt,
       sourceExample: drill.sourceExample,
       drillTranscript: transcript,

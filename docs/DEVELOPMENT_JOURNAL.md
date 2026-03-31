@@ -34,6 +34,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.15.0 | [ENTRY-15](journal/ENTRY-15.md) | 2026-03-31 | Focus-to-session flow |
 | 0.16.0 | [ENTRY-16](journal/ENTRY-16.md) | 2026-03-31 | Training system backend (drills) |
 | 0.17.0 | [ENTRY-17](journal/ENTRY-17.md) | 2026-03-31 | Core drills UI |
+| 0.18.0 | [ENTRY-18](journal/ENTRY-18.md) | 2026-04-01 | Advanced drills, history, dashboard drill stats |
 
 ## Pull Requests
 
@@ -46,3 +47,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.15.0 | [PR-0.15.0](pull-requests/PR-0.15.0.md) | 2026-03-31 | Focus-to-session flow |
 | 0.16.0 | [PR-0.16.0](pull-requests/PR-0.16.0.md) | 2026-03-31 | Training system backend (drills) |
 | 0.17.0 | [PR-0.17.0](pull-requests/PR-0.17.0.md) | 2026-03-31 | Core drills UI |
+| 0.18.0 | [PR-0.18.0](pull-requests/PR-0.18.0.md) | 2026-04-01 | Advanced drills, history, dashboard drill stats |

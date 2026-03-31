@@ -36,6 +36,13 @@ export type RecentSession = {
   focusNext: string | null;
 };
 
+export type DrillStatsData = {
+  totalCompleted: number;
+  weeklyCompleted: number;
+  improvementRate: number;
+  byMetric: Record<MetricKey, number>;
+};
+
 export type DashboardData = {
   weeklyMinutes: number;
   weeklySessionCount: number;
@@ -44,4 +51,5 @@ export type DashboardData = {
   currentFocus: string | null;
   metrics: DashboardMetric[];
   recentSessions: RecentSession[];
+  drillStats: DrillStatsData;
 };
