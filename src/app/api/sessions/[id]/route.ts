@@ -3,6 +3,7 @@ import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteAudio } from '@/lib/storage/r2';
 import { successResponse, errorResponse } from '@/lib/api';
+import { log } from '@/lib/logger';
 
 /**
  * GET /api/sessions/:id
@@ -42,7 +43,11 @@ export async function GET(
 
     return successResponse(speakingSession);
   } catch (error) {
-    console.error('Session fetch error:', error);
+    log({
+      level: 'error',
+      message: 'Session fetch failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return errorResponse('Failed to fetch session', 'INTERNAL_ERROR', 500);
   }
 }
@@ -84,8 +89,11 @@ export async function DELETE(
       try {
         await deleteAudio(speakingSession.audioUrl);
       } catch (r2Error) {
-        console.warn('Failed to delete audio from R2:', r2Error);
-        // Continue with DB deletion even if R2 delete fails
+        log({
+          level: 'warn',
+          message: 'Failed to delete audio from R2',
+          error: r2Error instanceof Error ? r2Error.message : 'Unknown error',
+        });
       }
     }
 
@@ -94,7 +102,11 @@ export async function DELETE(
 
     return successResponse({ ok: true });
   } catch (error) {
-    console.error('Session deletion error:', error);
+    log({
+      level: 'error',
+      message: 'Session deletion failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return errorResponse('Failed to delete session', 'INTERNAL_ERROR', 500);
   }
 }

@@ -28,9 +28,11 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.11.0 | [ENTRY-11](journal/ENTRY-11.md) | — | Landing page sign-in + cookie consent |
 | — | [ENTRY-launch](journal/ENTRY-launch.md) | — | Launch event |
 | 0.12.0 | [ENTRY-12](journal/ENTRY-12.md) | 2026-03-31 | Landing page sections |
+| 0.13.0 | [ENTRY-13](journal/ENTRY-13.md) | 2026-03-31 | Polish, rate limiting & production readiness |
 
 ## Pull Requests
 
 | Version | PR | Date | Summary |
 |---------|-----|------|---------|
 | 0.12.0 | [PR-0.12.0](pull-requests/PR-0.12.0.md) | 2026-03-31 | Landing page sections |
+| 0.13.0 | [PR-0.13.0](pull-requests/PR-0.13.0.md) | 2026-03-31 | Polish, rate limiting & production readiness |

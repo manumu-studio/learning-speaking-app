@@ -55,7 +55,7 @@
   justify-content: center;
   background-color: var(--bg);
   color: var(--fg);
-  transition: background-color 0.5s ease, color 0.5s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   position: relative;
   padding: 2rem;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
