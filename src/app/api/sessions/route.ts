@@ -6,6 +6,8 @@ import { uploadAudio, generateAudioKey } from '@/lib/storage/r2';
 import { validateAudioFile, successResponse, errorResponse } from '@/lib/api';
 import { SessionStatus } from '@prisma/client';
 import { enqueueProcessing } from '@/lib/queue/qstash';
+import { getSessionRateLimit } from '@/lib/rateLimit';
+import { log } from '@/lib/logger';
 
 /**
  * POST /api/sessions
@@ -17,6 +19,24 @@ export async function POST(request: Request) {
     const session = await auth();
     if (!session?.user?.externalId) {
       return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+    }
+
+    // Rate limiting — 5 sessions per hour per user
+    const user = await findOrCreateUser(session.user.externalId, {
+      email: session.user.email ?? undefined,
+      displayName: session.user.name ?? undefined,
+    });
+
+    const rateLimit = getSessionRateLimit();
+    if (rateLimit) {
+      const { success } = await rateLimit.limit(user.id);
+      if (!success) {
+        return errorResponse(
+          'Too many sessions. Try again later.',
+          'RATE_LIMITED',
+          429
+        );
+      }
     }
 
     // Parse multipart form data
@@ -40,12 +60,6 @@ export async function POST(request: Request) {
       const status = validation.error?.includes('size') ? 413 : 400;
       return errorResponse(validation.error ?? 'Invalid file', 'INVALID_FILE', status);
     }
-
-    // Find or create user
-    const user = await findOrCreateUser(session.user.externalId, {
-      email: session.user.email ?? undefined,
-      displayName: session.user.name ?? undefined,
-    });
 
     // Create session record
     const speakingSession = await prisma.speakingSession.create({
@@ -87,7 +101,11 @@ export async function POST(request: Request) {
       201
     );
   } catch (error) {
-    console.error('Session creation error:', error);
+    log({
+      level: 'error',
+      message: 'Session creation failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return errorResponse('Failed to create session', 'INTERNAL_ERROR', 500);
   }
 }
@@ -141,7 +159,11 @@ export async function GET(request: Request) {
 
     return successResponse({ sessions, total, page, limit });
   } catch (error) {
-    console.error('Session list error:', error);
+    log({
+      level: 'error',
+      message: 'Session list failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return errorResponse('Failed to fetch sessions', 'INTERNAL_ERROR', 500);
   }
 }
