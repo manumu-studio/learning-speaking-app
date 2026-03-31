@@ -10,28 +10,28 @@ export default function HistoryPage() {
 
   return (
     <Container>
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Session History</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">Session History</h1>
 
       {/* Loading state */}
       {isLoading && (
-        <p className="text-gray-400 text-center py-12">Loading sessions...</p>
+        <p className="text-gray-400 dark:text-gray-500 text-center py-12">Loading sessions...</p>
       )}
 
       {/* Error state */}
       {!isLoading && error !== null && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600 text-sm">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
         </div>
       )}
 
       {/* Empty state */}
       {!isLoading && error === null && dayGroups.length === 0 && (
-        <div className="text-center py-16 text-gray-500">
+        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
           <p className="mb-1">No sessions yet.</p>
           <p className="mb-4">Start your first speaking session!</p>
           <Link
             href="/session/new"
-            className="text-blue-600 hover:text-blue-700 font-medium"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
           >
             New Session →
           </Link>
