@@ -8,6 +8,7 @@ import { SessionStatus } from '@prisma/client';
 import { enqueueProcessing } from '@/lib/queue/qstash';
 import { getSessionRateLimit } from '@/lib/rateLimit';
 import { log } from '@/lib/logger';
+import { isSpeakingMetricKey } from '@/lib/metric-keys';
 
 /**
  * POST /api/sessions
@@ -45,6 +46,15 @@ export async function POST(request: Request) {
     const durationSecs = formData.get('duration') as string | null;
     const topic = formData.get('topic') as string | null;
     const language = formData.get('language') as string | null;
+    const rawFocusMetricKey = formData.get('focusMetricKey') as string | null;
+    let focusMetricKey: string | null = null;
+    if (rawFocusMetricKey !== null && rawFocusMetricKey.trim() !== '') {
+      const trimmed = rawFocusMetricKey.trim();
+      if (!isSpeakingMetricKey(trimmed)) {
+        return errorResponse('Invalid focusMetricKey', 'INVALID_FOCUS', 400);
+      }
+      focusMetricKey = trimmed;
+    }
 
     if (!audioFile) {
       return errorResponse('Audio file is required', 'MISSING_AUDIO', 400);
@@ -69,6 +79,7 @@ export async function POST(request: Request) {
         durationSecs: Number(durationSecs),
         language: language ?? 'en',
         topic: topic ?? null,
+        focusMetricKey,
       },
     });
 
