@@ -39,9 +39,11 @@ Browser (Results UI) ← Poll status ← Next.js API
 
 ## Recent Updates
 
-- **Landing auth simplification:** Sign-in now starts directly on `/` (no intermediate `/auth/signin` page).
-- **Cookie consent banner:** First-visit consent notice is shown on landing page and persisted in local storage.
-- **Federated sign-out support:** Sign-out now clears local session and logs out from the external auth provider.
+- **Dashboard UI (v0.15.0):** Performance dashboard with metric cards, sparklines, weekly stats, and training focus selector. Motivating gym-metaphor framing with no error language.
+- **Dashboard data layer (v0.14.0):** Backend aggregation for weekly stats, metric scoring, trend calculation, and streak tracking. Dark mode support added across the app.
+- **Production hardening (v0.13.0):** Rate limiting on all API routes, error boundaries, loading states, and production-ready polish.
+- **Landing page sections (v0.12.0):** Hero canvas animation, feature showcase, how-it-works, and CTA footer added to public landing page.
+- **Auth improvements (v0.11.0):** Landing auth simplification, cookie consent banner, and federated sign-out support.
 
 ## Getting Started
 
