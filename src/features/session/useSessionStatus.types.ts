@@ -8,6 +8,7 @@ export interface SessionDetail {
   focusNext: string | null;
   summary: string | null;
   errorMessage: string | null;
+  focusMetricKey: string | null;
   createdAt: string;
   transcript?: {
     text: string;
@@ -22,6 +23,13 @@ export interface SessionDetail {
     severity: string | null;
     examples: string[] | null;
     suggestion: string | null;
+  }>;
+  metrics: Array<{
+    id: string;
+    key: string;
+    level: string;
+    score: number;
+    note: string | null;
   }>;
 }
 

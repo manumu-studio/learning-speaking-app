@@ -47,7 +47,7 @@ Built the performance dashboard UI on top of the existing dashboard API: `/dashb
 
 ## Still Open
 
-At merge time, wiring focus into session creation and results was tracked as a separate follow-up release (PACKET-15).
+At merge time, wiring focus into session creation and results was tracked as a separate follow-up release.
 
 ## Validation
 

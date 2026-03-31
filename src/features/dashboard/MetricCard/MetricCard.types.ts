@@ -10,4 +10,5 @@ export interface MetricCardProps {
   history: number[];
   isSelected: boolean;
   onSelect: (key: MetricKey) => void;
+  lastTrainedToday?: boolean;
 }
