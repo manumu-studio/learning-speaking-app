@@ -2,6 +2,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { env } from '@/lib/env';
+import { isSpeakingMetricKey } from '@/lib/metric-keys';
 
 // Runtime validation — ANTHROPIC_API_KEY is optional in env.ts but required here
 function requireEnv(value: string | undefined, name: string): string {
@@ -63,6 +64,21 @@ const analysisResultSchema = z.object({
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
 export type Insight = z.infer<typeof insightSchema>;
 
+// Metric key to human-readable label mapping
+const METRIC_LABELS: Record<string, string> = {
+  connectorRepetition: 'Connector Repetition',
+  structuralVariety: 'Structural Variety',
+  vocabularyPrecision: 'Vocabulary Precision',
+  verbAccuracy: 'Verb Accuracy',
+  argumentClosure: 'Argument Closure',
+  fillerUsage: 'Filler Usage',
+};
+
+function buildFocusInstruction(focusMetricKey: string): string {
+  const label = METRIC_LABELS[focusMetricKey] ?? focusMetricKey;
+  return `FOCUS PRIORITY: The user is specifically training "${label}". Pay extra attention to this area in your analysis. In focusNext, reference progress on this specific metric and suggest concrete next steps for improvement.\n\n`;
+}
+
 const ANALYSIS_PROMPT = `You are an English language pattern analyzer for B2-C1+ English learners practicing speaking.
 
 Your task: Analyze this transcript and identify the TOP 3-5 RECURRING patterns (not isolated mistakes). Focus on habits that appear multiple times across the session.
@@ -120,9 +136,17 @@ Schema:
 
 // Analyze transcript using Claude Haiku — returns structured insights validated against Prisma schema
 export async function analyzeTranscript(
-  transcript: string
+  transcript: string,
+  focusMetricKey?: string | null
 ): Promise<AnalysisResult> {
   const client = getAnthropicClient();
+
+  // Build prompt with optional focus instruction
+  let prompt = '';
+  if (focusMetricKey && isSpeakingMetricKey(focusMetricKey)) {
+    prompt += buildFocusInstruction(focusMetricKey);
+  }
+  prompt += `${ANALYSIS_PROMPT}\n\nTranscript:\n${transcript}`;
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -130,7 +154,7 @@ export async function analyzeTranscript(
     messages: [
       {
         role: 'user',
-        content: `${ANALYSIS_PROMPT}\n\nTranscript:\n${transcript}`,
+        content: prompt,
       },
     ],
   });

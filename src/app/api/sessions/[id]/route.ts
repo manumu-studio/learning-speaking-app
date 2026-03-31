@@ -34,6 +34,7 @@ export async function GET(
       include: {
         transcript: true,
         insights: { orderBy: { severity: 'desc' } },
+        metrics: { orderBy: { key: 'asc' } },
       },
     });
 
