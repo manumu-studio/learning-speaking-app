@@ -12,8 +12,10 @@ function formatTime(seconds: number): string {
 export function SessionTimer({ seconds, isActive }: SessionTimerProps) {
   return (
     <div
-      className={`text-6xl font-mono font-bold transition-colors ${
-        isActive ? 'text-red-600' : 'text-gray-700'
+      className={`text-5xl sm:text-6xl font-mono font-bold tracking-widest transition-colors duration-300 ${
+        isActive
+          ? 'text-red-500 dark:text-red-400'
+          : 'text-gray-400 dark:text-gray-500'
       }`}
     >
       {formatTime(seconds)}
