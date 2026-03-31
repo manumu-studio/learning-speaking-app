@@ -37,22 +37,20 @@ const ICON_MAP = {
 
 export function HowItWorks({ className = '' }: HowItWorksProps) {
   return (
-    <section className={`py-24 md:py-32 bg-black ${className}`}>
+    <section className={`py-24 md:py-32 bg-white dark:bg-black transition-colors duration-200 ${className}`}>
       <div className="max-w-5xl mx-auto px-4">
-        {/* Section header */}
         <ScrollReveal className="text-center mb-20">
-          <p className="text-sm tracking-widest uppercase text-white/40 mb-4">
+          <p className="text-sm tracking-widest uppercase text-black/40 dark:text-white/40 mb-4">
             How It Works
           </p>
-          <h2 className="text-4xl md:text-5xl font-bold text-white">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
             Three simple steps
           </h2>
         </ScrollReveal>
 
-        {/* Steps with connecting line */}
         <div className="relative">
-          {/* Connecting line (desktop only) */}
-          <div className="hidden md:block absolute top-16 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px bg-gradient-to-r from-white/0 via-white/20 to-white/0" />
+          {/* Connecting line */}
+          <div className="hidden md:block absolute top-16 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px bg-gradient-to-r from-transparent via-black/20 dark:via-white/20 to-transparent" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
             {STEPS.map((step, index) => {
@@ -60,18 +58,17 @@ export function HowItWorks({ className = '' }: HowItWorksProps) {
               return (
                 <ScrollReveal key={step.number} delay={index * 200}>
                   <div className="text-center">
-                    {/* Step number + icon */}
-                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 border border-white/20 mb-6">
-                      <IconComponent className="w-7 h-7 text-white/80" />
-                      <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white text-black text-xs font-bold flex items-center justify-center">
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20 mb-6">
+                      <IconComponent className="w-7 h-7 text-gray-700 dark:text-white/80" />
+                      <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-black dark:bg-white text-white dark:text-black text-xs font-bold flex items-center justify-center">
                         {step.number}
                       </span>
                     </div>
 
-                    <h3 className="text-xl font-semibold text-white mb-3">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                       {step.title}
                     </h3>
-                    <p className="text-white/60 leading-relaxed max-w-xs mx-auto">
+                    <p className="text-gray-600 dark:text-white/60 leading-relaxed max-w-xs mx-auto">
                       {step.description}
                     </p>
                   </div>

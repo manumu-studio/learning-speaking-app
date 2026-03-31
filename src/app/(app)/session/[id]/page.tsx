@@ -24,7 +24,7 @@ export default function SessionResultsPage({
     return (
       <Container>
         <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-500" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 dark:border-gray-700 border-t-blue-500" />
         </div>
       </Container>
     );
@@ -34,7 +34,7 @@ export default function SessionResultsPage({
   if (isProcessing && session) {
     return (
       <Container>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
           Processing Your Session
         </h1>
         <ProcessingStatus
@@ -49,7 +49,7 @@ export default function SessionResultsPage({
   if (isFailed && session) {
     return (
       <Container>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
           Session Results
         </h1>
         <ProcessingStatus
@@ -105,7 +105,7 @@ export default function SessionResultsPage({
   // Fallback
   return (
     <Container>
-      <p className="text-gray-500 text-center py-20">Session not found.</p>
+      <p className="text-gray-500 dark:text-gray-400 text-center py-20">Session not found.</p>
     </Container>
   );
 }

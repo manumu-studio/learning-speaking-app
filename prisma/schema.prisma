@@ -65,6 +65,7 @@ model SpeakingSession {
   location       String?
   transcript     Transcript?
   insights       Insight[]
+  metrics        MetricSnapshot[]
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -94,6 +95,21 @@ model Insight {
   session    SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   @@index([sessionId])
   @@map("insights")
+}
+
+model MetricSnapshot {
+  id        String          @id @default(cuid())
+  sessionId String
+  session   SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  key       String
+  level     String
+  score     Int
+  note      String?
+  createdAt DateTime        @default(now())
+
+  @@unique([sessionId, key])
+  @@index([sessionId])
+  @@map("metric_snapshots")
 }
 
 model PatternProfile {
