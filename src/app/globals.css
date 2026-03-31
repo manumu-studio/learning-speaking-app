@@ -1,6 +1,9 @@
 /* Global styles — Tailwind CSS v4 import */
 @import "tailwindcss";
 
+/* Enable class-based dark mode (.dark on html element) */
+@variant dark (&:where(.dark, .dark *));
+
 html,
 body {
   margin: 0;

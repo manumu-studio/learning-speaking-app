@@ -37,8 +37,24 @@ const insightSchema = z.object({
   suggestion: z.string().optional(),
 });
 
+// Metric scoring schema for 6 structured dimensions
+const metricSchema = z.object({
+  key: z.enum([
+    'connectorRepetition',
+    'structuralVariety',
+    'vocabularyPrecision',
+    'verbAccuracy',
+    'argumentClosure',
+    'fillerUsage',
+  ]),
+  level: z.enum(['low', 'medium', 'high']),
+  score: z.number().min(1).max(10),
+  note: z.string(),
+});
+
 const analysisResultSchema = z.object({
   insights: z.array(insightSchema).max(5),
+  metrics: z.array(metricSchema),
   focusNext: z.string(),
   summary: z.string(),
   intentLabel: z.string(),
@@ -70,6 +86,10 @@ Also provide:
 - summary: 2-3 sentence overall assessment of speaking proficiency and main strengths/weaknesses
 - intentLabel: A concise 3-5 word label describing the main topic of this conversation (e.g., "Daily routine discussion", "Job interview practice", "Travel experiences sharing")
 
+Rate each of the following 6 metrics on a 1-10 scale (10 = native-like proficiency):
+connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, argumentClosure, fillerUsage.
+For each metric provide: key, level (low=1-3, medium=4-6, high=7-10), score (1-10), note (one sentence observation).
+
 CRITICAL: Respond with ONLY valid JSON. No markdown, no explanations. Just the JSON object.
 
 Schema:
@@ -83,6 +103,14 @@ Schema:
       "severity": "high" | "medium" | "low",
       "examples": ["string", "string"],
       "suggestion": "string"
+    }
+  ],
+  "metrics": [
+    {
+      "key": "connectorRepetition" | "structuralVariety" | "vocabularyPrecision" | "verbAccuracy" | "argumentClosure" | "fillerUsage",
+      "level": "low" | "medium" | "high",
+      "score": number,
+      "note": "string"
     }
   ],
   "focusNext": "string",

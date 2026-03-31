@@ -1,7 +1,8 @@
-// Animated canvas background with wave visualization and film grain effects
+// Animated canvas background with blue wave visualization and film grain effects
 'use client';
 
 import { useRef, useEffect, useCallback } from 'react';
+import { useTheme } from 'next-themes';
 
 /** Film grain generator for cinematic post-processing */
 class FilmGrain {
@@ -59,21 +60,28 @@ class FilmGrain {
     this.grainCtx.putImageData(this.grainData, 0, 0);
   }
 
-  apply(ctx: CanvasRenderingContext2D, intensity: number, hue: number): void {
+  apply(ctx: CanvasRenderingContext2D, intensity: number, hue: number, isLight = false): void {
     ctx.save();
 
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = intensity * 0.5;
-    ctx.drawImage(this.grainCanvas, 0, 0);
+    if (isLight) {
+      // Light mode: soft-light only — no multiply (multiply on white = dark static)
+      ctx.globalCompositeOperation = 'soft-light';
+      ctx.globalAlpha = intensity * 0.15;
+      ctx.drawImage(this.grainCanvas, 0, 0);
+    } else {
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = intensity * 0.5;
+      ctx.drawImage(this.grainCanvas, 0, 0);
 
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.globalAlpha = 1 - intensity * 0.3;
-    ctx.drawImage(this.grainCanvas, 0, 0);
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 1 - intensity * 0.3;
+      ctx.drawImage(this.grainCanvas, 0, 0);
 
-    ctx.globalCompositeOperation = 'overlay';
-    ctx.globalAlpha = intensity * 0.3;
-    ctx.fillStyle = `hsla(${hue}, 50%, 50%, 1)`;
-    ctx.fillRect(0, 0, this.width, this.height);
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = intensity * 0.3;
+      ctx.fillStyle = `hsla(${hue}, 50%, 50%, 1)`;
+      ctx.fillRect(0, 0, this.width, this.height);
+    }
 
     ctx.restore();
   }
@@ -119,10 +127,21 @@ interface BeamState {
   };
 }
 
+// Blue palette: hue stays in 200–240 range (deep sky → electric blue)
+const BLUE_BASE_HUE = 215;
+const BLUE_HUE_RANGE = 20;
+
 export function HeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const beamRef = useRef<BeamState | null>(null);
+  const { resolvedTheme } = useTheme();
+  const themeRef = useRef(resolvedTheme);
+
+  // Keep themeRef in sync without restarting the animation loop
+  useEffect(() => {
+    themeRef.current = resolvedTheme;
+  }, [resolvedTheme]);
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -131,7 +150,6 @@ export function HeroCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Beam state
     const beam: BeamState = {
       bassIntensity: 0,
       midIntensity: 0,
@@ -139,8 +157,8 @@ export function HeroCanvas() {
       time: 0,
       filmGrain: null,
       colorState: {
-        hue: 30,
-        targetHue: 30,
+        hue: BLUE_BASE_HUE,
+        targetHue: BLUE_BASE_HUE,
         saturation: 80,
         targetSaturation: 80,
         lightness: 50,
@@ -176,20 +194,27 @@ export function HeroCanvas() {
     const animate = () => {
       animationRef.current = requestAnimationFrame(animate);
 
-      // Motion blur fade
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
+      const isLight = themeRef.current === 'light';
+
+      // Background fade — dark mode: near-black, light mode: clean white
+      ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(0, 0, 0, 0.92)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Demo animation — ambient wave motion
+      // Ambient motion
       beam.bassIntensity = 0.4 + Math.sin(beam.time * 0.01) * 0.3;
       beam.midIntensity = 0.3 + Math.sin(beam.time * 0.015) * 0.2;
       beam.trebleIntensity = 0.2 + Math.sin(beam.time * 0.02) * 0.1;
 
-      beam.colorState.targetHue = 180 + Math.sin(beam.time * 0.005) * 180;
-      beam.colorState.targetSaturation = 70 + Math.sin(beam.time * 0.01) * 30;
-      beam.colorState.targetLightness = 50 + Math.sin(beam.time * 0.008) * 20;
+      // Lock to blue palette — tighter range in light mode to avoid violet drift
+      const hueRange = isLight ? 10 : BLUE_HUE_RANGE;
+      beam.colorState.targetHue = BLUE_BASE_HUE + Math.sin(beam.time * 0.005) * hueRange;
+      beam.colorState.targetSaturation = isLight
+        ? 60 + Math.sin(beam.time * 0.01) * 10
+        : 70 + Math.sin(beam.time * 0.01) * 20;
+      beam.colorState.targetLightness = isLight
+        ? 65 + Math.sin(beam.time * 0.008) * 8   // light, airy blues
+        : 55 + Math.sin(beam.time * 0.008) * 15;
 
-      // Smooth color transitions
       beam.colorState.hue += (beam.colorState.targetHue - beam.colorState.hue) * 0.5;
       beam.colorState.saturation += (beam.colorState.targetSaturation - beam.colorState.saturation) * 0.2;
       beam.colorState.lightness += (beam.colorState.targetLightness - beam.colorState.lightness) * 0.1;
@@ -203,14 +228,21 @@ export function HeroCanvas() {
         wave.offset += wave.speed * (1 + beam.bassIntensity * 0.8);
 
         const freqInfluence = waveIndex < 2 ? beam.bassIntensity : beam.midIntensity;
-        const dynamicAmplitude = wave.amplitude * (1 + freqInfluence * 5);
+        // Light mode: less amplitude growth so waves stay subtle
+        const amplitudeScale = isLight ? 2.5 : 5;
+        const dynamicAmplitude = wave.amplitude * (1 + freqInfluence * amplitudeScale);
 
-        const waveHue = beam.colorState.hue + waveIndex * 15;
-        const waveSaturation = beam.colorState.saturation - waveIndex * 5;
-        const waveLightness = beam.colorState.lightness + waveIndex * 5;
+        // Light mode: tighter hue shift, clamped to 200–230 to stay blue not purple
+        const rawWaveHue = beam.colorState.hue + waveIndex * (isLight ? 2 : 5);
+        const waveHue = isLight ? Math.min(rawWaveHue, 230) : rawWaveHue;
+        const waveSaturation = beam.colorState.saturation - waveIndex * 3;
+        const waveLightness = beam.colorState.lightness + waveIndex * 4;
 
         const gradient = ctx.createLinearGradient(0, centerY - dynamicAmplitude, 0, centerY + dynamicAmplitude);
-        const alpha = wave.opacity * (0.5 + beam.bassIntensity * 0.5);
+        // Light mode: keep opacity low so waves feel atmospheric, not graphic
+        const alpha = isLight
+          ? wave.opacity * (0.35 + beam.bassIntensity * 0.2)
+          : wave.opacity * (0.5 + beam.bassIntensity * 0.5);
 
         gradient.addColorStop(0, `hsla(${waveHue}, ${waveSaturation}%, ${waveLightness}%, 0)`);
         gradient.addColorStop(0.5, `hsla(${waveHue}, ${waveSaturation}%, ${waveLightness + 10}%, ${alpha})`);
@@ -235,42 +267,54 @@ export function HeroCanvas() {
         ctx.fill();
       });
 
-      // Post-processing: film grain
+      // Film grain — reduced intensity in light mode
       if (beam.filmGrain) {
         beam.filmGrain.update();
-        beam.filmGrain.apply(ctx, beam.postProcessing.filmGrainIntensity, beam.colorState.hue);
+        const grainIntensity = isLight ? 0.012 : beam.postProcessing.filmGrainIntensity;
+        beam.filmGrain.apply(ctx, grainIntensity, beam.colorState.hue, isLight);
       }
 
-      // Scanlines
-      ctx.strokeStyle = `rgba(0, 0, 0, ${beam.postProcessing.scanlineIntensity})`;
-      ctx.lineWidth = 1;
-      for (let y = 0; y < canvas.height; y += 3) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
+      // Scanlines — dark mode only (invisible on white and add noise)
+      if (!isLight) {
+        ctx.strokeStyle = `rgba(0, 0, 0, ${beam.postProcessing.scanlineIntensity})`;
+        ctx.lineWidth = 1;
+        for (let y = 0; y < canvas.height; y += 3) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
       }
 
-      // Vignette
+      // Vignette — dark in dark mode, subtle blue-tinted in light mode
       const vignette = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, canvas.width * 0.2,
         canvas.width / 2, canvas.height / 2, canvas.width * 0.9
       );
-      vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      vignette.addColorStop(0.5, `rgba(0, 0, 0, ${beam.postProcessing.vignetteIntensity * 0.3})`);
-      vignette.addColorStop(0.8, `rgba(0, 0, 0, ${beam.postProcessing.vignetteIntensity * 0.6})`);
-      vignette.addColorStop(1, `rgba(0, 0, 0, ${beam.postProcessing.vignetteIntensity})`);
+      const vigAlpha = beam.postProcessing.vignetteIntensity;
+      if (isLight) {
+        vignette.addColorStop(0, 'rgba(240, 245, 255, 0)');
+        vignette.addColorStop(0.5, `rgba(220, 235, 255, ${vigAlpha * 0.2})`);
+        vignette.addColorStop(1, `rgba(200, 220, 255, ${vigAlpha * 0.5})`);
+      } else {
+        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vignette.addColorStop(0.5, `rgba(0, 0, 0, ${vigAlpha * 0.3})`);
+        vignette.addColorStop(0.8, `rgba(0, 0, 0, ${vigAlpha * 0.6})`);
+        vignette.addColorStop(1, `rgba(0, 0, 0, ${vigAlpha})`);
+      }
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Film dust particles (occasional)
+      // Film dust
       if (Math.random() < 0.02) {
         const dustCount = Math.floor(Math.random() * 5) + 1;
         for (let i = 0; i < dustCount; i++) {
           const x = Math.random() * canvas.width;
           const y = Math.random() * canvas.height;
           const size = Math.random() * 2 + 0.5;
-          ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.3})`;
+          ctx.fillStyle = isLight
+            ? `rgba(180, 200, 240, ${Math.random() * 0.4})`
+            : `rgba(255, 255, 255, ${Math.random() * 0.3})`;
           ctx.beginPath();
           ctx.arc(x, y, size, 0, Math.PI * 2);
           ctx.fill();
@@ -279,24 +323,30 @@ export function HeroCanvas() {
 
       // Film flicker
       const flicker = Math.sin(beam.time * 0.3) * 0.02 + Math.random() * 0.01;
-      ctx.fillStyle = `rgba(255, 255, 255, ${flicker})`;
+      ctx.fillStyle = isLight
+        ? `rgba(200, 220, 255, ${flicker})`
+        : `rgba(255, 255, 255, ${flicker})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Subtle color grading
-      ctx.save();
-      ctx.globalCompositeOperation = 'overlay';
-      ctx.globalAlpha = 0.1;
-      const colorGrade = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      colorGrade.addColorStop(0, 'rgb(255, 240, 220)');
-      colorGrade.addColorStop(0.5, 'rgb(255, 255, 255)');
-      colorGrade.addColorStop(1, 'rgb(220, 230, 255)');
-      ctx.fillStyle = colorGrade;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
+      // Subtle color grading — dark mode only
+      if (!isLight) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha = 0.06;
+        const colorGrade = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        colorGrade.addColorStop(0, 'rgb(200, 220, 255)');
+        colorGrade.addColorStop(0.5, 'rgb(220, 235, 255)');
+        colorGrade.addColorStop(1, 'rgb(180, 210, 255)');
+        ctx.fillStyle = colorGrade;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
 
       // Film scratches (rare)
       if (Math.random() < 0.005) {
-        ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.2 + 0.1})`;
+        ctx.strokeStyle = isLight
+          ? `rgba(150, 190, 255, ${Math.random() * 0.2 + 0.1})`
+          : `rgba(255, 255, 255, ${Math.random() * 0.2 + 0.1})`;
         ctx.lineWidth = Math.random() * 2 + 0.5;
         ctx.beginPath();
         const scratchX = Math.random() * canvas.width;

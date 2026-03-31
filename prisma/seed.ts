@@ -1,5 +1,6 @@
 // Dev seed script — inserts multiple sessions across days for visual testing of history + results UI
 import { PrismaClient, SessionStatus } from '@prisma/client';
+import type { SpeakingSession } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -69,6 +70,52 @@ const MOCK_INSIGHTS = [
       'Practice combining two simple sentences into one using "although," "despite," "which," or "having + past participle."',
   },
 ];
+
+// Metric seed data — realistic progressions for dashboard testing
+const METRIC_KEYS = [
+  'connectorRepetition',
+  'structuralVariety',
+  'vocabularyPrecision',
+  'verbAccuracy',
+  'argumentClosure',
+  'fillerUsage',
+] as const;
+
+// Base scores with slight upward trend across 7 sessions
+const BASE_SCORES: Record<string, number[]> = {
+  connectorRepetition: [4, 4, 5, 5, 6, 6, 7],
+  structuralVariety:   [5, 5, 5, 6, 6, 7, 7],
+  vocabularyPrecision: [6, 6, 7, 7, 7, 8, 8],
+  verbAccuracy:        [5, 6, 6, 6, 7, 7, 7],
+  argumentClosure:     [3, 4, 4, 5, 5, 5, 6],
+  fillerUsage:         [4, 4, 5, 5, 5, 6, 6],
+};
+
+function getLevel(score: number): string {
+  if (score <= 3) return 'low';
+  if (score <= 6) return 'medium';
+  return 'high';
+}
+
+async function seedMetrics(sessions: SpeakingSession[]): Promise<void> {
+  for (let i = 0; i < sessions.length; i++) {
+    const session = sessions[i];
+    if (!session) continue;
+    for (const key of METRIC_KEYS) {
+      const scores = BASE_SCORES[key];
+      const score = scores?.[i] ?? scores?.[scores.length - 1] ?? 5;
+      await prisma.metricSnapshot.create({
+        data: {
+          sessionId: session.id,
+          key,
+          level: getLevel(score),
+          score,
+          note: `Seed data for ${key} — session ${i + 1}`,
+        },
+      });
+    }
+  }
+}
 
 async function seed(): Promise<void> {
   console.log('🌱 Seeding dev data...\n');
@@ -170,8 +217,76 @@ async function seed(): Promise<void> {
   });
   console.log(`✅ Session 3: ${session3.id} (DONE, 2 days ago)`);
 
-  // Session 4 — today, FAILED (tests fallback label display — no intentLabel)
+  // Session 4 — 3 days ago, DONE
   const session4 = await prisma.speakingSession.create({
+    data: {
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 150,
+      language: 'en',
+      topic: 'Technology and AI',
+      intentLabel: 'Technology trends discussion',
+      summary: 'Good command of technical vocabulary. Sentence structures becoming more varied.',
+      focusNext: 'Practice using passive voice for formal technical explanations.',
+      audioDeletedAt: new Date(),
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log(`✅ Session 4: ${session4.id} (DONE, 3 days ago)`);
+
+  // Session 5 — 4 days ago, DONE
+  const session5 = await prisma.speakingSession.create({
+    data: {
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 200,
+      language: 'en',
+      topic: 'Health and lifestyle',
+      intentLabel: 'Health habits discussion',
+      summary: 'Fluent delivery on familiar topics. Connector variety still limited.',
+      focusNext: 'Replace "also" with "furthermore", "in addition", or "what\'s more".',
+      audioDeletedAt: new Date(),
+      createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log(`✅ Session 5: ${session5.id} (DONE, 4 days ago)`);
+
+  // Session 6 — 5 days ago, DONE
+  const session6 = await prisma.speakingSession.create({
+    data: {
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 160,
+      language: 'en',
+      topic: 'Work and career goals',
+      intentLabel: 'Career planning talk',
+      summary: 'Strong argument structure emerging. Verb tense consistency still needs attention.',
+      focusNext: 'Focus on consistent use of present perfect for recent events.',
+      audioDeletedAt: new Date(),
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log(`✅ Session 6: ${session6.id} (DONE, 5 days ago)`);
+
+  // Session 7 — 6 days ago, DONE
+  const session7 = await prisma.speakingSession.create({
+    data: {
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 130,
+      language: 'en',
+      topic: 'Education and learning strategies',
+      intentLabel: 'Learning methods sharing',
+      summary: 'Baseline performance. Room for improvement in all dimensions.',
+      focusNext: 'Try to use at least 3 different discourse connectors in the next session.',
+      audioDeletedAt: new Date(),
+      createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log(`✅ Session 7: ${session7.id} (DONE, 6 days ago)`);
+
+  // Session 8 — today, FAILED (tests fallback label display — no intentLabel)
+  const sessionFailed = await prisma.speakingSession.create({
     data: {
       userId: user.id,
       status: 'FAILED',
@@ -182,7 +297,12 @@ async function seed(): Promise<void> {
       audioDeletedAt: new Date(),
     },
   });
-  console.log(`✅ Session 4: ${session4.id} (FAILED, today — tests fallback)`);
+  console.log(`✅ Session (FAILED): ${sessionFailed.id} (today — tests fallback)`);
+
+  // Seed MetricSnapshot records for all DONE sessions in chronological order
+  const doneSessions = [session7, session6, session5, session4, session3, session2, session];
+  await seedMetrics(doneSessions);
+  console.log(`✅ Metric snapshots: ${doneSessions.length * METRIC_KEYS.length} records`);
 
   // Create/update pattern profile
   const patterns: Record<string, number> = {};
@@ -197,7 +317,7 @@ async function seed(): Promise<void> {
   });
   console.log(`✅ Pattern profile updated`);
 
-  console.log(`\n📊 Seeded 4 sessions across 3 days (3 DONE + 1 FAILED)`);
+  console.log(`\n📊 Seeded 8 sessions across 7 days (7 DONE + 1 FAILED)`);
   console.log('\n──────────────────────────────────────');
   console.log(`🔗 View results: http://localhost:3000/session/${session.id}`);
   console.log('──────────────────────────────────────\n');

@@ -54,16 +54,16 @@ export function HistorySessionCard({
   return (
     <Link
       href={`/session/${id}`}
-      className="flex items-center gap-4 rounded-lg bg-white border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all px-4 py-3"
+      className="flex items-center gap-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all px-4 py-3"
       style={{
         animation: 'fadeInUp 0.5s ease-out both',
         animationDelay: `${animationDelay ?? 0}ms`,
       }}
     >
-      <span className="text-sm text-gray-400 font-mono w-20 shrink-0">{time}</span>
-      <span className="text-sm text-gray-800 font-medium flex-1 truncate">{label}</span>
+      <span className="text-sm text-gray-400 dark:text-gray-500 font-mono w-20 shrink-0">{time}</span>
+      <span className="text-sm text-gray-800 dark:text-gray-200 font-medium flex-1 truncate">{label}</span>
       <StatusIndicator status={status} />
-      <span className="text-sm text-gray-400 w-10 text-right shrink-0">
+      <span className="text-sm text-gray-400 dark:text-gray-500 w-10 text-right shrink-0">
         {formatDuration(durationSecs)}
       </span>
     </Link>
