@@ -62,6 +62,7 @@ model SpeakingSession {
   focusNext      String?       @db.Text
   summary        String?       @db.Text
   intentLabel    String?       @db.Text
+  focusMetricKey String?
   location       String?
   transcript     Transcript?
   insights       Insight[]

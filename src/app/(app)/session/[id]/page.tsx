@@ -1,15 +1,32 @@
 // Session results page — displays analysis feedback with staggered entrance animations
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Container } from '@/components/ui/Container';
 import { ProcessingStatus } from '@/components/ui/ProcessingStatus';
 import { SessionHeader } from '@/components/ui/SessionHeader';
 import { InsightsList } from '@/components/ui/InsightsList';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
+import { FocusHighlight } from '@/components/ui/FocusHighlight';
 import { TranscriptSection } from '@/components/ui/TranscriptSection';
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import styles from './SessionResults.module.css';
+
+// Metric key to human-readable label mapping
+const METRIC_LABELS: Record<string, string> = {
+  connectorRepetition: 'Connector Repetition',
+  structuralVariety: 'Structural Variety',
+  vocabularyPrecision: 'Vocabulary Precision',
+  verbAccuracy: 'Verb Accuracy',
+  argumentClosure: 'Argument Closure',
+  fillerUsage: 'Filler Usage',
+};
+
+interface FocusComparison {
+  metricLabel: string;
+  currentScore: number;
+  previousScore: number | null;
+}
 
 export default function SessionResultsPage({
   params,
@@ -18,6 +35,36 @@ export default function SessionResultsPage({
 }) {
   const { id } = use(params);
   const { session, isLoading, isProcessing, isDone, isFailed, retry } = useSessionStatus(id);
+  const [focusComparison, setFocusComparison] = useState<FocusComparison | null>(null);
+
+  // Fetch previous session metric score when session has a focus
+  useEffect(() => {
+    const focusKey = session?.focusMetricKey;
+    if (!focusKey || !isDone) return;
+
+    const fetchPreviousScore = async () => {
+      try {
+        const response = await fetch(
+          `/api/sessions/${id}/focus-comparison?metricKey=${focusKey}`
+        );
+        if (response.ok) {
+          const data = (await response.json()) as {
+            currentScore: number;
+            previousScore: number | null;
+          };
+          setFocusComparison({
+            metricLabel: METRIC_LABELS[focusKey] ?? focusKey,
+            currentScore: data.currentScore,
+            previousScore: data.previousScore,
+          });
+        }
+      } catch {
+        // Silently fail — focus comparison is optional
+      }
+    };
+
+    fetchPreviousScore();
+  }, [session, isDone, id]);
 
   // Loading state
   if (isLoading && !session) {
@@ -63,8 +110,13 @@ export default function SessionResultsPage({
 
   // Done state — render full results layout
   if (isDone && session) {
-    const focusBannerDelay = 200 + session.insights.length * 100 + 100;
-    const transcriptDelay = 200 + session.insights.length * 100 + 200;
+    const focusHighlightDelay = 200 + session.insights.length * 100 + 100;
+    const focusBannerDelay = focusComparison
+      ? 200 + session.insights.length * 100 + 200
+      : 200 + session.insights.length * 100 + 100;
+    const transcriptDelay = focusComparison
+      ? 200 + session.insights.length * 100 + 300
+      : 200 + session.insights.length * 100 + 200;
 
     return (
       <Container>
@@ -82,6 +134,15 @@ export default function SessionResultsPage({
             insights={session.insights}
             baseDelay={200}
           />
+
+          {focusComparison && (
+            <FocusHighlight
+              metricLabel={focusComparison.metricLabel}
+              currentScore={focusComparison.currentScore}
+              previousScore={focusComparison.previousScore}
+              animationDelay={focusHighlightDelay}
+            />
+          )}
 
           {session.focusNext && (
             <FocusNextBanner
