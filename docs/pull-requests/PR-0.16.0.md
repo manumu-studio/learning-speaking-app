@@ -3,7 +3,7 @@
 **Branch:** `feature/training-architecture` → `main`
 **Version:** `0.16.0`
 **Date:** 2026-03-31
-**Status:** ✅ Ready to merge
+**Status:** ✅ Merged to `main` (commit 8f48452)
 
 ---
 

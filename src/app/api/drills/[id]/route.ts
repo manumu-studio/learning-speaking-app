@@ -33,6 +33,7 @@ export async function GET(
 
     return successResponse({
       id: drill.id,
+      sessionId: drill.sessionId,
       drillType: drill.drillType,
       metricKey: drill.metricKey,
       prompt: drill.prompt,
