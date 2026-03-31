@@ -11,7 +11,7 @@ interface UploadResult {
 }
 
 interface UseUploadSessionReturn {
-  upload: (blob: Blob, durationSecs: number, topic?: string) => Promise<string>;
+  upload: (blob: Blob, durationSecs: number, topic?: string, focusMetricKey?: string) => Promise<string>;
   isUploading: boolean;
   error: string | null;
 }
@@ -23,7 +23,8 @@ export function useUploadSession(): UseUploadSessionReturn {
   const upload = async (
     blob: Blob,
     durationSecs: number,
-    topic?: string
+    topic?: string,
+    focusMetricKey?: string
   ): Promise<string> => {
     setIsUploading(true);
     setError(null);
@@ -35,6 +36,9 @@ export function useUploadSession(): UseUploadSessionReturn {
       formData.append('language', 'en');
       if (topic) {
         formData.append('topic', topic);
+      }
+      if (focusMetricKey) {
+        formData.append('focusMetricKey', focusMetricKey);
       }
 
       const response = await fetch('/api/sessions', {

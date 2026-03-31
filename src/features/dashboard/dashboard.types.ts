@@ -43,4 +43,5 @@ export type DashboardData = {
   currentFocus: string | null;
   metrics: DashboardMetric[];
   recentSessions: RecentSession[];
+  lastTrainedMetricKey: string | null;
 };

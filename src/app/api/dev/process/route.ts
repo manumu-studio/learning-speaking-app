@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
       data: { status: SessionStatus.ANALYZING },
     });
 
-    // Step 10: Analyze transcript with Claude
-    const analysis = await analyzeTranscript(transcriptText);
+    // Step 10: Analyze transcript with Claude (with optional focus)
+    const analysis = await analyzeTranscript(transcriptText, session.focusMetricKey);
     log({ level: 'info', message: 'Analysis complete', sessionId: id, metadata: { insightCount: analysis.insights.length } });
 
     // Step 11: Delete existing insights for re-run safety, then create new ones

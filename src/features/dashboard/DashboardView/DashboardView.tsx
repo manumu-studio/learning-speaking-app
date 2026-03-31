@@ -58,6 +58,7 @@ export function DashboardView({ className }: DashboardViewProps) {
                   setFocus(key, selected.label);
                 }
               }}
+              lastTrainedToday={metric.key === data.lastTrainedMetricKey}
             />
           ))}
         </div>

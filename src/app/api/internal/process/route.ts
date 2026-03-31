@@ -137,8 +137,8 @@ export async function POST(request: NextRequest) {
       data: { status: SessionStatus.ANALYZING },
     });
 
-    // Step 11: Analyze transcript with Claude
-    const analysis = await analyzeTranscript(transcriptText);
+    // Step 11: Analyze transcript with Claude (with optional focus)
+    const analysis = await analyzeTranscript(transcriptText, session.focusMetricKey);
 
     log({
       level: 'info',

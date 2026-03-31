@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     const durationSecs = formData.get('duration') as string | null;
     const topic = formData.get('topic') as string | null;
     const language = formData.get('language') as string | null;
+    const focusMetricKey = formData.get('focusMetricKey') as string | null;
 
     if (!audioFile) {
       return errorResponse('Audio file is required', 'MISSING_AUDIO', 400);
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
         durationSecs: Number(durationSecs),
         language: language ?? 'en',
         topic: topic ?? null,
+        focusMetricKey: focusMetricKey ?? null,
       },
     });
 
