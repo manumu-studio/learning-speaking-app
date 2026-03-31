@@ -1,5 +1,6 @@
-# PR-0.15.0 — Dashboard UI
-**Branch:** `feature/dashboard-ui` → `main`
+# PR-0.15.0 — Focus-to-Session Flow
+
+**Branch:** `feature/focus-session` → `main`
 **Version:** `0.15.0`
 **Date:** 2026-03-31
 **Status:** ✅ Ready to merge
@@ -7,65 +8,76 @@
 ---
 
 ## Summary
-- Built the complete `/dashboard` route with performance metric cards, weekly stats, and focus selection
-- All components follow the 4-file pattern; SparkLine is a reusable 3-file UI component with no external chart dependencies
-- Training focus persists in localStorage and will integrate with session creation in the next iteration
+
+- Optional dashboard focus now flows into session creation, analysis, and results
+- Nullable `focusMetricKey` on `SpeakingSession` with server-side validation against allowed metric keys
+- Analysis prompt receives focus bias when a valid key is present; results page shows focus score comparison via dedicated API
+- Dashboard displays "Last trained: today" badge on the matching metric card
 
 ## Files Changed
 
 | File | Action | Notes |
 |------|--------|-------|
-| `src/components/ui/SparkLine/SparkLine.tsx` | Created | Inline SVG sparkline, gradient fill |
-| `src/components/ui/SparkLine/SparkLine.types.ts` | Created | Props |
-| `src/components/ui/SparkLine/index.ts` | Created | Barrel export |
-| `src/features/dashboard/IdentitySummary/IdentitySummary.tsx` | Created | Weekly stats card |
-| `src/features/dashboard/IdentitySummary/IdentitySummary.types.ts` | Created | Props |
-| `src/features/dashboard/IdentitySummary/index.ts` | Created | Barrel export |
-| `src/features/dashboard/MetricCard/MetricCard.tsx` | Created | Metric card with badge + trend + sparkline |
-| `src/features/dashboard/MetricCard/MetricCard.types.ts` | Created | Props |
-| `src/features/dashboard/MetricCard/index.ts` | Created | Barrel export |
-| `src/features/dashboard/FocusSelector/FocusSelector.tsx` | Created | Sticky training focus banner |
-| `src/features/dashboard/FocusSelector/FocusSelector.types.ts` | Created | Props |
-| `src/features/dashboard/FocusSelector/index.ts` | Created | Barrel export |
-| `src/features/dashboard/DashboardSkeleton/DashboardSkeleton.tsx` | Created | Animate-pulse loading skeleton |
-| `src/features/dashboard/DashboardSkeleton/DashboardSkeleton.types.ts` | Created | Props |
-| `src/features/dashboard/DashboardSkeleton/index.ts` | Created | Barrel export |
-| `src/features/dashboard/DashboardView/DashboardView.tsx` | Created | Client orchestrator |
-| `src/features/dashboard/DashboardView/DashboardView.types.ts` | Created | Props |
-| `src/features/dashboard/DashboardView/useDashboard.ts` | Created | Fetch + localStorage focus state |
-| `src/features/dashboard/DashboardView/index.ts` | Created | Barrel export |
-| `src/app/(app)/dashboard/page.tsx` | Created | Server route page |
-| `src/components/ui/MainNav/MainNav.tsx` | Modified | Dashboard link between New Session and History |
+| `prisma/schema.prisma` | Modified | `focusMetricKey String?` on `SpeakingSession` |
+| `src/lib/metric-keys.ts` | Created | Canonical metric keys + `isSpeakingMetricKey()` guard |
+| `src/features/dashboard/FocusBanner/FocusBanner.tsx` | Created | Training focus banner component |
+| `src/features/dashboard/FocusBanner/FocusBanner.types.ts` | Created | Props |
+| `src/features/dashboard/FocusBanner/index.ts` | Created | Barrel export |
+| `src/features/dashboard/DashboardView/useDashboard.ts` | Modified | Focus persistence via `lsa-focus` key |
+| `src/app/(app)/session/new/page.tsx` | Modified | Reads focus from localStorage, shows banner |
+| `src/features/recording/RecordingPanel/RecordingPanel.tsx` | Modified | Passes focus to upload |
+| `src/features/recording/RecordingPanel/RecordingPanel.types.ts` | Modified | Added focus prop |
+| `src/features/session/useUploadSession.ts` | Modified | Sends `focusMetricKey` + `topic` in multipart form |
+| `src/app/api/sessions/route.ts` | Modified | Validates and stores `focusMetricKey` |
+| `src/lib/ai/analyze.ts` | Modified | Prepends focus instruction when key is valid |
+| `src/app/api/internal/process/route.ts` | Modified | Passes `focusMetricKey` to analysis |
+| `src/app/api/dev/process/route.ts` | Modified | Same |
+| `src/components/ui/FocusHighlight/FocusHighlight.tsx` | Created | Results focus score card |
+| `src/components/ui/FocusHighlight/FocusHighlight.types.ts` | Created | Props |
+| `src/components/ui/FocusHighlight/index.ts` | Created | Barrel export |
+| `src/app/api/sessions/[id]/focus-comparison/route.ts` | Created | Current vs previous focus session score |
+| `src/features/session/useSessionStatus.types.ts` | Modified | Added `focusMetricKey` and `metrics` fields |
+| `src/app/api/sessions/[id]/route.ts` | Modified | Includes metrics in response |
+| `src/app/(app)/session/[id]/page.tsx` | Modified | Fetches comparison, renders FocusHighlight |
+| `src/features/dashboard/MetricCard/MetricCard.tsx` | Modified | Displays "Last trained: today" badge |
+| `src/features/dashboard/MetricCard/MetricCard.types.ts` | Modified | Added `lastTrainedToday` prop |
+| `src/features/dashboard/getDashboardData.ts` | Modified | Queries today's focused DONE session |
+| `src/features/dashboard/dashboard.types.ts` | Modified | Added `lastTrainedToday` on `DashboardMetric` |
+| `src/features/dashboard/DashboardView/DashboardView.tsx` | Modified | Passes `lastTrainedToday` to MetricCard |
 
 ## Architecture Decisions
 
 | Decision | Why |
 |----------|-----|
-| SparkLine as inline SVG, no charting library | Zero bundle cost, no external dependency, per-metric color theming |
-| `useId()` for SVG gradient IDs | `Math.random()` in render breaks React purity rules and SSR hydration |
-| localStorage for focus selection | Ephemeral by design; DB persistence deferred to PACKET-15 integration |
-| Empty state threshold: 3 sessions | Minimum for meaningful trend data; fewer sessions would show misleading patterns |
-| Gym-metaphor tone labels | Coaching intent — "Growth Area" vs "Weakness", no red anywhere |
+| `lsa-focus` localStorage key | Single source shared by dashboard and new session page |
+| Nullable `focusMetricKey` column | Non-breaking for existing sessions |
+| `metric-keys.ts` module | One canonical list for API validation + analysis |
+| Dedicated comparison route | Auth-scoped; `metricKey` param must match the session's stored focus |
+| Focus always optional | Sessions work normally without it; no forced workflow |
+| Prompt prepend, not restructure | Preserves existing analysis quality; easy to toggle per session |
 
 ## Testing Checklist
-- [ ] Navigate to `/dashboard` — page loads with skeleton, then data
-- [ ] Identity Summary shows weekly minutes, sessions, focus, streak (if ≥ 2 days)
-- [ ] Metric cards show level badges (green/amber/blue), trend arrows, sparklines
-- [ ] Click a metric card → focus banner appears at bottom
-- [ ] Refresh page → localStorage preserves selected focus
-- [ ] Click "Clear" → banner disappears, focus cleared
-- [ ] User with < 3 sessions sees motivational empty state
-- [ ] Mobile: cards stack to single column
-- [ ] No red colors, no "error"/"mistake"/"weakness" language anywhere
-- [ ] Dashboard link appears in nav between New Session and History
+
+- [ ] Select focus on dashboard → navigate to `/session/new` → banner shows
+- [ ] Record session with focus → DB has `focusMetricKey` and `topic`
+- [ ] Record session WITHOUT focus → normal behavior, no banner
+- [ ] Results page shows FocusHighlight card with score when focus was set
+- [ ] Focus comparison API returns previous session score
+- [ ] Dashboard shows "Last trained: today" badge on matching metric
+- [ ] Invalid `focusMetricKey` on session create → 400
+- [ ] Focus comparison with wrong `metricKey` → error response
+- [ ] Clear localStorage → no focus banner on new session page
 
 ## Deployment Notes
-No environment variable changes. No schema migrations. No new API routes.
+
+- Run `npx prisma db push` for the new `focus_metric_key` nullable column
+- No new environment variables
+- No new npm dependencies
 
 ## Validation
+
 ```
 npx tsc --noEmit → 0 errors
-npm run lint → ✔ No ESLint warnings or errors
 npm run build → ✓ Compiled successfully
-  Route /dashboard → 2.7 kB First Load JS
+npm run lint → ✔ No ESLint warnings or errors
 ```
