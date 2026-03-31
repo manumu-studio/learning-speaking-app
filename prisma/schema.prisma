@@ -64,6 +64,7 @@ model SpeakingSession {
   focusMetricKey String?       // Metric key user chose as focus for drill recommendations
   summary        String?       @db.Text
   intentLabel    String?       @db.Text
+  focusMetricKey String?
   location       String?
   transcript     Transcript?
   insights       Insight[]

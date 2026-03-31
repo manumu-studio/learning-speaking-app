@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DashboardData, MetricKey } from '../dashboard.types';
 
-const FOCUS_STORAGE_KEY = 'lsa-training-focus';
+const FOCUS_STORAGE_KEY = 'lsa-focus';
 
 type FocusState = {
   focusKey: MetricKey;
