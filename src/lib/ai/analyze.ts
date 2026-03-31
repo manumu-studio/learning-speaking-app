@@ -1,30 +1,6 @@
 // Claude Haiku client for analyzing transcripts and detecting recurring patterns
-import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { env } from '@/lib/env';
-
-// Runtime validation — ANTHROPIC_API_KEY is optional in env.ts but required here
-function requireEnv(value: string | undefined, name: string): string {
-  if (!value) {
-    throw new Error(
-      `Missing required environment variable: ${name}. Configure Anthropic credentials to enable analysis.`
-    );
-  }
-  return value;
-}
-
-// Lazy singleton — initialized on first use to avoid build-time crashes
-let _anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient(): Anthropic {
-  if (_anthropicClient) {
-    return _anthropicClient;
-  }
-
-  const apiKey = requireEnv(env.ANTHROPIC_API_KEY, 'ANTHROPIC_API_KEY');
-  _anthropicClient = new Anthropic({ apiKey });
-  return _anthropicClient;
-}
+import { getAnthropicClient } from '@/lib/ai/client';
 
 // Zod schema matching Prisma Insight model fields EXACTLY
 const insightSchema = z.object({

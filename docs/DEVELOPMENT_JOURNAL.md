@@ -29,8 +29,10 @@ A chronological record of feature development for the Learning Speaking App.
 | — | [ENTRY-launch](journal/ENTRY-launch.md) | — | Launch event |
 | 0.12.0 | [ENTRY-12](journal/ENTRY-12.md) | 2026-03-31 | Landing page sections |
 | 0.13.0 | [ENTRY-13](journal/ENTRY-13.md) | 2026-03-31 | Polish, rate limiting & production readiness |
-| 0.14.0 | [ENTRY-14](journal/ENTRY-14.md) | 2026-03-31 | Dashboard data layer |
-| 0.15.0 | [ENTRY-15](journal/ENTRY-15.md) | 2026-03-31 | Dashboard UI |
+| 0.14.0 | [ENTRY-14](journal/ENTRY-14.md) | 2026-03-31 | Dashboard data layer + dark mode |
+| 0.14.0 | [ENTRY-14b](journal/ENTRY-14b.md) | 2026-03-31 | Dashboard UI |
+| 0.15.0 | [ENTRY-15](journal/ENTRY-15.md) | 2026-03-31 | Focus-to-session flow |
+| 0.16.0 | [ENTRY-16](journal/ENTRY-16.md) | 2026-03-31 | Training system backend (drills) |
 
 ## Pull Requests
 
@@ -38,5 +40,7 @@ A chronological record of feature development for the Learning Speaking App.
 |---------|-----|------|---------|
 | 0.12.0 | [PR-0.12.0](pull-requests/PR-0.12.0.md) | 2026-03-31 | Landing page sections |
 | 0.13.0 | [PR-0.13.0](pull-requests/PR-0.13.0.md) | 2026-03-31 | Polish, rate limiting & production readiness |
-| 0.14.0 | [PR-0.14.0](pull-requests/PR-0.14.0.md) | 2026-03-31 | Dashboard data layer |
-| 0.15.0 | [PR-0.15.0](pull-requests/PR-0.15.0.md) | 2026-03-31 | Dashboard UI |
+| 0.14.0 | [PR-0.14.0](pull-requests/PR-0.14.0.md) | 2026-03-31 | Dashboard data layer + dark mode |
+| 0.14.0 | [PR-0.14.1](pull-requests/PR-0.14.1.md) | 2026-03-31 | Dashboard UI |
+| 0.15.0 | [PR-0.15.0](pull-requests/PR-0.15.0.md) | 2026-03-31 | Focus-to-session flow |
+| 0.16.0 | [PR-0.16.0](pull-requests/PR-0.16.0.md) | 2026-03-31 | Training system backend (drills) |

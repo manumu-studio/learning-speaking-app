@@ -135,10 +135,11 @@ async function seed(): Promise<void> {
   });
 
   if (existingSessions.length > 0) {
+    await prisma.drillAttempt.deleteMany({ where: { userId: user.id } });
     await prisma.speakingSession.deleteMany({
       where: { userId: user.id },
     });
-    console.log(`🧹 Cleaned ${existingSessions.length} previous session(s)`);
+    console.log(`🧹 Cleaned drills + ${existingSessions.length} previous session(s)`);
   }
 
   // Create DONE session
@@ -152,6 +153,7 @@ async function seed(): Promise<void> {
       intentLabel: 'Language learning daily habits',
       summary: MOCK_SUMMARY,
       focusNext: MOCK_FOCUS_NEXT,
+      focusMetricKey: 'connectorRepetition',
       audioDeletedAt: new Date(),
     },
   });
@@ -318,6 +320,123 @@ async function seed(): Promise<void> {
   console.log(`✅ Pattern profile updated`);
 
   console.log(`\n📊 Seeded 8 sessions across 7 days (7 DONE + 1 FAILED)`);
+
+  const drillSeeds = [
+    {
+      userId: user.id,
+      sessionId: session.id,
+      drillType: 'rephrase',
+      metricKey: 'connectorRepetition',
+      prompt:
+        'You said: "So I think that the problem is important, so we need to fix it." Try rephrasing this without using "so" — consider using "therefore", "as a result", or "consequently" instead.',
+      sourceExample: 'So I think that the problem is important, so we need to fix it.',
+      transcript: 'I believe the problem is significant, therefore we need to address it promptly.',
+      feedback:
+        'Great job eliminating the repeated "so" — your use of "therefore" sounds much more polished!',
+      improved: true,
+      createdAt: new Date('2026-03-28T10:00:00Z'),
+      completedAt: new Date('2026-03-28T10:02:30Z'),
+    },
+    {
+      userId: user.id,
+      sessionId: session.id,
+      drillType: 'vocabUpgrade',
+      metricKey: 'vocabularyPrecision',
+      prompt:
+        'You used "good" three times in your response. Try re-explaining your point about the team using one of these alternatives: "effective", "proficient", or "collaborative".',
+      sourceExample: 'The team was good and they did a good job on the good project.',
+      transcript:
+        'The team was effective and they delivered a proficient result on the collaborative project.',
+      feedback: 'Solid upgrade — you replaced all three instances with distinct, precise alternatives.',
+      improved: true,
+      createdAt: new Date('2026-03-28T10:05:00Z'),
+      completedAt: new Date('2026-03-28T10:06:30Z'),
+    },
+    {
+      userId: user.id,
+      sessionId: session2.id,
+      drillType: 'constraint',
+      metricKey: 'structuralVariety',
+      prompt:
+        'Use this structure: "Although [challenge], [positive outcome] because [reason]." Explain your recent experience with the new workflow using this exact pattern.',
+      sourceExample: 'The new workflow was hard but we managed to finish it.',
+      transcript:
+        'Although the new workflow presented some challenges, we completed it ahead of schedule because the team adapted quickly.',
+      feedback:
+        'Perfect structure — your "although/because" framing adds real sophistication to the argument.',
+      improved: true,
+      createdAt: new Date('2026-03-29T14:00:00Z'),
+      completedAt: new Date('2026-03-29T14:03:00Z'),
+    },
+    {
+      userId: user.id,
+      sessionId: session2.id,
+      drillType: 'precision',
+      metricKey: 'fillerUsage',
+      prompt:
+        'You said: "So, like, the thing is that we basically need to, you know, improve the process." Make this specific and concrete — what exactly needs improving and how?',
+      sourceExample:
+        'So, like, the thing is that we basically need to, you know, improve the process.',
+      transcript:
+        'We need to reduce the onboarding time from two weeks to five days by automating the document verification step.',
+      feedback: 'Excellent — you went from vague to laser-focused with a specific metric and action!',
+      improved: true,
+      createdAt: new Date('2026-03-29T14:05:00Z'),
+      completedAt: new Date('2026-03-29T14:07:00Z'),
+    },
+    {
+      userId: user.id,
+      sessionId: session2.id,
+      drillType: 'conclusion',
+      metricKey: 'argumentClosure',
+      prompt:
+        'You were discussing the benefits of remote work but trailed off. Deliver a strong 2-3 sentence conclusion that ties back to your main point about productivity.',
+      sourceExample: 'So yeah, remote work is kind of... well it has its benefits and...',
+      transcript:
+        'So in terms of remote work, there are benefits, I think people can work better sometimes.',
+      feedback:
+        'You made a solid attempt — next time, try ending with a definitive statement that echoes your opening argument.',
+      improved: false,
+      createdAt: new Date('2026-03-29T14:10:00Z'),
+      completedAt: new Date('2026-03-29T14:14:00Z'),
+    },
+    {
+      userId: user.id,
+      sessionId: session2.id,
+      drillType: 'rephrase',
+      metricKey: 'connectorRepetition',
+      prompt:
+        'You said: "Because the deadline was tight, because we had limited resources, we struggled." Try expressing this cause-effect relationship without repeating "because".',
+      sourceExample:
+        'Because the deadline was tight, because we had limited resources, we struggled.',
+      transcript: null,
+      feedback: null,
+      improved: null,
+      createdAt: new Date('2026-03-30T09:00:00Z'),
+      completedAt: null,
+    },
+    {
+      userId: user.id,
+      sessionId: null,
+      drillType: 'vocabUpgrade',
+      metricKey: 'vocabularyPrecision',
+      prompt:
+        'You frequently use "important" — try replacing it with "critical", "essential", or "pivotal" in your next response about project priorities.',
+      sourceExample:
+        'This is important because the important thing is to focus on important tasks.',
+      transcript: null,
+      feedback: null,
+      improved: null,
+      createdAt: new Date('2026-03-30T09:05:00Z'),
+      completedAt: null,
+    },
+  ];
+
+  for (const drill of drillSeeds) {
+    await prisma.drillAttempt.create({ data: drill });
+  }
+  console.log(`✅ Drill attempts: ${drillSeeds.length} seeded`);
+
   console.log('\n──────────────────────────────────────');
   console.log(`🔗 View results: http://localhost:3000/session/${session.id}`);
   console.log('──────────────────────────────────────\n');
