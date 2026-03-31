@@ -64,6 +64,13 @@ export async function POST(request: NextRequest) {
     // Step 3: Fetch session
     const session = await prisma.speakingSession.findUnique({
       where: { id },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        audioUrl: true,
+        focusMetricKey: true,
+      },
     });
 
     if (!session) {
@@ -138,7 +145,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Step 11: Analyze transcript with Claude
-    const analysis = await analyzeTranscript(transcriptText);
+    const analysis = await analyzeTranscript(transcriptText, session.focusMetricKey);
 
     log({
       level: 'info',

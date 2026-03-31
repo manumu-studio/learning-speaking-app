@@ -55,6 +55,21 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 
   const currentStreak = computeStreak(allSessions.map((s) => s.createdAt));
 
+  // Query today's focus session to determine which metric was trained today
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayFocusSession = await prisma.speakingSession.findFirst({
+    where: {
+      userId,
+      focusMetricKey: { not: null },
+      createdAt: { gte: todayStart },
+      status: 'DONE',
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { focusMetricKey: true },
+  });
+
   // Metrics — last 7 snapshots per key, compute trend
   const metrics: DashboardMetric[] = await Promise.all(
     METRIC_KEYS.map(async (key) => {
@@ -83,6 +98,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
         currentScore,
         trend,
         history,
+        lastTrainedToday: todayFocusSession?.focusMetricKey === key,
       };
     })
   );
