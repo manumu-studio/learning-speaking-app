@@ -7,7 +7,7 @@ import { CtaFooter } from '@/components/landing/CtaFooter';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { auth, signIn } from '@/features/auth/auth';
 import Image from 'next/image';
-import Link from 'next/link';
+import { NavButton } from '@/components/ui/NavButton';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 
 interface HomePageProps {
@@ -45,17 +45,17 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <Image
               src="/assets/logo-white.webp"
               alt="Learning Speaking App"
-              width={160}
-              height={48}
-              className="h-12 w-auto dark:block hidden"
+              width={240}
+              height={64}
+              className="h-16 sm:h-20 w-auto dark:block hidden"
               priority
             />
             <Image
               src="/assets/logo-black.webp"
               alt="Learning Speaking App"
-              width={160}
-              height={48}
-              className="h-12 w-auto block dark:hidden"
+              width={240}
+              height={64}
+              className="h-16 sm:h-20 w-auto block dark:hidden"
               priority
             />
           </div>
@@ -68,13 +68,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </p>
 
           <h1
-            className="text-6xl md:text-7xl font-black text-black dark:text-white mb-2 tracking-tight"
+            className="text-5xl md:text-7xl font-black text-black dark:text-white mb-2 tracking-tight"
             style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.4s', opacity: 0 }}
           >
             LEARNING
           </h1>
           <h1
-            className="text-6xl md:text-7xl font-black text-black dark:text-white mb-6 tracking-tight"
+            className="text-5xl md:text-7xl font-black text-black dark:text-white mb-6 tracking-tight"
             style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.5s', opacity: 0 }}
           >
             SPEAKING APP
@@ -89,12 +89,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
           <div style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.9s', opacity: 0 }}>
             {isAuthenticated ? (
-              <Link
+              <NavButton
                 href="/session/new"
-                className="inline-block px-8 py-3 text-lg font-medium text-white dark:text-black bg-black dark:bg-white rounded-full hover:bg-black/80 dark:hover:bg-white/90 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black/50 dark:focus:ring-white/50"
+                className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-white dark:text-black bg-black dark:bg-white rounded-full hover:bg-black/80 dark:hover:bg-white/90 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black/50 dark:focus:ring-white/50"
               >
                 Go to Dashboard
-              </Link>
+              </NavButton>
             ) : (
               <>
                 {error && (

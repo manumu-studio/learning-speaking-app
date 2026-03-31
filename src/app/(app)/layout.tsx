@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SessionProvider session={session}>
       <ErrorBoundary>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200">
           <TopBar
             userName={session.user.name}
             userEmail={session.user.email}
