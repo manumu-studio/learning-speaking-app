@@ -21,3 +21,15 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Smooth pulsing glow for recording state */
+@keyframes recording-pulse {
+  0%, 100% {
+    box-shadow: 0 10px 25px -3px rgba(239, 68, 68, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 10px 40px -3px rgba(239, 68, 68, 0.5);
+    transform: scale(1.03);
+  }
+}

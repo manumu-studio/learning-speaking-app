@@ -59,7 +59,7 @@ export function RecordingPanel({ topic }: RecordingPanelProps) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 space-y-8">
+    <div className="flex flex-col items-center justify-center py-6 sm:py-12 space-y-6 sm:space-y-8">
       {/* Timer */}
       <SessionTimer seconds={duration} isActive={state === 'recording'} />
 
@@ -72,40 +72,40 @@ export function RecordingPanel({ topic }: RecordingPanelProps) {
       />
 
       {/* Status Messages */}
-      <div className="text-center min-h-[60px]">
+      <div className="text-center min-h-[60px] px-4">
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md">
+            <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
           </div>
         )}
 
         {!error && state === 'idle' && (
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg">
             Press the button to start your speaking session
           </p>
         )}
 
         {!error && state === 'recording' && (
-          <p className="text-gray-700 text-lg font-medium">
+          <p className="text-gray-700 dark:text-gray-200 text-base sm:text-lg font-medium">
             Speaking... take your time
           </p>
         )}
 
         {!error && state === 'stopped' && !isUploading && (
           <div className="space-y-4">
-            <p className="text-gray-700 text-lg font-medium">
+            <p className="text-gray-700 dark:text-gray-200 text-base sm:text-lg font-medium">
               Session complete! Ready to upload.
             </p>
-            <div className="flex space-x-4 justify-center">
+            <div className="flex space-x-3 sm:space-x-4 justify-center">
               <button
                 onClick={handleUpload}
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-5 py-2.5 sm:px-6 sm:py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-black focus:ring-blue-500 transition-colors"
               >
                 Upload &amp; Analyze
               </button>
               <button
                 onClick={resetRecording}
-                className="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                className="px-5 py-2.5 sm:px-6 sm:py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-black focus:ring-gray-500 transition-colors"
               >
                 Discard &amp; Retry
               </button>
@@ -114,7 +114,7 @@ export function RecordingPanel({ topic }: RecordingPanelProps) {
         )}
 
         {isUploading && (
-          <p className="text-blue-600 text-lg font-medium">
+          <p className="text-blue-600 dark:text-blue-400 text-base sm:text-lg font-medium">
             Uploading... please wait
           </p>
         )}
@@ -122,8 +122,8 @@ export function RecordingPanel({ topic }: RecordingPanelProps) {
 
       {/* Audio preview */}
       {audioPreviewUrl && state === 'stopped' && !isUploading && (
-        <div className="mt-4">
-          <audio controls src={audioPreviewUrl} className="w-80" />
+        <div className="mt-4 w-full max-w-xs sm:max-w-sm mx-auto">
+          <audio controls src={audioPreviewUrl} className="w-full" />
         </div>
       )}
     </div>
