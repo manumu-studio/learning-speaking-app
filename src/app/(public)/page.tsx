@@ -1,5 +1,9 @@
-// Public landing page with conditional CTAs based on auth state
+// Public landing page with animated canvas background and scrollable sections
 import { CookieConsent } from '@/components/ui/CookieConsent';
+import { HeroCanvas } from '@/components/ui/HeroCanvas';
+import { FeatureShowcase } from '@/components/landing/FeatureShowcase';
+import { HowItWorks } from '@/components/landing/HowItWorks';
+import { CtaFooter } from '@/components/landing/CtaFooter';
 import { auth, signIn } from '@/features/auth/auth';
 import Link from 'next/link';
 
@@ -11,69 +15,102 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const session = await auth();
   const params = await searchParams;
   const error = params.error;
+  const isAuthenticated = !!session?.user;
+
+  // Server action for sign-in (passed to client components)
+  const handleSignIn = async () => {
+    'use server';
+    await signIn('manumustudio', { redirectTo: '/session/new' });
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-2xl mx-auto px-4 text-center">
-        <h1 className="text-5xl font-bold text-gray-900 mb-6">
-          Learning Speaking App
-        </h1>
-        <p className="text-xl text-gray-700 mb-8">
-          Practice speaking naturally. Get AI-powered feedback on fluency,
-          clarity, and communication patterns.
-        </p>
+    <main className="bg-black">
+      {/* === Hero Section === */}
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <HeroCanvas />
 
-        {session?.user ? (
-          <Link
-            href="/session/new"
-            className="inline-block px-8 py-3 text-lg font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        <div className="relative z-10 max-w-2xl mx-auto px-4 text-center">
+          <p
+            className="text-sm tracking-widest uppercase text-white/60 mb-4"
+            style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.2s', opacity: 0 }}
           >
-            Go to Dashboard
-          </Link>
-        ) : (
-          <>
-            {error && (
-              <div className="w-full max-w-md mx-auto rounded-md bg-red-50 p-4 text-sm text-red-800 mb-6">
-                Authentication failed. Please try again.
-              </div>
+            AI-Powered English Coach
+          </p>
+
+          <h1
+            className="text-6xl md:text-7xl font-black text-white mb-2 tracking-tight"
+            style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.4s', opacity: 0 }}
+          >
+            LEARNING
+          </h1>
+          <h1
+            className="text-6xl md:text-7xl font-black text-white mb-6 tracking-tight"
+            style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.5s', opacity: 0 }}
+          >
+            SPEAKING APP
+          </h1>
+
+          <p
+            className="text-lg text-white/70 mb-10 italic max-w-md mx-auto"
+            style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.7s', opacity: 0 }}
+          >
+            Practice speaking naturally. Get AI-powered feedback on fluency, clarity, and communication patterns.
+          </p>
+
+          <div style={{ animation: 'fadeInUp 0.8s ease forwards', animationDelay: '0.9s', opacity: 0 }}>
+            {isAuthenticated ? (
+              <Link
+                href="/session/new"
+                className="inline-block px-8 py-3 text-lg font-medium text-black bg-white rounded-full hover:bg-white/90 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                {error && (
+                  <div className="w-full max-w-md mx-auto rounded-md bg-red-900/50 border border-red-500/30 p-4 text-sm text-red-200 mb-6">
+                    Authentication failed. Please try again.
+                  </div>
+                )}
+
+                <form action={handleSignIn} className="w-full max-w-md mx-auto">
+                  <button
+                    type="submit"
+                    className="w-full rounded-full bg-white px-8 py-3 text-lg font-semibold text-black transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black"
+                  >
+                    Sign in with ManuMuStudio
+                  </button>
+                </form>
+
+                <div className="text-sm text-white/50 mt-4">
+                  Don&apos;t have an account?{' '}
+                  <form
+                    action={async () => {
+                      'use server';
+                      await signIn('manumustudio', { redirectTo: '/session/new' }, { mode: 'signup' });
+                    }}
+                    className="inline"
+                  >
+                    <button
+                      type="submit"
+                      className="text-white/80 hover:text-white hover:underline transition"
+                    >
+                      Create one here
+                    </button>
+                  </form>
+                </div>
+              </>
             )}
-
-            <form
-              action={async () => {
-                'use server';
-                await signIn('manumustudio', { redirectTo: '/session/new' });
-              }}
-              className="w-full max-w-md mx-auto"
-            >
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-blue-600 px-8 py-3 text-lg font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Sign in with ManuMuStudio
-              </button>
-            </form>
-
-            <div className="text-sm text-gray-500 mt-4">
-              Don&apos;t have an account?{' '}
-              <form
-                action={async () => {
-                  'use server';
-                  await signIn('manumustudio', { redirectTo: '/session/new' }, { mode: 'signup' });
-                }}
-                className="inline"
-              >
-                <button
-                  type="submit"
-                  className="text-blue-600 hover:underline"
-                >
-                  Create one here
-                </button>
-              </form>
-            </div>
-          </>
-        )}
+          </div>
+        </div>
       </div>
+
+      {/* === Scrollable Sections === */}
+      <FeatureShowcase />
+      <HowItWorks />
+      <CtaFooter isAuthenticated={isAuthenticated} signInAction={handleSignIn} />
+
       <CookieConsent />
-    </div>
+    </main>
   );
 }
