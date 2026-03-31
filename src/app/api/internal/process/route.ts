@@ -162,6 +162,20 @@ export async function POST(request: NextRequest) {
       })),
     });
 
+    // Step 12b: Store metric snapshots from analysis result
+    if (analysis.metrics.length > 0) {
+      await prisma.metricSnapshot.createMany({
+        data: analysis.metrics.map((metric) => ({
+          sessionId: id,
+          key: metric.key,
+          level: metric.level,
+          score: metric.score,
+          note: metric.note,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     // Step 13: Store focusNext, summary, and intentLabel on the session
     await prisma.speakingSession.update({
       where: { id },

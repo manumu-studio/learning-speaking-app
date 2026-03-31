@@ -1,6 +1,7 @@
-// Root layout — wraps the entire application with global styles
+// Root layout — wraps the entire application with global styles and theme provider
 import type { Metadata } from 'next';
 import './globals.css';
+import { ThemeProvider } from '@/components/ui/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Learning Speaking App',
@@ -22,8 +23,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

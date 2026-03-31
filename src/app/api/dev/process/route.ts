@@ -126,6 +126,21 @@ export async function POST(request: NextRequest) {
       })),
     });
 
+    // Step 11b: Store metric snapshots from analysis result
+    if (analysis.metrics.length > 0) {
+      await prisma.metricSnapshot.deleteMany({ where: { sessionId: id } });
+      await prisma.metricSnapshot.createMany({
+        data: analysis.metrics.map((metric) => ({
+          sessionId: id,
+          key: metric.key,
+          level: metric.level,
+          score: metric.score,
+          note: metric.note,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     // Step 12: Store focusNext, summary, and intentLabel
     await prisma.speakingSession.update({
       where: { id },

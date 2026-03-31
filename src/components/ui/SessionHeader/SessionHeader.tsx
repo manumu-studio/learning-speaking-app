@@ -23,8 +23,8 @@ interface StatColumnProps {
 function StatColumn({ value, label }: StatColumnProps) {
   return (
     <div className="flex flex-col items-center gap-1 min-w-[60px]">
-      <span className="text-lg font-semibold text-gray-900">{value}</span>
-      <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
+      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</span>
     </div>
   );
 }
@@ -41,10 +41,10 @@ export function SessionHeader({
 
   return (
     <div
-      className="rounded-xl bg-white border border-gray-200 shadow-sm p-6"
+      className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-6"
       style={style}
     >
-      <p className="text-gray-700 text-base leading-relaxed mb-5">
+      <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed mb-5">
         {summary ?? 'Session analysis complete.'}
       </p>
 
