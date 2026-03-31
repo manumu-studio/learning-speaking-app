@@ -32,6 +32,7 @@ export function MetricCard({
   history,
   isSelected,
   onSelect,
+  lastTrainedToday,
 }: MetricCardProps) {
   const levelStyle = LEVEL_STYLES[currentLevel];
   const trendDisplay = TREND_DISPLAY[trend];
@@ -52,11 +53,18 @@ export function MetricCard({
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-sm font-semibold text-slate-800">{label}</h3>
-          <span
-            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${levelStyle.badge}`}
-          >
-            {levelStyle.label}
-          </span>
+          <div className="mt-1 flex items-center gap-2">
+            <span
+              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${levelStyle.badge}`}
+            >
+              {levelStyle.label}
+            </span>
+            {lastTrainedToday && (
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                Last trained: today
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <span className="text-lg font-bold text-slate-700">

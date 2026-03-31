@@ -8,8 +8,18 @@ import { SessionHeader } from '@/components/ui/SessionHeader';
 import { InsightsList } from '@/components/ui/InsightsList';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
 import { TranscriptSection } from '@/components/ui/TranscriptSection';
+import { FocusHighlight } from '@/features/session/FocusHighlight';
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import styles from './SessionResults.module.css';
+
+const METRIC_LABELS: Record<string, string> = {
+  connectorRepetition: 'Connector Repetition',
+  structuralVariety: 'Structural Variety',
+  vocabularyPrecision: 'Vocabulary Precision',
+  verbAccuracy: 'Verb Accuracy',
+  argumentClosure: 'Argument Closure',
+  fillerUsage: 'Filler Usage',
+};
 
 export default function SessionResultsPage({
   params,
@@ -63,8 +73,28 @@ export default function SessionResultsPage({
 
   // Done state — render full results layout
   if (isDone && session) {
-    const focusBannerDelay = 200 + session.insights.length * 100 + 100;
-    const transcriptDelay = 200 + session.insights.length * 100 + 200;
+    // Calculate animation delays
+    let currentDelay = 200 + session.insights.length * 100;
+    
+    // Focus highlight appears after insights if present
+    const focusHighlightDelay = session.focusMetricKey ? currentDelay + 100 : 0;
+    if (session.focusMetricKey) currentDelay += 200;
+    
+    // Focus next banner
+    const focusBannerDelay = currentDelay + 100;
+    currentDelay += 200;
+    
+    // Transcript
+    const transcriptDelay = currentDelay + 100;
+
+    // Get focus metric data if available
+    const focusMetric = session.focusMetricKey && session.metrics
+      ? session.metrics.find((m) => m.key === session.focusMetricKey)
+      : null;
+    
+    const focusLabel = session.focusMetricKey
+      ? METRIC_LABELS[session.focusMetricKey] ?? session.focusMetricKey
+      : null;
 
     return (
       <Container>
@@ -82,6 +112,15 @@ export default function SessionResultsPage({
             insights={session.insights}
             baseDelay={200}
           />
+
+          {focusMetric && focusLabel && (
+            <FocusHighlight
+              metricLabel={focusLabel}
+              currentScore={focusMetric.score}
+              previousScore={null}
+              animationDelay={focusHighlightDelay}
+            />
+          )}
 
           {session.focusNext && (
             <FocusNextBanner

@@ -9,7 +9,7 @@ import { RecordButton } from '@/components/ui/RecordButton';
 import { SessionTimer } from '@/components/ui/SessionTimer';
 import type { RecordingPanelProps } from './RecordingPanel.types';
 
-export function RecordingPanel({ topic }: RecordingPanelProps) {
+export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
   const router = useRouter();
   const { state, duration, audioBlob, error: recordError, startRecording, stopRecording, resetRecording } =
     useAudioRecorder();
@@ -34,7 +34,12 @@ export function RecordingPanel({ topic }: RecordingPanelProps) {
     if (!audioBlob) return;
 
     try {
-      const sessionId = await upload(audioBlob, duration, topic);
+      const sessionId = await upload(
+        audioBlob,
+        duration,
+        focus ? focus.focusLabel : topic,
+        focus ? focus.focusKey : undefined
+      );
       router.push(`/session/${sessionId}`);
     } catch {
       // Error displayed via uploadError state from the hook

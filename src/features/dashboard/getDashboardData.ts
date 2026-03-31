@@ -100,6 +100,23 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     },
   });
 
+  // Today's focus session — check if user trained a specific metric today
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayFocusSession = await prisma.speakingSession.findFirst({
+    where: {
+      userId,
+      focusMetricKey: { not: null },
+      createdAt: { gte: todayStart },
+      status: 'DONE',
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { focusMetricKey: true },
+  });
+
+  const lastTrainedMetricKey = todayFocusSession?.focusMetricKey ?? null;
+
   return {
     weeklyMinutes,
     weeklySessionCount,
@@ -108,6 +125,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     currentFocus: null,
     metrics,
     recentSessions,
+    lastTrainedMetricKey,
   };
 }
 
