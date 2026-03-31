@@ -48,7 +48,7 @@ The processing pipeline passes the focus key into analysis so Claude emphasizes 
 
 ## Still Open
 
-Structured drills and exercises can reuse `focusMetricKey` in a later iteration (PACKET-16+).
+Structured drills and exercises can reuse `focusMetricKey` in a later iteration.
 
 ## Validation
 

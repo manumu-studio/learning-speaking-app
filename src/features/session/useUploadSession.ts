@@ -11,7 +11,12 @@ interface UploadResult {
 }
 
 interface UseUploadSessionReturn {
-  upload: (blob: Blob, durationSecs: number, topic?: string) => Promise<string>;
+  upload: (
+    blob: Blob,
+    durationSecs: number,
+    topic?: string,
+    focus?: { focusKey: string; focusLabel: string } | null
+  ) => Promise<string>;
   isUploading: boolean;
   error: string | null;
 }
@@ -23,7 +28,8 @@ export function useUploadSession(): UseUploadSessionReturn {
   const upload = async (
     blob: Blob,
     durationSecs: number,
-    topic?: string
+    topic?: string,
+    focus?: { focusKey: string; focusLabel: string } | null
   ): Promise<string> => {
     setIsUploading(true);
     setError(null);
@@ -33,7 +39,10 @@ export function useUploadSession(): UseUploadSessionReturn {
       formData.append('audio', blob, `recording.${blob.type.split('/')[1]?.split(';')[0] ?? 'webm'}`);
       formData.append('duration', durationSecs.toString());
       formData.append('language', 'en');
-      if (topic) {
+      if (focus) {
+        formData.append('focusMetricKey', focus.focusKey);
+        formData.append('topic', focus.focusLabel);
+      } else if (topic) {
         formData.append('topic', topic);
       }
 
