@@ -9,6 +9,7 @@ const navItems = [
   { href: '/session/new', label: 'New Session' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/history', label: 'History' },
+  { href: '/drills', label: 'Training' },
 ] as const;
 
 export function MainNav({ className = '' }: MainNavProps) {
@@ -17,7 +18,10 @@ export function MainNav({ className = '' }: MainNavProps) {
   return (
     <nav className={`flex space-x-3 sm:space-x-6 ${className}`}>
       {navItems.map(({ href, label }) => {
-        const isActive = pathname === href || pathname.startsWith(`${href}/`);
+        const isActive =
+          pathname === href ||
+          pathname.startsWith(`${href}/`) ||
+          (href === '/drills' && pathname.startsWith('/drill/'));
         return (
           <Link
             key={href}

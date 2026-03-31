@@ -1,4 +1,4 @@
-// Generates personalized drill prompts using Claude Haiku based on user's transcript examples
+// Generates personalized drill prompts — template path for precision/conclusion, Haiku for other types
 
 import { getAnthropicClient } from '@/lib/ai/client';
 import type { DrillPrompt, DrillType } from './training.types';
@@ -10,15 +10,98 @@ interface GenerateDrillParams {
   metricKey: string;
   recentExamples: string[];
   focusPattern: string;
+  /** Session topic label when available (conclusion drill) */
+  intentLabel?: string | null;
+  /** Full session transcript when available (conclusion / vague-phrase context) */
+  sessionTranscript?: string;
 }
 
 const DRILL_TIME_LIMITS: Record<DrillType, number> = {
   rephrase: 90,
   constraint: 120,
   vocabUpgrade: 60,
-  precision: 90,
-  conclusion: 240,
+  precision: 60,
+  conclusion: 120,
 };
+
+// Extract a vague phrase from transcript for precision drill targeting
+function extractVaguePhrase(transcript: string): string {
+  const vagueMarkers = [
+    'things',
+    'stuff',
+    'like',
+    'kind of',
+    'sort of',
+    'a lot',
+    'some people',
+    'basically',
+  ];
+  const sentences = transcript
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 8);
+
+  if (sentences.length === 0) {
+    return transcript.trim().slice(0, 200) || 'your recent point';
+  }
+
+  let best = sentences[0];
+  let bestScore = 0;
+  const lower = (s: string) => s.toLowerCase();
+  for (const sentence of sentences) {
+    const l = lower(sentence);
+    const score = vagueMarkers.reduce((acc, m) => acc + (l.includes(m) ? 1 : 0), 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = sentence;
+    }
+  }
+
+  return best ?? transcript.trim().slice(0, 200);
+}
+
+// Extract session topic from intent label or first sentence of transcript
+function extractSessionTopic(session: { intentLabel: string | null; transcript: string }): string {
+  if (session.intentLabel && session.intentLabel.trim().length > 0) {
+    return session.intentLabel.trim();
+  }
+  const firstSentence = session.transcript.split(/[.!?]/)[0]?.trim();
+  if (firstSentence && firstSentence.length > 0) return firstSentence;
+  return 'your chosen topic';
+}
+
+function buildPrecisionPrompt(params: GenerateDrillParams): DrillPrompt {
+  const transcript =
+    params.sessionTranscript?.trim() ||
+    params.recentExamples.join(' ').trim() ||
+    'your recent point';
+  const vaguePhrase = extractVaguePhrase(transcript);
+  return {
+    drillType: 'precision',
+    metricKey: params.metricKey,
+    prompt: `You said: "${vaguePhrase}". Now say it more precisely. Who exactly? How many? When? Be specific — replace every vague word with a concrete detail.`,
+    sourceExample: vaguePhrase,
+    timeLimit: DRILL_TIME_LIMITS.precision,
+  };
+}
+
+function buildConclusionPrompt(params: GenerateDrillParams): DrillPrompt {
+  const transcript =
+    params.sessionTranscript?.trim() ||
+    params.recentExamples.join(' ').trim() ||
+    '';
+  const topic = extractSessionTopic({
+    intentLabel: params.intentLabel ?? null,
+    transcript,
+  });
+  return {
+    drillType: 'conclusion',
+    metricKey: params.metricKey,
+    prompt: `Explain "${topic}" and end with a strong conclusion. Close with one of these starters: "In summary...", "The key takeaway is...", or "What this means is...". Make your ending memorable.`,
+    sourceExample: null,
+    timeLimit: DRILL_TIME_LIMITS.conclusion,
+  };
+}
 
 const DRILL_TEMPLATES: Record<DrillType, string> = {
   rephrase: `The user tends to overuse certain connectors and repeat sentence structures.
@@ -84,6 +167,14 @@ Keep the prompt to 2-3 sentences.`,
 
 export async function generateDrill(params: GenerateDrillParams): Promise<DrillPrompt> {
   const { drillType, metricKey, recentExamples, focusPattern } = params;
+
+  if (drillType === 'precision') {
+    return buildPrecisionPrompt(params);
+  }
+  if (drillType === 'conclusion') {
+    return buildConclusionPrompt(params);
+  }
+
   const client = getAnthropicClient();
 
   const template = DRILL_TEMPLATES[drillType];
