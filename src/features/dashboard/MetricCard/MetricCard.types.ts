@@ -10,7 +10,7 @@ export interface MetricCardProps {
   history: number[];
   isSelected: boolean;
   onSelect: (key: MetricKey) => void;
-  lastTrainedToday?: boolean;
+  lastTrainedToday?: boolean | undefined;
   /** Completed drills targeting this metric */
-  drillCount?: number;
+  drillCount?: number | undefined;
 }

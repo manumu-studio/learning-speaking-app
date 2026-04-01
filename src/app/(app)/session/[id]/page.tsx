@@ -3,6 +3,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { z } from 'zod';
 import { Container } from '@/components/ui/Container';
 import { ProcessingStatus } from '@/components/ui/ProcessingStatus';
 import { SessionHeader } from '@/components/ui/SessionHeader';
@@ -87,10 +88,11 @@ export default function SessionResultsPage({
           `/api/sessions/${id}/focus-comparison?metricKey=${encodeURIComponent(focusKey)}`
         );
         if (response.ok) {
-          const data = (await response.json()) as {
-            currentScore: number;
-            previousScore: number | null;
-          };
+          const focusComparisonSchema = z.object({
+            currentScore: z.number(),
+            previousScore: z.number().nullable(),
+          });
+          const data = focusComparisonSchema.parse(await response.json());
           setFocusComparison({
             metricLabel: METRIC_LABELS[focusKey] ?? focusKey,
             currentScore: data.currentScore,
@@ -180,11 +182,10 @@ export default function SessionResultsPage({
         }),
       });
       if (!res.ok) return;
-      const newDrill: unknown = await res.json();
-      if (!newDrill || typeof newDrill !== 'object') return;
-      const rec = newDrill as Record<string, unknown>;
-      if (typeof rec.id !== 'string') return;
-      router.push(`/drill/${rec.id}`);
+      const drillCreatedSchema = z.object({ id: z.string() });
+      const result = drillCreatedSchema.safeParse(await res.json());
+      if (!result.success) return;
+      router.push(`/drill/${result.data.id}`);
     };
 
     return (

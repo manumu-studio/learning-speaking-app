@@ -1,14 +1,25 @@
 'use client';
 // Hook for fetching session history and grouping by day
 import { useEffect, useState } from 'react';
+import { z } from 'zod';
 import type { DayGroup, HistorySession, UseSessionHistoryReturn } from './useSessionHistory.types';
 
-interface SessionsApiResponse {
-  sessions: HistorySession[];
-  total: number;
-  page: number;
-  limit: number;
-}
+const sessionsApiResponseSchema = z.object({
+  sessions: z.array(z.object({
+    id: z.string(),
+    status: z.string(),
+    durationSecs: z.number().nullable(),
+    language: z.string(),
+    topic: z.string().nullable(),
+    intentLabel: z.string().nullable(),
+    summary: z.string().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+});
 
 function getDayLabel(dateString: string): string {
   const date = new Date(dateString);
@@ -77,7 +88,7 @@ export function useSessionHistory(): UseSessionHistoryReturn {
           throw new Error(`Failed to load sessions (${res.status})`);
         }
 
-        const data = (await res.json()) as SessionsApiResponse;
+        const data = sessionsApiResponseSchema.parse(await res.json());
 
         if (!cancelled) {
           setDayGroups(groupSessionsByDay(data.sessions));

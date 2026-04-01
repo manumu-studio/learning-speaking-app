@@ -2,7 +2,63 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { z } from 'zod';
 import type { DashboardData, MetricKey } from '../dashboard.types';
+
+const focusStateSchema = z.object({
+  focusKey: z.enum([
+    'connectorRepetition',
+    'structuralVariety',
+    'vocabularyPrecision',
+    'verbAccuracy',
+    'argumentClosure',
+    'fillerUsage',
+  ]),
+  focusLabel: z.string(),
+});
+
+const dashboardDataSchema = z.object({
+  weeklyMinutes: z.number(),
+  weeklySessionCount: z.number(),
+  totalSessions: z.number(),
+  currentStreak: z.number(),
+  currentFocus: z.string().nullable(),
+  metrics: z.array(z.object({
+    key: z.enum([
+      'connectorRepetition',
+      'structuralVariety',
+      'vocabularyPrecision',
+      'verbAccuracy',
+      'argumentClosure',
+      'fillerUsage',
+    ]),
+    label: z.string(),
+    currentLevel: z.enum(['low', 'medium', 'high']),
+    currentScore: z.number(),
+    trend: z.enum(['improving', 'stable', 'declining']),
+    history: z.array(z.number()),
+    lastTrainedToday: z.boolean().optional(),
+  })),
+  recentSessions: z.array(z.object({
+    id: z.string(),
+    createdAt: z.coerce.date(),
+    intentLabel: z.string().nullable(),
+    focusNext: z.string().nullable(),
+  })),
+  drillStats: z.object({
+    totalCompleted: z.number(),
+    weeklyCompleted: z.number(),
+    improvementRate: z.number(),
+    byMetric: z.object({
+      connectorRepetition: z.number(),
+      structuralVariety: z.number(),
+      vocabularyPrecision: z.number(),
+      verbAccuracy: z.number(),
+      argumentClosure: z.number(),
+      fillerUsage: z.number(),
+    }),
+  }),
+});
 
 const FOCUS_STORAGE_KEY = 'lsa-focus';
 
@@ -38,7 +94,10 @@ export function useDashboard(): UseDashboardReturn {
           'focusKey' in parsed &&
           'focusLabel' in parsed
         ) {
-          setFocusState(parsed as FocusState);
+          const result = focusStateSchema.safeParse(parsed);
+          if (result.success) {
+            setFocusState(result.data);
+          }
         }
       }
     } catch {
@@ -58,7 +117,8 @@ export function useDashboard(): UseDashboardReturn {
         }
 
         const json: unknown = await response.json();
-        setData(json as DashboardData);
+        const dashboardParsed = dashboardDataSchema.parse(json);
+        setData(dashboardParsed);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {

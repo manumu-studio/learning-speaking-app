@@ -7,7 +7,7 @@ import type { User, SpeakingSession } from '@prisma/client';
  */
 export async function findOrCreateUser(
   externalId: string,
-  data: { email?: string; displayName?: string }
+  data: { email?: string | undefined; displayName?: string | undefined }
 ): Promise<User> {
   const existing = await prisma.user.findUnique({
     where: { externalId },
@@ -20,8 +20,8 @@ export async function findOrCreateUser(
   return prisma.user.create({
     data: {
       externalId,
-      email: data.email,
-      displayName: data.displayName,
+      ...(data.email !== undefined ? { email: data.email } : {}),
+      ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
     },
   });
 }

@@ -2,6 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { z } from 'zod';
 import type { DrillType } from '@/features/training/training.types';
 
 type DrillState = 'prompt' | 'recording' | 'processing' | 'feedback';
@@ -62,10 +63,38 @@ export interface UseDrillReturn {
   tryAgain: () => Promise<string | null>;
 }
 
+// Zod schemas for API response validation
+const drillResponseSchema = z.object({
+  id: z.string(),
+  sessionId: z.string().nullable().optional(),
+  drillType: z.string().refine(isDrillType),
+  prompt: z.string(),
+  sourceExample: z.string().nullable().optional(),
+  metricKey: z.string(),
+  completedAt: z.string().nullable().optional(),
+  feedback: z.string().optional(),
+  improved: z.boolean().optional(),
+});
+
+const drillCompleteResponseSchema = z.object({
+  feedback: z.string(),
+  improved: z.boolean().optional(),
+});
+
+const sessionForDrillSchema = z.object({
+  focusNext: z.string().nullable(),
+  intentLabel: z.string().nullable().optional(),
+  transcript: z.object({ text: z.string() }).optional(),
+  insights: z.array(z.object({
+    pattern: z.string(),
+    examples: z.unknown(),
+  })),
+});
+
 interface SessionForDrillPayload {
   focusNext: string | null;
-  intentLabel?: string | null;
-  transcript?: { text: string };
+  intentLabel?: string | null | undefined;
+  transcript?: { text: string } | undefined;
   insights: Array<{ pattern: string; examples: unknown }>;
 }
 
@@ -90,25 +119,9 @@ function focusPatternFromSession(session: SessionForDrillPayload): string {
   return 'Clear, structured English delivery';
 }
 
-function parseDrillJson(raw: Record<string, unknown>): DrillData | null {
-  if (typeof raw.id !== 'string' || typeof raw.drillType !== 'string' || !isDrillType(raw.drillType)) {
-    return null;
-  }
-  if (typeof raw.prompt !== 'string' || typeof raw.metricKey !== 'string') {
-    return null;
-  }
-  const sourceExample =
-    raw.sourceExample === null || raw.sourceExample === undefined
-      ? null
-      : typeof raw.sourceExample === 'string'
-        ? raw.sourceExample
-        : null;
-  const sessionId =
-    raw.sessionId === null || raw.sessionId === undefined
-      ? null
-      : typeof raw.sessionId === 'string'
-        ? raw.sessionId
-        : null;
+function parseDrillJson(raw: z.infer<typeof drillResponseSchema>): DrillData | null {
+  const sourceExample = raw.sourceExample ?? null;
+  const sessionId = raw.sessionId ?? null;
   const timeLimit = DRILL_TIME_LIMIT_SECONDS[raw.drillType];
   const metricLabel = METRIC_LABELS[raw.metricKey] ?? raw.metricKey;
   return {
@@ -138,15 +151,16 @@ export function useDrill(drillId: string): UseDrillReturn {
         const res = await fetch(`/api/drills/${drillId}`);
         if (!res.ok) throw new Error('Failed to load drill');
         const raw: unknown = await res.json();
-        if (!raw || typeof raw !== 'object') throw new Error('Invalid drill response');
-        const data = raw as Record<string, unknown>;
-        const parsed = parseDrillJson(data);
+        const drillResult = drillResponseSchema.safeParse(raw);
+        if (!drillResult.success) throw new Error('Invalid drill response');
+        const drillData = drillResult.data;
+        const parsed = parseDrillJson(drillData);
         if (!parsed) throw new Error('Invalid drill response');
         setDrill(parsed);
 
-        const completedAt = data.completedAt;
-        const feedbackText = data.feedback;
-        const improvedVal = data.improved;
+        const completedAt = drillData.completedAt;
+        const feedbackText = drillData.feedback;
+        const improvedVal = drillData.improved;
         if (
           completedAt !== null &&
           completedAt !== undefined &&
@@ -188,16 +202,11 @@ export function useDrill(drillId: string): UseDrillReturn {
 
       if (!res.ok) throw new Error('Failed to submit drill');
 
-      const raw: unknown = await res.json();
-      if (!raw || typeof raw !== 'object') throw new Error('Invalid response');
-      const result = raw as Record<string, unknown>;
-      const fb = result.feedback;
-      const imp = result.improved;
-      if (typeof fb !== 'string') throw new Error('Invalid response');
+      const result = drillCompleteResponseSchema.parse(await res.json());
 
       setFeedback({
-        feedback: fb,
-        improved: imp === true,
+        feedback: result.feedback,
+        improved: result.improved === true,
       });
       setState('feedback');
     } catch (err) {
@@ -219,10 +228,9 @@ export function useDrill(drillId: string): UseDrillReturn {
       const sessionRes = await fetch(`/api/sessions/${current.sessionId}`);
       if (!sessionRes.ok) throw new Error('Failed to load session for retry');
 
-      const sessionRaw: unknown = await sessionRes.json();
-      if (!sessionRaw || typeof sessionRaw !== 'object') throw new Error('Invalid session');
-      const session = sessionRaw as SessionForDrillPayload;
-      if (!Array.isArray(session.insights)) throw new Error('Invalid session');
+      const sessionParsed = sessionForDrillSchema.safeParse(await sessionRes.json());
+      if (!sessionParsed.success) throw new Error('Invalid session');
+      const session: SessionForDrillPayload = sessionParsed.data;
 
       const recentExamples = buildRecentExamples(session);
       const focusPattern = focusPatternFromSession(session);
@@ -247,10 +255,9 @@ export function useDrill(drillId: string): UseDrillReturn {
 
       if (!res.ok) throw new Error('Failed to create new drill');
 
-      const createRaw: unknown = await res.json();
-      if (!createRaw || typeof createRaw !== 'object') throw new Error('Invalid drill response');
-      const created = createRaw as Record<string, unknown>;
-      const parsed = parseDrillJson(created);
+      const createResult = drillResponseSchema.safeParse(await res.json());
+      if (!createResult.success) throw new Error('Invalid drill response');
+      const parsed = parseDrillJson(createResult.data);
       if (!parsed) throw new Error('Invalid drill response');
 
       return parsed.id;

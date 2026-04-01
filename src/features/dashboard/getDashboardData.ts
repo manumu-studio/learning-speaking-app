@@ -88,7 +88,8 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 
       const history = snapshots.map((s) => s.score).reverse();
       const currentScore = history[history.length - 1] ?? 0;
-      const currentLevel = (snapshots[0]?.level ?? 'medium') as MetricLevel;
+      const rawLevel = snapshots[0]?.level ?? 'medium';
+      const currentLevel: MetricLevel = rawLevel === 'low' || rawLevel === 'medium' || rawLevel === 'high' ? rawLevel : 'medium';
       const trend = computeTrend(history);
 
       return {
@@ -150,10 +151,15 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     fillerUsage: 0,
   };
 
+  const METRIC_KEY_SET = new Set<string>(METRIC_KEYS);
+  function isMetricKey(key: string): key is MetricKey {
+    return METRIC_KEY_SET.has(key);
+  }
+
   for (const row of drillByMetric) {
     const key = row.metricKey;
-    if (key in byMetric) {
-      byMetric[key as MetricKey] = row._count._all;
+    if (isMetricKey(key)) {
+      byMetric[key] = row._count._all;
     }
   }
 

@@ -1,23 +1,26 @@
 // Launch QR token validation endpoint — verifies guest tokens from QR scanner
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { validateToken } from '@/config/launch-guests';
 
-// Request body schema
-interface ValidateRequest {
-  token: string;
-}
+// Request body schema — Zod replaces the former ValidateRequest interface
+const validateRequestSchema = z.object({
+  token: z.string().min(1),
+});
 
 // Validate a QR token
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = (await request.json()) as ValidateRequest;
+    const parsed = validateRequestSchema.safeParse(await request.json());
 
-    if (!body.token || typeof body.token !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json(
         { valid: false, error: 'Token is required' },
         { status: 400 }
       );
     }
+
+    const body = parsed.data;
 
     const guest = validateToken(body.token.trim());
 

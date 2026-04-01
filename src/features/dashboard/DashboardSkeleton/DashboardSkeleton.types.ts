@@ -1,4 +1,4 @@
 // DashboardSkeleton component type definitions
 export interface DashboardSkeletonProps {
-  className?: string;
+  className?: string | undefined;
 }
