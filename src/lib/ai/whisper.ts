@@ -5,7 +5,7 @@ import { env } from '@/lib/env';
 
 // Node.js 18 has File in node:buffer but not as a global — polyfill for OpenAI SDK
 if (typeof globalThis.File === 'undefined') {
-  (globalThis as Record<string, unknown>).File = NodeFile;
+  Object.defineProperty(globalThis, 'File', { value: NodeFile, writable: true, configurable: true });
 }
 
 // Runtime validation — OPENAI_API_KEY is optional in env.ts but required here

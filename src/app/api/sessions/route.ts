@@ -47,11 +47,16 @@ export async function POST(request: Request) {
 
     // Parse multipart form data
     const formData = await request.formData();
-    const audioFile = formData.get('audio') as File | null;
-    const durationSecs = formData.get('duration') as string | null;
-    const topic = formData.get('topic') as string | null;
-    const language = formData.get('language') as string | null;
-    const rawFocusMetricKey = formData.get('focusMetricKey') as string | null;
+    const audioEntry = formData.get('audio');
+    const audioFile = audioEntry instanceof File ? audioEntry : null;
+    const durationSecs = formData.get('duration');
+    const durationStr = typeof durationSecs === 'string' ? durationSecs : null;
+    const topicEntry = formData.get('topic');
+    const topic = typeof topicEntry === 'string' ? topicEntry : null;
+    const languageEntry = formData.get('language');
+    const language = typeof languageEntry === 'string' ? languageEntry : null;
+    const focusEntry = formData.get('focusMetricKey');
+    const rawFocusMetricKey = typeof focusEntry === 'string' ? focusEntry : null;
     let focusMetricKey: string | null = null;
     if (rawFocusMetricKey !== null && rawFocusMetricKey.trim() !== '') {
       const trimmed = rawFocusMetricKey.trim();
@@ -65,7 +70,7 @@ export async function POST(request: Request) {
       return errorResponse('Audio file is required', 'MISSING_AUDIO', 400);
     }
 
-    if (!durationSecs || isNaN(Number(durationSecs))) {
+    if (!durationStr || isNaN(Number(durationStr))) {
       return errorResponse('Valid duration is required', 'INVALID_DURATION', 400);
     }
 
@@ -81,7 +86,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         status: SessionStatus.CREATED,
-        durationSecs: Number(durationSecs),
+        durationSecs: Number(durationStr),
         language: language ?? 'en',
         topic: topic ?? null,
         focusMetricKey,
