@@ -4,8 +4,8 @@ import type { User } from '@prisma/client';
 
 interface SyncUserParams {
   externalId: string;
-  email?: string | null;
-  displayName?: string | null;
+  email?: string | null | undefined;
+  displayName?: string | null | undefined;
 }
 
 /**

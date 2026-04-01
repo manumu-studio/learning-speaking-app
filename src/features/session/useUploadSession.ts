@@ -2,13 +2,18 @@
 'use client';
 
 import { useState } from 'react';
+import { z } from 'zod';
 
-interface UploadResult {
-  id: string;
-  status: string;
-  createdAt: string;
-  estimatedWaitSecs: number;
-}
+const uploadErrorSchema = z.object({
+  error: z.string(),
+});
+
+const uploadResultSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  createdAt: z.string(),
+  estimatedWaitSecs: z.number(),
+});
 
 interface UseUploadSessionReturn {
   upload: (
@@ -52,11 +57,11 @@ export function useUploadSession(): UseUploadSessionReturn {
       });
 
       if (!response.ok) {
-        const data = await response.json() as { error: string };
+        const data = uploadErrorSchema.parse(await response.json());
         throw new Error(data.error ?? 'Upload failed');
       }
 
-      const data = await response.json() as UploadResult;
+      const data = uploadResultSchema.parse(await response.json());
       return data.id;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to upload session';

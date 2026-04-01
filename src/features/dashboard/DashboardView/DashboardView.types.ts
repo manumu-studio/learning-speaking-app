@@ -1,4 +1,4 @@
 // DashboardView component type definitions
 export interface DashboardViewProps {
-  className?: string;
+  className?: string | undefined;
 }

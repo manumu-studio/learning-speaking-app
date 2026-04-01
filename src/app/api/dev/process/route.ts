@@ -1,5 +1,6 @@
 // Dev-only sync pipeline — runs Whisper + Claude without QStash signature verification
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { env } from '@/lib/env';
 import { Prisma, SessionStatus } from '@prisma/client';
@@ -22,8 +23,17 @@ export async function POST(request: NextRequest) {
 
   try {
     // Step 1: Parse body — no signature verification needed in dev
-    const body = await request.json() as { sessionId?: string };
-    sessionId = body.sessionId ?? null;
+    const devProcessBodySchema = z.object({
+      sessionId: z.string().optional(),
+    });
+    const parsed = devProcessBodySchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', code: 'BAD_REQUEST' },
+        { status: 400 }
+      );
+    }
+    sessionId = parsed.data.sessionId ?? null;
 
     if (!sessionId) {
       return NextResponse.json(

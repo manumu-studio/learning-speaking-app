@@ -11,9 +11,9 @@ interface GenerateDrillParams {
   recentExamples: string[];
   focusPattern: string;
   /** Session topic label when available (conclusion drill) */
-  intentLabel?: string | null;
+  intentLabel?: string | null | undefined;
   /** Full session transcript when available (conclusion / vague-phrase context) */
-  sessionTranscript?: string;
+  sessionTranscript?: string | undefined;
 }
 
 const DRILL_TIME_LIMITS: Record<DrillType, number> = {

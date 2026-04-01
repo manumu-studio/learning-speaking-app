@@ -87,8 +87,8 @@ function ScrollSection({
   delay,
 }: {
   children: React.ReactNode;
-  className?: string;
-  delay?: number;
+  className?: string | undefined;
+  delay?: number | undefined;
 }) {
   const { ref, isVisible } = useScrollAnimation();
 
@@ -103,7 +103,7 @@ function ScrollSection({
 
   return (
     <section
-      ref={ref as React.RefObject<HTMLElement>}
+      ref={ref}
       className={`${styles.scrollReveal} ${isVisible ? styles.visible : ''} ${delayClass} ${className ?? ''}`}
     >
       {children}

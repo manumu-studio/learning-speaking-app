@@ -1,6 +1,61 @@
 // Hook for polling session status until processing completes
 import { useState, useEffect, useCallback } from 'react';
+import { z } from 'zod';
 import type { SessionDetail, UseSessionStatusReturn } from '@/features/session/useSessionStatus.types';
+
+const sessionDetailSchema = z.object({
+  id: z.string(),
+  status: z.enum(['CREATED', 'UPLOADED', 'TRANSCRIBING', 'ANALYZING', 'DONE', 'FAILED']),
+  durationSecs: z.number().nullable(),
+  topic: z.string().nullable(),
+  focusNext: z.string().nullable(),
+  summary: z.string().nullable(),
+  errorMessage: z.string().nullable(),
+  focusMetricKey: z.string().nullable(),
+  createdAt: z.string(),
+  transcript: z.object({
+    text: z.string(),
+    wordCount: z.number().nullable(),
+  }).optional(),
+  insights: z.array(z.object({
+    id: z.string(),
+    category: z.string(),
+    pattern: z.string(),
+    detail: z.string(),
+    frequency: z.number().nullable(),
+    severity: z.string().nullable(),
+    examples: z.array(z.string()).nullable(),
+    suggestion: z.string().nullable(),
+  })),
+  metrics: z.array(z.object({
+    id: z.string(),
+    key: z.string(),
+    level: z.string(),
+    score: z.number(),
+    note: z.string().nullable(),
+    createdAt: z.string(),
+  })).optional(),
+}).transform((val): SessionDetail => {
+  const result: SessionDetail = {
+    id: val.id,
+    status: val.status,
+    durationSecs: val.durationSecs,
+    topic: val.topic,
+    focusNext: val.focusNext,
+    summary: val.summary,
+    errorMessage: val.errorMessage,
+    focusMetricKey: val.focusMetricKey,
+    createdAt: val.createdAt,
+    insights: val.insights,
+  };
+  if (val.transcript !== undefined) {
+    result.transcript = val.transcript;
+  }
+  if (val.metrics !== undefined) {
+    result.metrics = val.metrics;
+  }
+  return result;
+});
 
 const POLL_INTERVAL_FAST = 3000;
 const POLL_INTERVAL_SLOW = 10000;
@@ -21,8 +76,8 @@ export function useSessionStatus(sessionId: string): UseSessionStatusReturn {
       if (!response.ok) {
         throw new Error('Failed to fetch session');
       }
-      const data: unknown = await response.json();
-      setSession(data as SessionDetail);
+      const data = sessionDetailSchema.parse(await response.json());
+      setSession(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

@@ -2,6 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { z } from 'zod';
 
 const VALID_DRILL_TYPES = [
   'rephrase',
@@ -41,31 +42,25 @@ interface UseDrillHistoryReturn {
   refetch: () => Promise<void>;
 }
 
-function parseDrillItem(raw: unknown): DrillHistoryItem | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const o = raw as Record<string, unknown>;
-  if (typeof o.id !== 'string' || typeof o.drillType !== 'string') return null;
-  if (!isDrillType(o.drillType)) return null;
-  if (typeof o.metricKey !== 'string' || typeof o.metricLabel !== 'string') return null;
-  if (typeof o.createdAt !== 'string') return null;
-  const improved: boolean | null =
-    o.improved === true ? true : o.improved === false ? false : null;
-  const completedAt =
-    o.completedAt === null || o.completedAt === undefined
-      ? null
-      : typeof o.completedAt === 'string'
-        ? o.completedAt
-        : null;
-  return {
-    id: o.id,
-    drillType: o.drillType,
-    metricKey: o.metricKey,
-    metricLabel: o.metricLabel,
-    improved,
-    completedAt,
-    createdAt: o.createdAt,
-  };
-}
+// Zod schemas for API response validation
+const drillHistoryItemSchema = z.object({
+  id: z.string(),
+  drillType: z.string().refine(isDrillType),
+  metricKey: z.string(),
+  metricLabel: z.string(),
+  improved: z.boolean().nullable(),
+  completedAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+const drillHistoryResponseSchema = z.object({
+  drills: z.array(drillHistoryItemSchema),
+  stats: z.object({
+    totalCompleted: z.number(),
+    weeklyCompleted: z.number(),
+    improvementRate: z.number(),
+  }),
+});
 
 export function useDrillHistory(): UseDrillHistoryReturn {
   const [drills, setDrills] = useState<DrillHistoryItem[]>([]);
@@ -85,25 +80,11 @@ export function useDrillHistory(): UseDrillHistoryReturn {
       if (!res.ok) throw new Error('Failed to load drill history');
 
       const data: unknown = await res.json();
-      if (!data || typeof data !== 'object') throw new Error('Invalid response');
-      const record = data as Record<string, unknown>;
+      const result = drillHistoryResponseSchema.safeParse(data);
+      if (!result.success) throw new Error('Invalid response');
 
-      const rawDrills = record.drills;
-      const rawStats = record.stats;
-      if (!Array.isArray(rawDrills) || !rawStats || typeof rawStats !== 'object') {
-        throw new Error('Invalid response');
-      }
-      const s = rawStats as Record<string, unknown>;
-      const totalCompleted = typeof s.totalCompleted === 'number' ? s.totalCompleted : 0;
-      const weeklyCompleted = typeof s.weeklyCompleted === 'number' ? s.weeklyCompleted : 0;
-      const improvementRate = typeof s.improvementRate === 'number' ? s.improvementRate : 0;
-
-      const parsed = rawDrills
-        .map(parseDrillItem)
-        .filter((d): d is DrillHistoryItem => d !== null);
-
-      setDrills(parsed);
-      setStats({ totalCompleted, weeklyCompleted, improvementRate });
+      setDrills(result.data.drills);
+      setStats(result.data.stats);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

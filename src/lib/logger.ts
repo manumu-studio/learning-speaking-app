@@ -6,12 +6,12 @@ type LogLevel = 'info' | 'warn' | 'error';
 interface LogEntry {
   level: LogLevel;
   message: string;
-  sessionId?: string;
-  userId?: string;
-  duration?: number;
-  error?: string;
+  sessionId?: string | undefined;
+  userId?: string | undefined;
+  duration?: number | undefined;
+  error?: string | undefined;
   /** WARNING: never pass PII (emails, transcripts, names) in metadata */
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export function log(entry: LogEntry): void {

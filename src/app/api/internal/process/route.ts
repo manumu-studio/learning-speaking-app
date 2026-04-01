@@ -9,6 +9,9 @@ import { analyzeTranscript } from '@/lib/ai/analyze';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { log } from '@/lib/logger';
+import { z } from 'zod';
+
+const processBodySchema = z.object({ sessionId: z.string() });
 
 // Runtime validation — QStash signing keys are optional in env.ts but required here
 function requireEnv(value: string | undefined, name: string): string {
@@ -57,8 +60,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 2: Parse body — store sessionId as const for closure safety
-    const parsed = JSON.parse(body) as { sessionId: string };
-    sessionId = parsed.sessionId;
+    const parseResult = processBodySchema.safeParse(JSON.parse(body));
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Missing sessionId', code: 'BAD_REQUEST' },
+        { status: 400 }
+      );
+    }
+    sessionId = parseResult.data.sessionId;
     const id = sessionId;
 
     // Step 3: Fetch session
