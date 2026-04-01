@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { getAnthropicClient } from '@/lib/ai/client';
+import { sanitizePromptInput } from '@/lib/sanitizePromptInput';
 import type { DrillFeedbackResult, DrillType } from './training.types';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
@@ -69,9 +70,12 @@ function evaluateConclusionDrill(drillTranscript: string): DrillFeedbackResult {
 }
 
 export async function evaluateDrill(params: EvaluateDrillParams): Promise<DrillFeedbackResult> {
-  const { drillType, drillPrompt, sourceExample, drillTranscript, metricKey, metricLabel } = params;
+  const { drillType, drillPrompt, metricKey, metricLabel } = params;
+  const safeTranscript = sanitizePromptInput(params.drillTranscript);
+  const safeExample =
+    params.sourceExample == null ? params.sourceExample : sanitizePromptInput(params.sourceExample);
 
-  if (!drillTranscript.trim()) {
+  if (!safeTranscript.trim()) {
     return {
       feedback: "No response detected. Try recording again — you've got this!",
       improved: false,
@@ -79,23 +83,23 @@ export async function evaluateDrill(params: EvaluateDrillParams): Promise<DrillF
   }
 
   if (drillType === 'precision') {
-    return evaluatePrecisionDrill(drillTranscript);
+    return evaluatePrecisionDrill(safeTranscript);
   }
   if (drillType === 'conclusion') {
-    return evaluateConclusionDrill(drillTranscript);
+    return evaluateConclusionDrill(safeTranscript);
   }
 
   const client = getAnthropicClient();
 
-  const sourceBlock = sourceExample
-    ? `\nTheir original problematic sentence was:\n"${sourceExample}"\n`
+  const sourceBlock = safeExample
+    ? `\nTheir original problematic sentence was:\n"${safeExample}"\n`
     : '';
 
   const evaluationPrompt = `You are evaluating a speaking drill response. The user was asked to:
 "${drillPrompt}"
 ${sourceBlock}
 Their drill response was:
-"${drillTranscript}"
+"${safeTranscript}"
 
 Evaluate ONLY whether they improved on ${metricLabel} (metric key: ${metricKey}).
 Respond with JSON only, no markdown: { "feedback": "one encouraging sentence", "improved": true/false }
