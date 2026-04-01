@@ -14,7 +14,9 @@ export default function HistoryPage() {
 
       {/* Loading state */}
       {isLoading && (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-12">Loading sessions...</p>
+        <p className="text-gray-400 dark:text-gray-500 text-center py-12" aria-live="polite" role="status">
+          Loading sessions...
+        </p>
       )}
 
       {/* Error state */}

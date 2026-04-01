@@ -16,7 +16,7 @@ export function MainNav({ className = '' }: MainNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className={`flex space-x-3 sm:space-x-6 ${className}`}>
+    <nav aria-label="Main navigation" className={`flex space-x-3 sm:space-x-6 ${className}`}>
       {navItems.map(({ href, label }) => {
         const isActive =
           pathname === href ||

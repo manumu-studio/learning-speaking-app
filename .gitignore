@@ -88,8 +88,6 @@ yarn-error.log*
 # public
 /public/qr-codes/
 
-# scripts
-/scripts
 
 # vscode
 .vscode/
