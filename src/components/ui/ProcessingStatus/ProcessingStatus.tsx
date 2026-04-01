@@ -32,7 +32,7 @@ export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingSt
   const currentIndex = STEPS.findIndex((s) => s.key === status);
 
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
+    <div className="rounded-lg border border-blue-200 bg-blue-50 p-6" aria-live="polite" role="status">
       <h3 className="text-lg font-semibold text-blue-900">Processing Your Session</h3>
       <div className="mt-4 space-y-3">
         {STEPS.map((step, index) => {

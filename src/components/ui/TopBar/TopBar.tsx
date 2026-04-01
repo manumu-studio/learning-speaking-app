@@ -57,6 +57,8 @@ export function TopBar({ userName, userEmail }: TopBarProps) {
             )}
 
             <button
+              type="button"
+              aria-label="Sign out"
               onClick={() => window.location.href = '/api/auth/federated-signout'}
               className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >

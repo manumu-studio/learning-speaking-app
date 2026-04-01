@@ -8,7 +8,10 @@ import type { CtaFooterProps } from './CtaFooter.types';
 
 export function CtaFooter({ isAuthenticated, signInAction, className = '' }: CtaFooterProps) {
   return (
-    <section className={`py-24 md:py-32 bg-gray-50 dark:bg-zinc-950 transition-colors duration-200 ${className}`}>
+    <section
+      aria-label="Get started"
+      className={`py-24 md:py-32 bg-gray-50 dark:bg-zinc-950 transition-colors duration-200 ${className}`}
+    >
       <div className="max-w-3xl mx-auto px-4 text-center">
         <ScrollReveal>
           <p className="text-sm tracking-widest uppercase text-black/40 dark:text-white/40 mb-4">

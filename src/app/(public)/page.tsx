@@ -26,14 +26,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   };
 
   return (
-    <main className="bg-white dark:bg-black transition-colors duration-200">
+    <main id="main-content" className="bg-white dark:bg-black transition-colors duration-200">
       {/* Theme toggle — fixed top-right on landing */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle className="h-8 w-8 shadow-md" />
       </div>
 
       {/* === Hero Section === */}
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section aria-label="Hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <HeroCanvas />
 
         <div className="relative z-10 max-w-2xl mx-auto px-4 text-center">
@@ -133,7 +133,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             )}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* === Scrollable Sections === */}
       <FeatureShowcase />
