@@ -133,6 +133,7 @@ export function DrillView({ drillId }: DrillViewProps) {
           </div>
           <button
             type="button"
+            aria-label="Start recording"
             onClick={startRecording}
             className="w-full rounded-lg bg-indigo-600 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
           >
@@ -150,12 +151,15 @@ export function DrillView({ drillId }: DrillViewProps) {
             isRunning
             onComplete={handleRecordingTimerComplete}
           />
-          <p className="text-center text-zinc-300">Recording… speak now.</p>
+          <p className="text-center text-zinc-300" aria-live="polite" role="status">
+            Recording… speak now.
+          </p>
           {recorder.error ? (
             <p className="text-center text-sm text-amber-400">{recorder.error}</p>
           ) : null}
           <button
             type="button"
+            aria-label="Stop recording"
             onClick={() => {
               const r = recorderRef.current;
               if (r.state === 'recording') {
@@ -170,7 +174,11 @@ export function DrillView({ drillId }: DrillViewProps) {
       )}
 
       {state === 'processing' && (
-        <div className="flex min-h-[300px] flex-col items-center justify-center gap-4">
+        <div
+          className="flex min-h-[300px] flex-col items-center justify-center gap-4"
+          aria-live="polite"
+          role="status"
+        >
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
           <p className="text-zinc-400">Analyzing your response...</p>
         </div>

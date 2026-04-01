@@ -9,6 +9,7 @@ import { enqueueProcessing } from '@/lib/queue/qstash';
 import { getSessionRateLimit } from '@/lib/rateLimit';
 import { log } from '@/lib/logger';
 import { isSpeakingMetricKey } from '@/lib/metric-keys';
+import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 
 /**
  * POST /api/sessions
@@ -20,6 +21,10 @@ export async function POST(request: Request) {
     const session = await auth();
     if (!session?.user?.externalId) {
       return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+    }
+
+    if (!validateOrigin(request)) {
+      return csrfForbiddenResponse();
     }
 
     // Rate limiting — 5 sessions per hour per user
