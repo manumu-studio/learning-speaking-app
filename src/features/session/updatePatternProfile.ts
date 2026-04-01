@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 interface PatternInsight {
   category: string;
   pattern: string;
-  frequency?: number;
+  frequency?: number | undefined;
 }
 
 // Create or update user's pattern profile with new session insights
@@ -16,8 +16,14 @@ export async function updatePatternProfile(
     where: { userId },
   });
 
-  // Cast from Prisma JsonValue — patterns are stored as { "category:pattern": count }
-  const patterns = (existing?.patterns as unknown as Record<string, number>) ?? {};
+  // Parse from Prisma JsonValue — patterns are stored as { "category:pattern": count }
+  const rawPatterns: unknown = existing?.patterns;
+  const patterns: Record<string, number> =
+    rawPatterns !== null && rawPatterns !== undefined && typeof rawPatterns === 'object' && !Array.isArray(rawPatterns)
+      ? Object.fromEntries(
+          Object.entries(rawPatterns).filter(([, v]) => typeof v === 'number')
+        )
+      : {};
 
   for (const insight of insights) {
     const key = `${insight.category}:${insight.pattern}`;

@@ -2,9 +2,15 @@
 'use client';
 
 import { useState, useEffect, startTransition } from 'react';
+import { z } from 'zod';
 import { Container } from '@/components/ui/Container';
 import { RecordingPanel } from '@/features/recording/RecordingPanel';
 import { FocusBanner } from '@/features/dashboard/FocusBanner';
+
+const focusSchema = z.object({
+  focusKey: z.string(),
+  focusLabel: z.string(),
+});
 
 export default function NewSessionPage() {
   const [focus, setFocus] = useState<{ focusKey: string; focusLabel: string } | null>(null);
@@ -13,16 +19,10 @@ export default function NewSessionPage() {
     try {
       const raw = localStorage.getItem('lsa-focus');
       if (raw) {
-        const parsed: unknown = JSON.parse(raw);
-        if (
-          typeof parsed === 'object' &&
-          parsed !== null &&
-          'focusKey' in parsed &&
-          'focusLabel' in parsed
-        ) {
-          const { focusKey, focusLabel } = parsed as { focusKey: string; focusLabel: string };
+        const result = focusSchema.safeParse(JSON.parse(raw));
+        if (result.success) {
           startTransition(() => {
-            setFocus({ focusKey, focusLabel });
+            setFocus(result.data);
           });
         }
       }

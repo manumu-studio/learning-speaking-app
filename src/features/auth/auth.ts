@@ -43,8 +43,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // On first sign-in, add external ID and user info to token
       if (profile?.sub) {
         token.externalId = profile.sub as string;
-        token.email = profile.email as string | undefined;
-        token.name = profile.name as string | undefined;
+        token.email = (profile.email as string | undefined) ?? null;
+        token.name = (profile.name as string | undefined) ?? null;
       }
       // Store OIDC id_token for federated logout
       if (account?.id_token) {

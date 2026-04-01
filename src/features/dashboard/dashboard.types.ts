@@ -26,7 +26,7 @@ export type DashboardMetric = {
   currentScore: number;
   trend: TrendDirection;
   history: number[];
-  lastTrainedToday?: boolean;
+  lastTrainedToday?: boolean | undefined;
 };
 
 export type RecentSession = {
