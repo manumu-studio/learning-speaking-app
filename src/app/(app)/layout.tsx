@@ -28,7 +28,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             userName={session.user.name}
             userEmail={session.user.email}
           />
-          <main className="pt-16">{children}</main>
+          <main id="main-content" className="pt-16">
+            {children}
+          </main>
         </div>
       </ErrorBoundary>
     </SessionProvider>

@@ -108,8 +108,13 @@ export default function SessionResultsPage({
   if (isLoading && !session) {
     return (
       <Container>
-        <div className="flex items-center justify-center py-20">
+        <div
+          className="flex flex-col items-center justify-center gap-3 py-20"
+          aria-live="polite"
+          role="status"
+        >
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-500 dark:border-gray-700" />
+          <span className="sr-only">Loading session</span>
         </div>
       </Container>
     );

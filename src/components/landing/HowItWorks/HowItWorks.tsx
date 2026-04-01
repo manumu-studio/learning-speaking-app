@@ -37,7 +37,10 @@ const ICON_MAP = {
 
 export function HowItWorks({ className = '' }: HowItWorksProps) {
   return (
-    <section className={`py-24 md:py-32 bg-white dark:bg-black transition-colors duration-200 ${className}`}>
+    <section
+      aria-label="How it works"
+      className={`py-24 md:py-32 bg-white dark:bg-black transition-colors duration-200 ${className}`}
+    >
       <div className="max-w-5xl mx-auto px-4">
         <ScrollReveal className="text-center mb-20">
           <p className="text-sm tracking-widest uppercase text-black/40 dark:text-white/40 mb-4">

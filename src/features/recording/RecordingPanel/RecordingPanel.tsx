@@ -72,7 +72,7 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
       />
 
       {/* Status Messages */}
-      <div className="text-center min-h-[60px] px-4">
+      <div className="text-center min-h-[60px] px-4" aria-live="polite" role="status">
         {error && (
           <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md">
             <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
@@ -98,12 +98,16 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
             </p>
             <div className="flex space-x-3 sm:space-x-4 justify-center">
               <button
+                type="button"
+                aria-label="Upload and analyze session"
                 onClick={handleUpload}
                 className="px-5 py-2.5 sm:px-6 sm:py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-black focus:ring-blue-500 transition-colors"
               >
                 Upload &amp; Analyze
               </button>
               <button
+                type="button"
+                aria-label="Discard recording and try again"
                 onClick={resetRecording}
                 className="px-5 py-2.5 sm:px-6 sm:py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-black focus:ring-gray-500 transition-colors"
               >
@@ -123,7 +127,12 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
       {/* Audio preview */}
       {audioPreviewUrl && state === 'stopped' && !isUploading && (
         <div className="mt-4 w-full max-w-xs sm:max-w-sm mx-auto">
-          <audio controls src={audioPreviewUrl} className="w-full" />
+          <audio
+            controls
+            src={audioPreviewUrl}
+            className="w-full"
+            aria-label="Session recording preview"
+          />
         </div>
       )}
     </div>

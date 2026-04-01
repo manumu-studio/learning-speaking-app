@@ -36,7 +36,7 @@ export function RecordButton({
       <button
         onClick={handleClick}
         disabled={disabled || isStopped}
-        aria-label={isIdle ? 'Start speaking session' : isRecording ? 'Stop session' : 'Session complete'}
+        aria-label={isIdle ? 'Start recording' : isRecording ? 'Stop recording' : 'Session complete'}
         className={`
           relative flex flex-col items-center justify-center
           w-40 h-40 sm:w-48 sm:h-48 rounded-full

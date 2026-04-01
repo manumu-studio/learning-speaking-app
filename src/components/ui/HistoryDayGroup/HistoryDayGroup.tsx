@@ -4,17 +4,20 @@ import type { HistoryDayGroupProps } from './HistoryDayGroup.types';
 
 export function HistoryDayGroup({ dayLabel, sessions, baseDelay = 0 }: HistoryDayGroupProps) {
   return (
-    <div className="space-y-2 mb-8">
+    <div className="mb-8">
       <h3 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 pl-1">
         {dayLabel}
       </h3>
-      {sessions.map((session, index) => (
-        <HistorySessionCard
-          key={session.id}
-          {...session}
-          animationDelay={baseDelay + index * 80}
-        />
-      ))}
+      <ul className="list-none space-y-2 p-0 m-0" aria-label="Speaking sessions">
+        {sessions.map((session, index) => (
+          <li key={session.id} className="list-none">
+            <HistorySessionCard
+              {...session}
+              animationDelay={baseDelay + index * 80}
+            />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

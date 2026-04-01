@@ -34,7 +34,10 @@ const ICON_MAP = {
 
 export function FeatureShowcase({ className = '' }: FeatureShowcaseProps) {
   return (
-    <section className={`py-24 md:py-32 bg-gray-50 dark:bg-zinc-950 transition-colors duration-200 ${className}`}>
+    <section
+      aria-label="Product features"
+      className={`py-24 md:py-32 bg-gray-50 dark:bg-zinc-950 transition-colors duration-200 ${className}`}
+    >
       <div className="max-w-6xl mx-auto px-4">
         <ScrollReveal className="text-center mb-16">
           <p className="text-sm tracking-widest uppercase text-black/40 dark:text-white/40 mb-4">
