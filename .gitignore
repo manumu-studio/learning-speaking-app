@@ -80,7 +80,7 @@ yarn-error.log*
 
 /docs/build-packets/
 /docs/build-packet-reports/
-docs/audits
+/docs/audits/
 
 # template
 /_template/

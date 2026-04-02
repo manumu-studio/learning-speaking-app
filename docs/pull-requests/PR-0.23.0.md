@@ -1,9 +1,12 @@
 # PR-0.23.0 — UI polish: dark mode, reduced motion, accessibility, smaller bundle
+
 **Branch:** `feature/ui-polish` → `main`
 **Version:** `0.23.0`
 **Date:** 2026-04-02
 **Status:** ✅ Ready to merge
+
 ---
+
 ## Summary
 This release tightens dark-mode styling on dashboard and training UI, removes an unused client-side animation dependency, respects the user’s reduced-motion preference globally, and improves screen-reader support for metric selection, drill history rows, the drill timer, and the identity summary stats.
 
