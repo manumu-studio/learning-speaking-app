@@ -2,6 +2,7 @@
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse } from '@/lib/api';
+import { log } from '@/lib/logger';
 import { isSpeakingMetricKey } from '@/lib/metric-keys';
 
 export async function GET(
@@ -90,7 +91,12 @@ export async function GET(
       currentScore: currentMetric.score,
       previousScore,
     });
-  } catch {
+  } catch (error) {
+    log({
+      level: 'error',
+      message: 'Focus comparison failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return errorResponse('Failed to fetch focus comparison', 'INTERNAL_ERROR', 500);
   }
 }
