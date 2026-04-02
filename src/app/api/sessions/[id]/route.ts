@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { deleteAudio } from '@/lib/storage/r2';
 import { successResponse, errorResponse } from '@/lib/api';
 import { log } from '@/lib/logger';
+import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 
 /**
  * GET /api/sessions/:id
@@ -58,7 +59,7 @@ export async function GET(
  * Delete session, R2 audio, and cascaded data
  */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -67,6 +68,10 @@ export async function DELETE(
     const session = await auth();
     if (!session?.user?.externalId) {
       return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+    }
+
+    if (!validateOrigin(request)) {
+      return csrfForbiddenResponse();
     }
 
     const user = await prisma.user.findUnique({

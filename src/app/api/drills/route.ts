@@ -6,6 +6,7 @@ import { findOrCreateUser } from '@/lib/db-utils';
 import { errorResponse, successResponse } from '@/lib/api';
 import { generateDrill } from '@/features/training/generateDrill';
 import { log } from '@/lib/logger';
+import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
 
 const METRIC_LABELS: Record<string, string> = {
@@ -113,6 +114,10 @@ export async function POST(request: Request) {
     const authSession = await auth();
     if (!authSession?.user?.externalId) {
       return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+    }
+
+    if (!validateOrigin(request)) {
+      return csrfForbiddenResponse();
     }
 
     const user = await findOrCreateUser(authSession.user.externalId, {

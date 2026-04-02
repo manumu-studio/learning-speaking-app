@@ -6,7 +6,6 @@ import { uploadAudio, generateAudioKey } from '@/lib/storage/r2';
 import { validateAudioFile, successResponse, errorResponse } from '@/lib/api';
 import { SessionStatus } from '@prisma/client';
 import { enqueueProcessing } from '@/lib/queue/qstash';
-import { getSessionRateLimit } from '@/lib/rateLimit';
 import { log } from '@/lib/logger';
 import { isSpeakingMetricKey } from '@/lib/metric-keys';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
@@ -27,23 +26,10 @@ export async function POST(request: Request) {
       return csrfForbiddenResponse();
     }
 
-    // Rate limiting — 5 sessions per hour per user
     const user = await findOrCreateUser(session.user.externalId, {
       email: session.user.email ?? undefined,
       displayName: session.user.name ?? undefined,
     });
-
-    const rateLimit = getSessionRateLimit();
-    if (rateLimit) {
-      const { success } = await rateLimit.limit(user.id);
-      if (!success) {
-        return errorResponse(
-          'Too many sessions. Try again later.',
-          'RATE_LIMITED',
-          429
-        );
-      }
-    }
 
     // Parse multipart form data
     const formData = await request.formData();
