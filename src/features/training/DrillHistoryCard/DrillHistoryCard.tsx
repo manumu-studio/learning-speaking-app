@@ -44,6 +44,7 @@ export function DrillHistoryCard({
     <button
       type="button"
       onClick={() => onClick(id)}
+      aria-label={`${isCompleted ? 'View' : 'Continue'} ${config.label} drill for ${metricLabel}`}
       className={`w-full rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 text-left transition-colors hover:bg-zinc-700/50 ${className ?? ''}`}
     >
       <div className="flex items-center justify-between">

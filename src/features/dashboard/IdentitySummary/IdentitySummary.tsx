@@ -9,16 +9,16 @@ export function IdentitySummary({
   totalDrillsCompleted = 0,
 }: IdentitySummaryProps) {
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 dark:bg-gray-900 dark:border-slate-800">
+      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatColumn label="This Week" value={`${weeklyMinutes} min`} />
         <div className="text-center">
-          <p className="text-sm font-medium text-slate-500">Sessions</p>
-          <p className="mt-1 text-xl font-semibold text-slate-800">{weeklySessionCount}</p>
+          <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Sessions</dt>
+          <dd className="mt-1 text-xl font-semibold text-slate-800 dark:text-slate-200">{weeklySessionCount}</dd>
           {totalDrillsCompleted > 0 ? (
-            <p className="mt-1 text-xs text-slate-400">
+            <dd className="mt-1 text-xs text-slate-400 dark:text-slate-500">
               · {totalDrillsCompleted} drill{totalDrillsCompleted !== 1 ? 's' : ''} completed
-            </p>
+            </dd>
           ) : null}
         </div>
         <StatColumn
@@ -29,7 +29,7 @@ export function IdentitySummary({
         {currentStreak >= 2 && (
           <StatColumn label="Streak" value={`${currentStreak} days`} />
         )}
-      </div>
+      </dl>
     </div>
   );
 }
@@ -45,14 +45,14 @@ function StatColumn({
 }) {
   return (
     <div className="text-center">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p
+      <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd
         className={`mt-1 text-xl font-semibold ${
-          muted ? 'text-slate-400' : 'text-slate-800'
+          muted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'
         }`}
       >
         {value}
-      </p>
+      </dd>
     </div>
   );
 }
