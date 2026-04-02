@@ -1,35 +1,34 @@
-# ENTRY-21 — Testing foundation and recording consent enforcement
-**Date:** 2026-04-02
+# ENTRY-21 — Pipeline refactor, CI tests, App Router error surfaces
+**Date:** 2026-04-01
 **Type:** Infrastructure
-**Branch:** `feature/testing-foundation`
-**Version:** `0.22.0`
+**Branch:** `feature/pipeline-refactor`
+**Version:** `0.21.0`
 ---
 ## What I Did
-- Added a shared Prisma client mock for Vitest (`vitest-mock-extended`) and registered it as a global setup file so database-facing code can be tested without a live database.
-- Exported the analysis result Zod schemas from the analyzer module and rewrote the analyzer unit tests to validate the same schemas production uses, including `metrics` and two failure-mode cases.
-- Wrote unit tests for drill generation, drill evaluation, drill recommendation, dashboard aggregation, and consent lookup.
-- Blocked `POST /api/sessions` with HTTP 403 when the authenticated user has not granted `AUDIO_STORAGE`, before reading upload form data.
+- Consolidated production and development processing behind a single `executePipeline` implementation so the 15-step flow lives in one module.
+- Left the internal and dev API routes as thin wrappers that call the shared pipeline with the appropriate mode.
+- Turned on `npm run test` in CI so pull requests run the Vitest suite automatically.
+- Added segment-level `error.tsx` files for the authenticated app shell and the public marketing routes so render failures show a recoverable UI with sensible navigation.
+- Improved error logging on the focus-comparison API route for easier diagnosis when comparisons fail.
 
 ## Files Touched (table: File | Action | Notes)
 | File | Action | Notes |
 |------|--------|-------|
-| `package.json` | Updated | `vitest-mock-extended`; version `0.22.0` |
-| `vitest.config.ts` | Updated | `setupFiles` for Prisma mock |
-| `src/__mocks__/prisma.ts` | Added | Deep mock + per-test reset |
-| `src/lib/ai/analyze.ts` | Updated | Exported Zod schemas |
-| `src/lib/ai/analyze.test.ts` | Updated | Real schema + 9 cases |
-| `src/features/training/*.test.ts` | Added | generate / evaluate / recommend |
-| `src/features/dashboard/getDashboardData.test.ts` | Added | Streaks, trends, drill stats |
-| `src/lib/db-utils.test.ts` | Added | `hasConsent` behaviour |
-| `src/app/api/sessions/route.ts` | Updated | Consent gate after user resolution |
+| `src/lib/pipeline/executePipeline.ts` | Added | Shared pipeline |
+| `src/app/api/internal/process/route.ts` | Updated | QStash entry |
+| `src/app/api/dev/process/route.ts` | Updated | Dev entry |
+| `.github/workflows/ci.yml` | Updated | Test step |
+| `src/app/(app)/error.tsx` | Added | App segment errors |
+| `src/app/(public)/error.tsx` | Added | Public segment errors |
+| `src/app/api/sessions/[id]/focus-comparison/route.ts` | Updated | Logging in catch |
+| `package.json` | Updated | Version `0.21.0` |
 
 ## Decisions (rationale bullets)
-- Mocked the Anthropic client in analyzer schema tests so the module graph does not require full application environment variables during isolated unit runs.
-- Used targeted `mockImplementation` for some Prisma delegates where parallel `findMany` calls would make `mockResolvedValueOnce` order brittle.
+- Typed HTTP-style results from the pipeline keep retry behaviour clear for QStash versus user-facing validation errors.
+- Separate `error.tsx` per route group matches Next.js App Router expectations and keeps home vs dashboard links appropriate.
 
 ## Still Open (known gaps)
-- End-to-end tests for the full upload flow with consent states are not in scope for this change; API behaviour should be verified manually or in a future E2E pass.
+- Manual checks for deliberate render errors under `(app)` and `(public)` remain useful before release.
 
 ## Validation (commands + results)
-- `npx vitest run` — 6 files, 35 tests passed (2026-04-02).
-- `npx tsc --noEmit`, `npm run lint`, `npm run build` — all succeeded (2026-04-02).
+- `npx tsc --noEmit`, `npm run lint`, `npm run test`, `npm run build` — all succeeded on 2026-04-01 on `feature/pipeline-refactor`.
