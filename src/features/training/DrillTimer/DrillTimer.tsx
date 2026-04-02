@@ -51,6 +51,9 @@ export function DrillTimer({ mode, duration, isRunning, onComplete, className }:
   return (
     <div className={className}>
       <span
+        role="timer"
+        aria-live="polite"
+        aria-label="Time remaining"
         className={`font-mono text-2xl font-bold ${isNearEnd ? 'animate-pulse text-amber-500' : 'text-zinc-200'}`}
       >
         {formatTime(displaySeconds)}

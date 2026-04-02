@@ -6,9 +6,9 @@ import type { MetricCardProps } from './MetricCard.types';
 import type { MetricLevel, TrendDirection } from '../dashboard.types';
 
 const LEVEL_STYLES: Record<MetricLevel, { badge: string; label: string }> = {
-  low: { badge: 'bg-green-100 text-green-700', label: 'Growth Area' },
-  medium: { badge: 'bg-amber-100 text-amber-700', label: 'Current Pattern' },
-  high: { badge: 'bg-blue-100 text-blue-700', label: 'Strength Level' },
+  low: { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', label: 'Growth Area' },
+  medium: { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', label: 'Current Pattern' },
+  high: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', label: 'Strength Level' },
 };
 
 const TREND_DISPLAY: Record<TrendDirection, { arrow: string; color: string }> = {
@@ -42,18 +42,20 @@ export function MetricCard({
     <button
       type="button"
       onClick={() => onSelect(metricKey)}
+      aria-label={`Select ${label} as training focus`}
       className={`
         w-full rounded-xl border p-4 text-left transition-all duration-200
         hover:shadow-md hover:border-blue-200
+        dark:hover:border-blue-700
         ${isSelected
-          ? 'border-blue-400 bg-blue-50/50 shadow-sm'
-          : 'border-slate-100 bg-white'
+          ? 'border-blue-400 bg-blue-50/50 shadow-sm dark:border-blue-600 dark:bg-blue-950/50'
+          : 'border-slate-100 bg-white dark:border-slate-700 dark:bg-gray-900'
         }
       `}
     >
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">{label}</h3>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</h3>
           <div className="mt-1 flex items-center gap-2">
             <span
               className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${levelStyle.badge}`}
@@ -68,7 +70,7 @@ export function MetricCard({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-lg font-bold text-slate-700">
+          <span className="text-lg font-bold text-slate-700 dark:text-slate-300">
             {currentScore}
           </span>
           <span className={`text-sm ${trendDisplay.color}`}>
@@ -85,7 +87,7 @@ export function MetricCard({
         />
       </div>
       {drillCount > 0 ? (
-        <span className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+        <span className="mt-2 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
           <svg
             width="12"
             height="12"
