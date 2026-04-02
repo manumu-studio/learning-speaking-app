@@ -10,6 +10,14 @@ import { executePipeline, PipelineHttpError } from '@/lib/pipeline/executePipeli
 
 const processBodySchema = z.object({ sessionId: z.string() });
 
+/**
+ * Ensures a required environment variable is present and returns its value.
+ *
+ * @param value - The environment variable value to validate.
+ * @param name - The environment variable name used in the error message.
+ * @returns The validated environment variable value.
+ * @throws Error if `value` is falsy; message: "Missing required environment variable: <name>".
+ */
 function requireEnv(value: string | undefined, name: string): string {
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -19,6 +27,11 @@ function requireEnv(value: string | undefined, name: string): string {
 
 let _receiver: Receiver | null = null;
 
+/**
+ * Get the cached Receiver configured with QStash signing keys.
+ *
+ * @returns The singleton Receiver configured with the current and next QStash signing keys
+ */
 function getReceiver(): Receiver {
   if (_receiver) {
     return _receiver;
@@ -29,6 +42,19 @@ function getReceiver(): Receiver {
   return _receiver;
 }
 
+/**
+ * HTTP POST handler for QStash webhook callbacks that verifies the request signature,
+ * extracts a `sessionId` from the request body, and triggers asynchronous session processing.
+ *
+ * @param request - The incoming Next.js request representing the QStash webhook callback. Expects the `upstash-signature` header and a JSON body containing `sessionId`.
+ * @returns A JSON HTTP response:
+ * - `{ ok: true }` with status 200 when processing is successfully scheduled.
+ * - `{ error: 'Missing signature', code: 'UNAUTHORIZED' }` with status 401 when the signature header is absent.
+ * - `{ error: 'Invalid signature', code: 'UNAUTHORIZED' }` with status 401 when signature verification fails.
+ * - `{ error: 'Missing sessionId', code: 'BAD_REQUEST' }` with status 400 when the body is missing or does not contain `sessionId`.
+ * - `{ error: <message>, code: <code> }` with the status provided by a thrown `PipelineHttpError` when the pipeline reports an HTTP-style error.
+ * - `{ error: 'Processing failed', code: 'PROCESSING_ERROR' }` with status 500 for other unexpected failures (the handler will attempt to mark the session `FAILED` on the final retry attempt).
+ */
 export async function POST(request: NextRequest) {
   let sessionId: string | null = null;
 

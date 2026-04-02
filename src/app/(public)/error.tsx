@@ -3,6 +3,15 @@
 
 import Link from 'next/link';
 
+/**
+ * Client-side error boundary UI for public/marketing routes.
+ *
+ * Displays the provided error's message (or a default message) and renders actions to retry or navigate home.
+ *
+ * @param error - Error object to display; may include an optional `digest` property.
+ * @param reset - Callback invoked when the user requests a retry (e.g., "Try Again" button).
+ * @returns The rendered React element for the fallback error UI.
+ */
 export default function PublicError({
   error,
   reset,

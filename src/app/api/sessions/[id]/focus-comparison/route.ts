@@ -5,6 +5,13 @@ import { successResponse, errorResponse } from '@/lib/api';
 import { log } from '@/lib/logger';
 import { isSpeakingMetricKey } from '@/lib/metric-keys';
 
+/**
+ * Fetches the focus metric score for a speaking session and, if available, the score from the most recent previous completed session with the same metric key.
+ *
+ * @param request - The incoming HTTP request containing the `metricKey` query parameter.
+ * @param params - A promise resolving to route params with `id` of the current session.
+ * @returns A `Response` whose successful JSON body is `{ currentScore: number, previousScore: number | null }`; on failure returns an error response indicating validation, auth, not-found, forbidden, or internal errors.
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

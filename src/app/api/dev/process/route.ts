@@ -11,6 +11,21 @@ const devProcessBodySchema = z.object({
   sessionId: z.string().optional(),
 });
 
+/**
+ * Trigger the development-only pipeline for a speaking session identified in the request body.
+ *
+ * Expects the request JSON body to include a `sessionId` string; rejects requests when running outside development.
+ *
+ * On success returns a JSON response containing `ok: true`, the `sessionId`, and pipeline results (`insightCount`, `wordCount`, `summary`).
+ * On unhandled errors the endpoint attempts to mark the speaking session's status as `FAILED` and set its `errorMessage`.
+ *
+ * @param request - The incoming Next.js request whose JSON body must contain `{ sessionId?: string }`
+ * @returns A NextResponse with JSON:
+ *  - Success: `{ ok: true, sessionId, insightCount, wordCount, summary }`
+ *  - Client errors: `{ error, code }` (e.g., missing/invalid body or forbidden in non-development) with 400/403
+ *  - Pipeline HTTP errors: `{ error, code }` with the pipeline-provided HTTP status
+ *  - Internal failure: `{ error: 'Dev pipeline failed', message }` with 500
+ */
 export async function POST(request: NextRequest) {
   if (env.NODE_ENV !== 'development') {
     return NextResponse.json(
