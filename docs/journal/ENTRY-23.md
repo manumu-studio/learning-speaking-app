@@ -1,9 +1,12 @@
 # ENTRY-23 — UI polish: dark mode, bundle trim, reduced motion, accessibility
+
 **Date:** 2026-04-02
 **Type:** Feature
 **Branch:** `feature/ui-polish`
 **Version:** `0.23.0`
+
 ---
+
 ## What I Did
 - Finished dark mode styling on dashboard stats and metric cards so text and borders stay readable when the app is in dark theme.
 - Removed the unused `framer-motion` dependency after confirming the theme toggle relies only on CSS transitions and inline transforms.
@@ -25,6 +28,7 @@
 | `src/features/training/DrillTimer/DrillTimer.tsx` | Updated | Live timer region |
 
 ## Decisions (rationale bullets)
+
 - Chose a single global reduced-motion block so every transition inherits the same policy without touching each component.
 - Used description list markup for headline stats so screen readers get explicit term/value relationships.
 

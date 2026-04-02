@@ -53,7 +53,7 @@ export function DrillTimer({ mode, duration, isRunning, onComplete, className }:
       <span
         role="timer"
         aria-live="polite"
-        aria-label="Time remaining"
+        aria-label={mode === 'countdown' ? 'Time remaining' : 'Time elapsed'}
         className={`font-mono text-2xl font-bold ${isNearEnd ? 'animate-pulse text-amber-500' : 'text-zinc-200'}`}
       >
         {formatTime(displaySeconds)}
