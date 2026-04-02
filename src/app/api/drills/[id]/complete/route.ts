@@ -9,6 +9,7 @@ import type { DrillType } from '@/features/training/training.types';
 import { uploadAudio, deleteAudio } from '@/lib/storage/r2';
 import { validateAudioFile, errorResponse, successResponse } from '@/lib/api';
 import { log } from '@/lib/logger';
+import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 
 const DRILL_TYPES: readonly DrillType[] = [
   'rephrase',
@@ -43,6 +44,10 @@ export async function POST(
     const authSession = await auth();
     if (!authSession?.user?.externalId) {
       return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+    }
+
+    if (!validateOrigin(request)) {
+      return csrfForbiddenResponse();
     }
 
     const user = await findOrCreateUser(authSession.user.externalId, {

@@ -1,6 +1,7 @@
 // Generates personalized drill prompts — template path for precision/conclusion, Haiku for other types
 
 import { getAnthropicClient } from '@/lib/ai/client';
+import { sanitizePromptInput } from '@/lib/sanitizePromptInput';
 import type { DrillPrompt, DrillType } from './training.types';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
@@ -166,13 +167,30 @@ Keep the prompt to 2-3 sentences.`,
 };
 
 export async function generateDrill(params: GenerateDrillParams): Promise<DrillPrompt> {
-  const { drillType, metricKey, recentExamples, focusPattern } = params;
+  const recentExamples = params.recentExamples.map(sanitizePromptInput);
+  const focusPattern = sanitizePromptInput(params.focusPattern);
+  const intentLabel =
+    params.intentLabel == null ? params.intentLabel : sanitizePromptInput(params.intentLabel);
+  const sessionTranscript =
+    params.sessionTranscript === undefined
+      ? params.sessionTranscript
+      : sanitizePromptInput(params.sessionTranscript);
+
+  const { drillType, metricKey } = params;
+
+  const sanitizedParams: GenerateDrillParams = {
+    ...params,
+    recentExamples,
+    focusPattern,
+    intentLabel,
+    sessionTranscript,
+  };
 
   if (drillType === 'precision') {
-    return buildPrecisionPrompt(params);
+    return buildPrecisionPrompt(sanitizedParams);
   }
   if (drillType === 'conclusion') {
-    return buildConclusionPrompt(params);
+    return buildConclusionPrompt(sanitizedParams);
   }
 
   const client = getAnthropicClient();
