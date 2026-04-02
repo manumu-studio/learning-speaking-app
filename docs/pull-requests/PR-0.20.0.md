@@ -1,13 +1,18 @@
 # PR-0.20.0 — Security hardening
+
 **Branch:** `feature/security-hardening` → `main`
 **Version:** `0.20.0`
 **Date:** 2026-04-01
 **Status:** ✅ Ready to merge
+
 ---
+
 ## Summary
+
 This release tightens cross-origin protection on state-changing APIs, applies a single middleware-level rate limit across non-authentication API routes, and sanitises user text before it is interpolated into drill-related AI prompts.
 
-## Files Changed (table: File | Action | Notes)
+## Files Changed
+
 | File | Action | Notes |
 |------|--------|-------|
 | `package.json` | Updated | 0.20.0 |
@@ -21,14 +26,16 @@ This release tightens cross-origin protection on state-changing APIs, applies a 
 | `src/features/training/generateDrill.ts` | Updated | Sanitised user-derived fields |
 | `src/features/training/evaluateDrill.ts` | Updated | Sanitised user transcript and example |
 
-## Architecture Decisions (table: Decision | Why)
+## Architecture Decisions
+
 | Decision | Why |
 |----------|-----|
 | Middleware rate limiting | One place covers every API route instead of remembering per-handler limits. |
 | `@upstash/redis/cloudflare` | Keeps middleware Edge-safe and removes Node-only API warnings at build time. |
 | Minimal string sanitiser | Easy to audit; blocks obvious delimiter and fake-role patterns in user text. |
 
-## Testing Checklist (checkboxes)
+## Testing Checklist
+
 - [x] Typecheck passes
 - [x] Lint passes
 - [x] Unit tests pass
@@ -37,9 +44,11 @@ This release tightens cross-origin protection on state-changing APIs, applies a 
 - [ ] Manual: confirm 429 appears after burst traffic when Redis is configured (optional)
 
 ## Deployment Notes
+
 - No new environment variables. Ensure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` remain set in production if rate limiting should be active; when unset, middleware skips limiting (unchanged behaviour from optional Redis).
 
-## Validation (commands + results)
+## Validation
+
 ```text
 npx tsc --noEmit — pass
 npm run lint — pass
