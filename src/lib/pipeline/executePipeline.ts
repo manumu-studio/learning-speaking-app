@@ -25,6 +25,17 @@ export class PipelineHttpError extends Error {
   }
 }
 
+/**
+ * Run the transcription → analysis pipeline for a speaking session and persist results.
+ *
+ * Processes the session identified by `sessionId`: validates session state, downloads and transcribes audio, analyzes the transcript, persists transcript/insights/metrics, updates the session and user profile, and advances the session to completion. Behavior for persistence and certain error conditions differs between `dev` and `production` modes.
+ *
+ * @param sessionId - The speaking session ID to process
+ * @param mode - 'production' or 'dev'; controls persistence semantics and developer-facing error messages
+ * @returns An object containing `insightCount` (number of insights created), `wordCount` (number of words in the transcript), and `summary` (session summary or `null`)
+ * @throws PipelineHttpError - when the session is not found, when the session is in a non-retriable state, or when the audio URL is missing in `dev` mode
+ * @throws Error - when the audio URL is missing in `production` mode
+ */
 export async function executePipeline(
   sessionId: string,
   mode: 'production' | 'dev'

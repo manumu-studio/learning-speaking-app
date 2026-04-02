@@ -3,6 +3,13 @@
 
 import Link from 'next/link';
 
+/**
+ * Client-side App Router error boundary that renders a centered full-screen error UI for authenticated routes.
+ *
+ * @param error - The thrown error (may include an optional `digest`); its `message` is displayed or a generic fallback is shown.
+ * @param reset - Callback invoked when the "Try Again" button is clicked to attempt recovery.
+ * @returns The error UI element containing the displayed message, a "Try Again" button that calls `reset`, and a link to `/dashboard`.
+ */
 export default function AppError({
   error,
   reset,
