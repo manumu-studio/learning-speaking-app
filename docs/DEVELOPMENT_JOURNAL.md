@@ -38,6 +38,8 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.18.0 | [ENTRY-18](journal/ENTRY-18.md) | 2026-04-01 | Advanced drills, history, dashboard drill stats |
 | 0.19.0 | [ENTRY-19](journal/ENTRY-19.md) | 2026-04-01 | Production hardening (migrations, CI, CSRF, a11y, env) |
 | 0.20.0 | [ENTRY-20](journal/ENTRY-20.md) | 2026-04-01 | Security hardening (CSRF coverage, API rate limit middleware, prompt sanitisation) |
+| 0.21.0 | [ENTRY-21](journal/ENTRY-21.md) | 2026-04-01 | Pipeline refactor, CI tests, App Router error surfaces |
+| 0.22.0 | [ENTRY-22](journal/ENTRY-22.md) | 2026-04-02 | Testing foundation (Vitest + Prisma mocks, drill/dashboard tests, consent on session upload) |
 
 ## Pull Requests
 
@@ -67,3 +69,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.18.0 | [PR-0.18.0](pull-requests/PR-0.18.0.md) | 2026-04-01 | Advanced drills, history, dashboard drill stats |
 | 0.19.0 | [PR-0.19.0](pull-requests/PR-0.19.0.md) | 2026-04-01 | Production hardening |
 | 0.20.0 | [PR-0.20.0](pull-requests/PR-0.20.0.md) | 2026-04-01 | Security hardening |
+| 0.21.0 | [PR-0.21.0](pull-requests/PR-0.21.0.md) | 2026-04-01 | Pipeline refactor, CI tests, App Router errors |
+| 0.22.0 | [PR-0.22.0](pull-requests/PR-0.22.0.md) | 2026-04-02 | Testing foundation + recording consent on upload |
