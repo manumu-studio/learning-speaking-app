@@ -1,7 +1,7 @@
 // Session creation (POST) and listing (GET) API
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
-import { findOrCreateUser } from '@/lib/db-utils';
+import { findOrCreateUser, hasConsent } from '@/lib/db-utils';
 import { uploadAudio, generateAudioKey } from '@/lib/storage/r2';
 import { validateAudioFile, successResponse, errorResponse } from '@/lib/api';
 import { SessionStatus } from '@prisma/client';
@@ -30,6 +30,11 @@ export async function POST(request: Request) {
       email: session.user.email ?? undefined,
       displayName: session.user.name ?? undefined,
     });
+
+    const consented = await hasConsent(user.id, 'AUDIO_STORAGE');
+    if (!consented) {
+      return errorResponse('Recording consent required', 'CONSENT_REQUIRED', 403);
+    }
 
     // Parse multipart form data
     const formData = await request.formData();
