@@ -1,39 +1,32 @@
 // Tests for Claude analysis Zod schema validation
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-// Import the schema by re-creating it here (the original is not exported)
-// We test the SHAPE, not the API call
-import { z } from 'zod';
+vi.mock('@/lib/ai/client', () => ({
+  getAnthropicClient: vi.fn(),
+}));
 
-const insightSchema = z.object({
-  category: z.enum(['grammar', 'vocabulary', 'structure']),
-  pattern: z.string(),
-  detail: z.string(),
-  frequency: z.number().optional(),
-  severity: z.enum(['high', 'medium', 'low']).optional(),
-  examples: z.array(z.string()).optional(),
-  suggestion: z.string().optional(),
-});
-
-const analysisResultSchema = z.object({
-  insights: z.array(insightSchema).max(5),
-  focusNext: z.string(),
-  summary: z.string(),
-  intentLabel: z.string(),
-});
+import { analysisResultSchema } from '@/lib/ai/analyze';
 
 describe('Analysis result schema', () => {
   it('validates a correct analysis result', () => {
     const valid = {
       insights: [
         {
-          category: 'grammar',
+          category: 'grammar' as const,
           pattern: 'Missing articles before nouns',
           detail: 'Frequently omits "the" and "a" before nouns.',
           frequency: 8,
-          severity: 'high',
+          severity: 'high' as const,
           examples: ['I went to store', 'She is teacher'],
           suggestion: 'Practice adding articles before every noun.',
+        },
+      ],
+      metrics: [
+        {
+          key: 'connectorRepetition' as const,
+          level: 'medium' as const,
+          score: 5,
+          note: 'Overuses "so" and "because"',
         },
       ],
       focusNext: 'Focus on using articles consistently.',
@@ -53,6 +46,7 @@ describe('Analysis result schema', () => {
           detail: 'test',
         },
       ],
+      metrics: [],
       focusNext: 'test',
       summary: 'test',
       intentLabel: 'test',
@@ -64,10 +58,11 @@ describe('Analysis result schema', () => {
   it('rejects more than 5 insights', () => {
     const tooMany = {
       insights: Array.from({ length: 6 }, (_, i) => ({
-        category: 'grammar',
+        category: 'grammar' as const,
         pattern: `Pattern ${i}`,
         detail: `Detail ${i}`,
       })),
+      metrics: [],
       focusNext: 'test',
       summary: 'test',
       intentLabel: 'test',
@@ -80,11 +75,12 @@ describe('Analysis result schema', () => {
     const minimal = {
       insights: [
         {
-          category: 'vocabulary',
+          category: 'vocabulary' as const,
           pattern: 'Limited connectors',
           detail: 'Overuses "so" and "because".',
         },
       ],
+      metrics: [],
       focusNext: 'Expand connector vocabulary.',
       summary: 'Adequate but repetitive.',
       intentLabel: 'Connector usage practice',
@@ -96,6 +92,7 @@ describe('Analysis result schema', () => {
   it('rejects missing focusNext', () => {
     const noFocus = {
       insights: [],
+      metrics: [],
       summary: 'Good overall.',
       intentLabel: 'test',
     };
@@ -106,6 +103,7 @@ describe('Analysis result schema', () => {
   it('rejects missing summary', () => {
     const noSummary = {
       insights: [],
+      metrics: [],
       focusNext: 'Practice more.',
       intentLabel: 'test',
     };
@@ -116,10 +114,29 @@ describe('Analysis result schema', () => {
   it('rejects missing intentLabel', () => {
     const noLabel = {
       insights: [],
+      metrics: [],
       focusNext: 'Practice more.',
       summary: 'Good overall.',
     };
 
     expect(() => analysisResultSchema.parse(noLabel)).toThrow();
+  });
+
+  it('rejects non-JSON input when used with JSON.parse', () => {
+    const notJson = 'this is not json {{{';
+    expect(() => {
+      const parsed: unknown = JSON.parse(notJson);
+      analysisResultSchema.parse(parsed);
+    }).toThrow(SyntaxError);
+  });
+
+  it('rejects valid JSON missing metrics array', () => {
+    const missingMetrics = {
+      insights: [],
+      focusNext: 'Focus on articles.',
+      summary: 'Good overall.',
+      intentLabel: 'Daily chat',
+    };
+    expect(() => analysisResultSchema.parse(missingMetrics)).toThrow();
   });
 });

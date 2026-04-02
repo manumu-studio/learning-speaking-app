@@ -4,7 +4,7 @@ import { getAnthropicClient } from '@/lib/ai/client';
 import { isSpeakingMetricKey } from '@/lib/metric-keys';
 
 // Zod schema matching Prisma Insight model fields EXACTLY
-const insightSchema = z.object({
+export const insightSchema = z.object({
   category: z.enum(['grammar', 'vocabulary', 'structure']),
   pattern: z.string(),
   detail: z.string(),
@@ -15,7 +15,7 @@ const insightSchema = z.object({
 });
 
 // Metric scoring schema for 6 structured dimensions
-const metricSchema = z.object({
+export const metricSchema = z.object({
   key: z.enum([
     'connectorRepetition',
     'structuralVariety',
@@ -29,7 +29,7 @@ const metricSchema = z.object({
   note: z.string(),
 });
 
-const analysisResultSchema = z.object({
+export const analysisResultSchema = z.object({
   insights: z.array(insightSchema).max(5),
   metrics: z.array(metricSchema),
   focusNext: z.string(),
