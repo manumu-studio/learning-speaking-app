@@ -40,6 +40,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.20.0 | [ENTRY-20](journal/ENTRY-20.md) | 2026-04-01 | Security hardening (CSRF coverage, API rate limit middleware, prompt sanitisation) |
 | 0.21.0 | [ENTRY-21](journal/ENTRY-21.md) | 2026-04-01 | Pipeline refactor, CI tests, App Router error surfaces |
 | 0.22.0 | [ENTRY-22](journal/ENTRY-22.md) | 2026-04-02 | Testing foundation (Vitest + Prisma mocks, drill/dashboard tests, consent on session upload) |
+| 0.23.0 | [ENTRY-23](journal/ENTRY-23.md) | 2026-04-02 | UI polish: dark mode, reduced motion, a11y, remove unused animation dependency |
 
 ## Pull Requests
 
@@ -71,3 +72,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.20.0 | [PR-0.20.0](pull-requests/PR-0.20.0.md) | 2026-04-01 | Security hardening |
 | 0.21.0 | [PR-0.21.0](pull-requests/PR-0.21.0.md) | 2026-04-01 | Pipeline refactor, CI tests, App Router errors |
 | 0.22.0 | [PR-0.22.0](pull-requests/PR-0.22.0.md) | 2026-04-02 | Testing foundation + recording consent on upload |
+| 0.23.0 | [PR-0.23.0](pull-requests/PR-0.23.0.md) | 2026-04-02 | UI polish: dark mode, reduced motion, accessibility, smaller client bundle |
