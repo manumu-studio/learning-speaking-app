@@ -71,6 +71,10 @@ npm run dev
 
 See `.env.example` for the full list of required environment variables.
 
+### Tests
+
+Run unit tests (Vitest): `npm run test`
+
 ## Project Structure
 
 ```
