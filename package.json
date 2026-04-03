@@ -23,7 +23,7 @@
     "verify-env": "tsx scripts/verify-env.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.77.0",
+    "@anthropic-ai/sdk": "^0.82.0",
     "@aws-sdk/client-s3": "^3.967.0",
     "@prisma/client": "^6.19.2",
     "@upstash/qstash": "^2.9.0",
