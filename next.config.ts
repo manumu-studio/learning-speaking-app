@@ -9,6 +9,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
+  transpilePackages: ['swagger-ui-react'],
 
   async headers() {
     return [

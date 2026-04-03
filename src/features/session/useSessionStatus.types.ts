@@ -1,5 +1,6 @@
 // Type definitions for useSessionStatus hook
 
+/** Normalised metric row attached to a session detail payload (mirrors `MetricSnapshot` in the API). */
 export interface SessionMetricSnapshot {
   id: string;
   key: string;
@@ -9,6 +10,10 @@ export interface SessionMetricSnapshot {
   createdAt: string;
 }
 
+/**
+ * Full session the client polls while processing — transcript and insights load when the server includes them.
+ * Status values align with Prisma `SessionStatus`.
+ */
 export interface SessionDetail {
   id: string;
   status: 'CREATED' | 'UPLOADED' | 'TRANSCRIBING' | 'ANALYZING' | 'DONE' | 'FAILED';
