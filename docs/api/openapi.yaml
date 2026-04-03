@@ -1,0 +1,738 @@
+# OpenAPI 3.1 — Learning Speaking App HTTP API (matches App Router route handlers)
+openapi: 3.1.0
+info:
+  title: Learning Speaking App API
+  version: 0.28.0
+  description: |
+    AI-powered speaking coach API. Authenticated routes use the NextAuth session cookie
+    (`authjs.session-token` or `__Secure-authjs.session-token` in production).
+
+    **CSRF:** Mutating requests from the browser should send an `Origin` (or `Referer`) header
+    matching `APP_URL` origin; otherwise the handler returns 403 (`CSRF_REJECTED`).
+
+    **Rate limiting:** Most `/api/*` routes (except `/api/auth/*`) may return 429 with
+    `{ "error": "Too many requests", "code": "RATE_LIMITED" }` when Upstash Redis rate limiting is configured.
+
+    **Note:** `GET /api/sessions` (list) exists alongside the packet’s session detail routes.
+    Session detail uses `GET` and `DELETE` on `/api/sessions/{id}` — there is no `PATCH` handler in code.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://lsa.manumustudio.com
+    description: Production
+
+tags:
+  - name: Sessions
+  - name: Dashboard
+  - name: Drills
+  - name: Pipeline
+  - name: Auth
+  - name: Launch
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+      description: NextAuth session cookie (or `__Secure-authjs.session-token` when secure).
+    qstashSignature:
+      type: apiKey
+      in: header
+      name: upstash-signature
+      description: QStash signing header (HMAC). Required for `/api/internal/process`.
+
+  parameters:
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    DrillId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    ApiError:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+
+    SimpleUnauthorized:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Unauthorized
+
+    SessionCreateResponse:
+      type: object
+      required: [id, status, createdAt, estimatedWaitSecs]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        estimatedWaitSecs:
+          type: integer
+
+    SessionListResponse:
+      type: object
+      required: [sessions, total, page, limit]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionListItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    SessionListItem:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+        durationSecs: { type: integer, nullable: true }
+        language: { type: string }
+        topic: { type: string, nullable: true }
+        intentLabel: { type: string, nullable: true }
+        summary: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    SpeakingSessionDetail:
+      type: object
+      description: Prisma `SpeakingSession` with transcript, insights, and metrics (JSON-serialized).
+      additionalProperties: true
+
+    FocusComparisonResponse:
+      type: object
+      required: [currentScore, previousScore]
+      properties:
+        currentScore:
+          type: integer
+        previousScore:
+          type: integer
+          nullable: true
+
+    DashboardData:
+      type: object
+      description: Dashboard payload from `getDashboardData` (dates serialized as ISO strings in JSON).
+      additionalProperties: true
+
+    DrillListResponse:
+      type: object
+      required: [drills, stats]
+      properties:
+        drills:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrillListEntry'
+        stats:
+          type: object
+          required: [totalCompleted, weeklyCompleted, improvementRate, byMetric]
+          properties:
+            totalCompleted: { type: integer }
+            weeklyCompleted: { type: integer }
+            improvementRate: { type: number }
+            byMetric:
+              type: object
+              additionalProperties: { type: integer }
+
+    DrillListEntry:
+      type: object
+      properties:
+        id: { type: string }
+        drillType: { type: string }
+        metricKey: { type: string }
+        metricLabel: { type: string }
+        improved: { type: boolean, nullable: true }
+        createdAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }
+
+    CreateDrillRequest:
+      type: object
+      required: [drillType, metricKey, recentExamples, focusPattern]
+      properties:
+        sessionId:
+          type: string
+        drillType:
+          type: string
+          enum: [rephrase, constraint, vocabUpgrade, precision, conclusion]
+        metricKey:
+          type: string
+        recentExamples:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { type: string }
+        focusPattern:
+          type: string
+        intentLabel:
+          type: string
+          nullable: true
+        sessionTranscript:
+          type: string
+
+    CreateDrillResponse:
+      type: object
+      required: [id, drillType, metricKey, prompt, sourceExample, timeLimit]
+      properties:
+        id: { type: string }
+        drillType: { type: string }
+        metricKey: { type: string }
+        prompt: { type: string }
+        sourceExample: { type: string, nullable: true }
+        timeLimit: { type: integer }
+
+    DrillCompleteResponse:
+      type: object
+      required: [id, transcript, feedback, improved, completedAt]
+      properties:
+        id: { type: string }
+        transcript: { type: string, nullable: true }
+        feedback: { type: string, nullable: true }
+        improved: { type: boolean, nullable: true }
+        completedAt: { type: string, format: date-time, nullable: true }
+
+    InternalProcessBody:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId:
+          type: string
+
+    DevProcessBody:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: Required in practice; handler returns 400 if missing after parse.
+
+    LaunchValidateRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          minLength: 1
+
+    LaunchValidateSuccess:
+      type: object
+      required: [valid, guestName, guestSlug]
+      properties:
+        valid: { const: true }
+        guestName: { type: string }
+        guestSlug: { type: string }
+
+    LaunchValidateError:
+      type: object
+      required: [valid, error]
+      properties:
+        valid: { const: false }
+        error: { type: string }
+
+paths:
+  /api/sessions:
+    post:
+      tags: [Sessions]
+      summary: Create speaking session and upload audio
+      security: [{ sessionCookie: [] }]
+      description: |
+        `multipart/form-data` with fields `audio` (file), `duration` (string number), optional
+        `topic`, `language`, `focusMetricKey` (must be a valid speaking metric key if set).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio, duration]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                duration:
+                  type: string
+                topic:
+                  type: string
+                language:
+                  type: string
+                focusMetricKey:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionCreateResponse' }
+        '400':
+          description: Validation error (missing audio, invalid duration, invalid focus, invalid file type)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '403':
+          description: CSRF rejected or recording consent not granted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '413':
+          description: Audio exceeds size limit
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+    get:
+      tags: [Sessions]
+      summary: List sessions (paginated)
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionListResponse' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/sessions/{id}:
+    get:
+      tags: [Sessions]
+      summary: Get session with transcript, insights, and metrics
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpeakingSessionDetail' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '404':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+    delete:
+      tags: [Sessions]
+      summary: Delete session and remove audio from R2 when applicable
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { const: true }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '403':
+          description: CSRF rejected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '404':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/sessions/{id}/focus-comparison:
+    get:
+      tags: [Sessions]
+      summary: Compare focus metric score with previous completed session
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - in: query
+          name: metricKey
+          required: true
+          schema:
+            type: string
+          description: Must match the session's `focusMetricKey` and be a valid speaking metric key.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FocusComparisonResponse' }
+        '400':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '403':
+          description: Session focus does not match requested metric
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '404':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Aggregated dashboard data for the authenticated user
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardData' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SimpleUnauthorized' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/drills:
+    get:
+      tags: [Drills]
+      summary: Drill history and aggregate stats
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DrillListResponse' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+    post:
+      tags: [Drills]
+      summary: Create a new drill attempt (LLM-generated prompt)
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateDrillRequest' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateDrillResponse' }
+        '400':
+          description: Invalid JSON or body failed Zod validation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '403':
+          description: CSRF rejected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/drills/{id}:
+    get:
+      tags: [Drills]
+      summary: Get a single drill attempt with full details
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - $ref: '#/components/parameters/DrillId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, sessionId, drillType, metricKey, prompt, createdAt]
+                properties:
+                  id: { type: string }
+                  sessionId: { type: string, nullable: true }
+                  drillType: { type: string }
+                  metricKey: { type: string }
+                  prompt: { type: string }
+                  sourceExample: { type: string, nullable: true }
+                  transcript: { type: string, nullable: true }
+                  feedback: { type: string, nullable: true }
+                  improved: { type: boolean, nullable: true }
+                  createdAt: { type: string, format: date-time }
+                  completedAt: { type: string, format: date-time, nullable: true }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '404':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/drills/{id}/complete:
+    post:
+      tags: [Drills]
+      summary: Submit drill audio; transcribe, evaluate, persist completion
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - $ref: '#/components/parameters/DrillId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DrillCompleteResponse' }
+        '400':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '401':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '403':
+          description: CSRF rejected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '404':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '409':
+          description: Drill already completed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '413':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/internal/process:
+    post:
+      tags: [Pipeline]
+      summary: QStash webhook — verify signature and run processing pipeline
+      security: [{ qstashSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InternalProcessBody' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { const: true }
+        '400':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '401':
+          description: Missing or invalid QStash signature
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+
+  /api/dev/process:
+    post:
+      tags: [Pipeline]
+      summary: Run pipeline synchronously (development only)
+      description: Returns 403 when `NODE_ENV` is not `development`.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DevProcessBody' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, sessionId]
+                properties:
+                  ok: { const: true }
+                  sessionId: { type: string }
+        '400':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '403':
+          description: Not in development
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '500':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  message: { type: string }
+
+  /api/auth/federated-signout:
+    get:
+      tags: [Auth]
+      summary: Clear local session cookies and redirect to auth server logout
+      responses:
+        '302':
+          description: Redirect to OIDC logout endpoint
+          headers:
+            Location:
+              schema: { type: string }
+
+  /api/launch/validate:
+    post:
+      tags: [Launch]
+      summary: Validate a launch / QR guest token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LaunchValidateRequest' }
+      responses:
+        '200':
+          description: Valid or invalid (check `valid` flag)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/LaunchValidateSuccess' }
+                  - { $ref: '#/components/schemas/LaunchValidateError' }
+        '400':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LaunchValidateError' }
+        '401':
+          description: Unknown token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LaunchValidateError' }
