@@ -1,10 +1,8 @@
 // Dev-only sync pipeline — runs processing without QStash signature verification
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
 import { env } from '@/lib/env';
-import { SessionStatus } from '@prisma/client';
-import { executePipeline } from '@/lib/pipeline';
+import { executePipeline, persistSessionFailedStatus } from '@/lib/pipeline';
 import { log } from '@/lib/logger';
 
 const devProcessBodySchema = z.object({ sessionId: z.string().optional() });
@@ -32,35 +30,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, sessionId });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     log({
       level: 'error',
       message: 'Dev pipeline failed',
       sessionId: sessionId ?? undefined,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: message,
     });
 
-    // Mark FAILED in dev (no retry logic)
     if (sessionId) {
-      try {
-        await prisma.speakingSession.update({
-          where: { id: sessionId },
-          data: {
-            status: SessionStatus.FAILED,
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          },
-        });
-      } catch (dbError) {
-        log({
-          level: 'error',
-          message: 'Failed to update session status to FAILED',
-          sessionId: sessionId ?? undefined,
-          error: dbError instanceof Error ? dbError.message : 'Unknown error',
-        });
-      }
+      await persistSessionFailedStatus(sessionId, message);
     }
 
     return NextResponse.json(
-      { error: 'Dev pipeline failed', message: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Dev pipeline failed', message },
       { status: 500 }
     );
   }

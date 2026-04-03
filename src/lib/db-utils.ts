@@ -1,6 +1,29 @@
 // Database utility functions for common operations
 import { prisma } from './prisma';
-import type { User, SpeakingSession } from '@prisma/client';
+import type { Prisma, User } from '@prisma/client';
+
+const userSessionListSelect = {
+  id: true,
+  status: true,
+  durationSecs: true,
+  language: true,
+  topic: true,
+  intentLabel: true,
+  summary: true,
+  createdAt: true,
+  updatedAt: true,
+  focusMetricKey: true,
+  focusNext: true,
+  _count: {
+    select: {
+      insights: true,
+    },
+  },
+} satisfies Prisma.SpeakingSessionSelect;
+
+export type UserSessionListItem = Prisma.SpeakingSessionGetPayload<{
+  select: typeof userSessionListSelect;
+}>;
 
 /**
  * Find or create a user by external ID (from OAuth provider)
@@ -33,16 +56,13 @@ export async function getUserSessions(
   userId: string,
   limit = 10,
   offset = 0
-): Promise<SpeakingSession[]> {
+): Promise<UserSessionListItem[]> {
   return prisma.speakingSession.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take: limit,
     skip: offset,
-    include: {
-      transcript: true,
-      insights: true,
-    },
+    select: userSessionListSelect,
   });
 }
 
