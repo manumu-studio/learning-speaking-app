@@ -1,10 +1,12 @@
 // Webhook handler for async session processing (QStash → executePipeline)
 import { NextRequest, NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
-import { prisma } from '@/lib/prisma';
 import { env } from '@/lib/env';
-import { SessionStatus } from '@prisma/client';
-import { executePipeline } from '@/lib/pipeline';
+import {
+  executePipeline,
+  isQstashFinalFailureAttempt,
+  persistSessionFailedStatus,
+} from '@/lib/pipeline';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -59,37 +61,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     log({
       level: 'error',
       message: 'Processing failed',
       sessionId: sessionId ?? undefined,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: message,
     });
 
-    // Only mark FAILED on final QStash retry attempt
-    const retriedHeader = request.headers.get('upstash-retried');
-    const maxRetriesHeader = request.headers.get('upstash-max-retries');
-    const retried = retriedHeader !== null ? parseInt(retriedHeader, 10) : null;
-    const maxRetries = maxRetriesHeader !== null ? parseInt(maxRetriesHeader, 10) : null;
-    const isFinalAttempt = retried === null || maxRetries === null || retried >= maxRetries - 1;
-
-    if (sessionId && isFinalAttempt) {
-      try {
-        await prisma.speakingSession.update({
-          where: { id: sessionId },
-          data: {
-            status: SessionStatus.FAILED,
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          },
-        });
-      } catch (dbError) {
-        log({
-          level: 'error',
-          message: 'Failed to update session status to FAILED',
-          sessionId: sessionId ?? undefined,
-          error: dbError instanceof Error ? dbError.message : 'Unknown error',
-        });
-      }
+    if (sessionId && isQstashFinalFailureAttempt(request)) {
+      await persistSessionFailedStatus(sessionId, message);
     }
 
     return NextResponse.json({ error: 'Processing failed', code: 'PROCESSING_ERROR' }, { status: 500 });

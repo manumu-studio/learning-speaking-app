@@ -42,7 +42,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Run tests with coverage
+      # Dedicated unit test step (Vitest, no coverage) — fast signal before thresholded coverage run
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Run tests with coverage (enforce Vitest thresholds)
         run: npm run test:coverage
 
       - name: Build and check bundle size
