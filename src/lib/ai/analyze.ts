@@ -29,6 +29,7 @@ export const metricSchema = z.object({
   note: z.string(),
 });
 
+/** Parsed Claude output for one session — must match downstream Prisma writes and dashboard metrics. */
 export const analysisResultSchema = z.object({
   insights: z.array(insightSchema).max(5),
   metrics: z.array(metricSchema),
