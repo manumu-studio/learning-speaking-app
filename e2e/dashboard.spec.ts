@@ -16,30 +16,37 @@ test.describe('Dashboard', () => {
   test('six MetricCards are visible when user has enough sessions', async ({
     authenticatedPage,
   }) => {
+    await expect(authenticatedPage.getByText(/loading dashboard/i)).toHaveCount(0, {
+      timeout: 20_000,
+    });
     const metricButtons = authenticatedPage.getByRole('button', {
       name: /select .+ as training focus/i,
     });
+    const emptyMessage = authenticatedPage.getByText(
+      /record a few more sessions to see your patterns emerge/i,
+    );
+    await expect(metricButtons.first().or(emptyMessage)).toBeVisible({ timeout: 15_000 });
     const count = await metricButtons.count();
     if (count >= 6) {
       await expect(metricButtons).toHaveCount(6);
     } else {
-      await expect(
-        authenticatedPage.getByText(/record a few more sessions to see your patterns emerge/i),
-      ).toBeVisible();
+      await expect(emptyMessage).toBeVisible();
     }
   });
 
   test('IdentitySummary stats section renders with dl structure', async ({
     authenticatedPage,
   }) => {
-    const error = authenticatedPage.getByText(/unable to load dashboard/i);
+    await expect(authenticatedPage.getByText(/loading dashboard/i)).toHaveCount(0, {
+      timeout: 10_000,
+    });
+    const errorBanner = authenticatedPage.getByText(/unable to load dashboard/i);
     const statsDl = authenticatedPage.locator('dl').first();
-    await expect(error.or(statsDl)).toBeVisible({ timeout: 20_000 });
-    if (await statsDl.isVisible()) {
-      // dt inside dl>div may not always map to role "term" in Chromium; assert label text in the stats dl
+    await expect(errorBanner.or(statsDl)).toBeVisible({ timeout: 15_000 });
+    if (!(await errorBanner.isVisible())) {
       await expect(
         statsDl.locator('dt').filter({ hasText: /^This Week$/i }),
-      ).toBeVisible({ timeout: 20_000 });
+      ).toBeVisible({ timeout: 10_000 });
     }
   });
 
@@ -71,8 +78,14 @@ test.describe('Dashboard', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Dashboard', level: 1 }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByText(/loading dashboard/i)).toHaveCount(0);
-    const settled = authenticatedPage.locator('dl').or(authenticatedPage.getByText(/unable to load dashboard/i));
-    await expect(settled.first()).toBeVisible({ timeout: 20000 });
+    await expect(authenticatedPage.getByText(/loading dashboard/i)).toHaveCount(0, {
+      timeout: 20_000,
+    });
+    const statsDl = authenticatedPage.locator('dl').first();
+    const emptyState = authenticatedPage.getByText(
+      /record a few more sessions to see your patterns emerge/i,
+    );
+    const errorBanner = authenticatedPage.getByText(/unable to load dashboard/i);
+    await expect(statsDl.or(emptyState).or(errorBanner)).toBeVisible({ timeout: 20_000 });
   });
 });
