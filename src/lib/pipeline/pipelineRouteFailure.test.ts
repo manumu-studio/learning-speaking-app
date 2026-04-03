@@ -1,6 +1,10 @@
 // Unit tests for QStash final-attempt detection used by internal process route
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+
+vi.mock('@/lib/logger', () => ({ log: vi.fn() }));
+vi.mock('@/lib/prisma', () => ({ prisma: {} }));
+
 import { isQstashFinalFailureAttempt } from './pipelineRouteFailure';
 
 describe('isQstashFinalFailureAttempt', () => {
