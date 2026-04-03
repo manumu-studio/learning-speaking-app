@@ -69,7 +69,7 @@ Daily PRs create noise and developer fatigue. Weekly batches are frequent enough
 
 ## Validation
 
-```
+```text
 npx tsc --noEmit   → 0 errors
 npm run lint       → 0 violations
 npm run test       → 35 tests pass (6 files)

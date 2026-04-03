@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self' https://*.upstash.io https://api.anthropic.com https://api.openai.com",
+              "connect-src 'self' https://*.upstash.io https://api.anthropic.com https://api.openai.com https://auth.manumustudio.com",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
@@ -45,6 +45,10 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), geolocation=(), microphone=(self)',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
         ],
       },

@@ -10,7 +10,9 @@ export default function AppError({ error, reset }: AppRouterErrorProps) {
         Something went wrong
       </h2>
       <p className="mb-6 max-w-md text-gray-600 dark:text-gray-400">
-        {error.message || 'An unexpected error occurred. Please try again.'}
+        {process.env.NODE_ENV === 'development'
+          ? error.message || 'An unexpected error occurred. Please try again.'
+          : 'An unexpected error occurred. Please try again.'}
       </p>
       <button
         onClick={reset}

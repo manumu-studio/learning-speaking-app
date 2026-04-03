@@ -47,6 +47,7 @@ jobs:
 
       - name: Build and check bundle size
         run: |
+          set -o pipefail
           npm run build 2>&1 | tee build-output.txt
           node -e "
             const fs = require('fs');
@@ -63,7 +64,8 @@ jobs:
               }
               console.log('Bundle size OK (under 120 kB budget)');
             } else {
-              console.log('Could not parse bundle size from build output — skipping check');
+              console.error('ERROR: Could not parse bundle size from build output — failing as a safeguard');
+              process.exit(1);
             }
           "
         env:
