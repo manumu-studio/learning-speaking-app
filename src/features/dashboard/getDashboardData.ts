@@ -20,6 +20,10 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   fillerUsage: 'Filler Usage',
 };
 
+/**
+ * Loads and derives dashboard metrics for one user: weekly totals, streak, per-metric trends/history,
+ * recent sessions, and drill aggregates. Call only after auth has resolved `userId`.
+ */
 export async function getDashboardData(userId: string): Promise<DashboardData> {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

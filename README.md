@@ -22,11 +22,15 @@ Browser (Record UI) → Upload audio → R2 (temp storage)
                               QStash triggers pipeline:
                               1. Download from R2
                               2. Whisper → transcript
-                              3. Claude → insights
-                              4. Store in Postgres
+                              3. Claude Haiku → insights + 6 metric scores
+                              4. Store in Postgres (session, insights, MetricSnapshot)
                               5. Delete audio from R2
                                         ↓
 Browser (Results UI) ← Poll status ← Next.js API
+        ↓
+Dashboard ← Metric trends, sparklines, streak, recent activity
+        ↓
+Training Gym ← AI-generated drills per metric → record response → evaluate
 ```
 
 ## How It Works
@@ -34,22 +38,27 @@ Browser (Results UI) ← Poll status ← Next.js API
 1. **Record** — User records speech via browser MediaRecorder API
 2. **Upload** — Audio is uploaded to Cloudflare R2 via presigned URL
 3. **Process** — QStash triggers an async pipeline that transcribes (Whisper) and analyzes (Claude) the recording
-4. **Results** — User sees categorized insights (grammar, vocabulary, fluency, pronunciation, pragmatics), a summary, and a focused next-step recommendation
-5. **Privacy** — Audio is deleted from R2 immediately after transcription
+4. **Results** — User sees six scored dimensions (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage), a summary, and a next-step recommendation
+5. **Dashboard** — Metric trends with sparklines, streak tracking, and recent session history
+6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
+7. **Privacy** — Audio is deleted from R2 immediately after transcription
 
-## Recent Updates
+## Documentation
 
-- **Dashboard UI (v0.15.0):** Performance dashboard with metric cards, sparklines, weekly stats, and training focus selector. Motivating gym-metaphor framing with no error language.
-- **Dashboard data layer (v0.14.0):** Backend aggregation for weekly stats, metric scoring, trend calculation, and streak tracking. Dark mode support added across the app.
-- **Production hardening (v0.13.0):** Rate limiting on all API routes, error boundaries, loading states, and production-ready polish.
-- **Landing page sections (v0.12.0):** Hero canvas animation, feature showcase, how-it-works, and CTA footer added to public landing page.
-- **Auth improvements (v0.11.0):** Landing auth simplification, cookie consent banner, and federated sign-out support.
+- [API Reference](docs/api/openapi.yaml) — OpenAPI 3.1 spec (with `npm run dev`, open `/api/docs` for Swagger UI)
+- [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
+- [Contributing](CONTRIBUTING.md) — Setup, workflow, and code standards
+- [Testing](docs/TESTING.md) — Test strategy and commands
+- [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
+- [Decisions](docs/decisions/) — Architecture Decision Records
+- [Security](docs/SECURITY.md) — Privacy and security practices
+- [System spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL database (or [Neon](https://neon.tech) account)
 - Cloudflare R2 bucket
 - OpenAI API key
@@ -63,7 +72,7 @@ git clone https://github.com/manumu-studio/learning-speaking-app.git
 cd learning-speaking-app
 npm install
 cp .env.example .env.local  # Fill in your credentials
-npx prisma db push
+npx prisma migrate deploy
 npm run dev
 ```
 
@@ -82,19 +91,28 @@ End-to-end tests (Playwright, Chromium): `npm run test:e2e` — requires Node 20
 ```
 src/
 ├── app/              # Next.js App Router pages and API routes
-│   ├── (app)/        # Authenticated app routes
-│   ├── (public)/     # Public routes
-│   └── api/          # API endpoints (sessions, pipeline, dev tools)
-├── components/ui/    # Reusable UI components
-├── features/         # Feature modules (recording, session)
-├── lib/              # Shared utilities (AI clients, auth, queue, storage)
+│   ├── (app)/        # Authenticated app routes (dashboard, session, drills, history)
+│   ├── (public)/     # Public routes (landing, launch)
+│   └── api/          # API endpoints (sessions, drills, dashboard, pipeline, auth, docs)
+├── components/ui/    # Reusable UI components (25+ components)
+├── features/         # Feature modules
+│   ├── auth/         # Authentication hooks and helpers
+│   ├── dashboard/    # Dashboard data fetching, metric cards, types
+│   ├── insights/     # Session insight display
+│   ├── recording/    # Audio recording and upload
+│   ├── session/      # Session status polling and display
+│   └── training/     # Drill generation, evaluation, and drill UI
+├── lib/              # Shared utilities (AI, auth, queue, storage, pipeline, logger)
 ├── config/           # App configuration
-└── middleware.ts     # JWT validation + route protection
+└── middleware.ts     # JWT validation + route protection + CSP headers
 docs/
-├── architecture/     # System specification
+├── api/              # OpenAPI 3.1 spec
+├── architecture/     # System spec and diagrams
+├── decisions/        # Architecture Decision Records (ADRs)
 └── roadmap/          # Development roadmap
 prisma/
-└── schema.prisma     # Database schema
+├── schema.prisma     # Database schema
+└── migrations/       # Prisma migrations
 ```
 
 ## License
