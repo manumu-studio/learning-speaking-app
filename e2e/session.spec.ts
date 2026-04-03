@@ -59,7 +59,7 @@ test.describe('session detail with real data', () => {
       authenticatedPage.getByText(/testing strategies with good structural variety/i),
     ).toBeVisible({ timeout: 15_000 });
 
-    await authenticatedPage.getByRole('button', { name: /show transcript/i }).click();
+    await authenticatedPage.getByRole('button', { name: 'Show transcript', exact: true }).click();
     await expect(
       authenticatedPage.getByText(/test transcript for the e2e seeded session/i),
     ).toBeVisible();
