@@ -42,6 +42,9 @@
     "tailwind-merge": "^3.4.1",
     "zod": "^4.3.6"
   },
+  "overrides": {
+    "ws": "^8.18.0"
+  },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.2",
     "@tailwindcss/postcss": "^4.2.0",
