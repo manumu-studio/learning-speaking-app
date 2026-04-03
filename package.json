@@ -25,7 +25,7 @@
     "verify-env": "tsx scripts/verify-env.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.77.0",
+    "@anthropic-ai/sdk": "^0.82.0",
     "@aws-sdk/client-s3": "^3.967.0",
     "@prisma/client": "^6.19.2",
     "@upstash/qstash": "^2.9.0",
@@ -63,7 +63,7 @@
     "autoprefixer": "^10.4.24",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
-    "husky": "^8.0.3",
+    "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.6",
     "qrcode": "^1.5.4",
