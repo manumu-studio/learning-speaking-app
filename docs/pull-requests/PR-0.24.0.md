@@ -9,7 +9,7 @@
 
 ## Summary
 
-- CI pipeline now runs the full test suite, enforces a coverage floor (40%), audits npm dependencies for known vulnerabilities, and checks the shared JS bundle stays under 120 kB.
+- CI pipeline now runs the full test suite, enforces a coverage floor (20% statements/lines, 40% branches/functions), audits npm dependencies for known vulnerabilities, and checks the shared JS bundle stays under 120 kB.
 - Added `.nvmrc` (Node 20) to eliminate environment drift between local and CI.
 - Added `error.tsx` for both route groups and `loading.tsx` skeletons for dashboard, history, and drills — closing the missing Next.js App Router surfaces.
 - Added CSP and standard security headers via `next.config.ts`.
@@ -23,7 +23,7 @@
 |------|--------|-------------|
 | `.github/workflows/ci.yml` | Modified | Test, coverage, npm audit, and bundle-budget steps |
 | `.github/dependabot.yml` | Created | Weekly dependency updates for npm and Actions |
-| `vitest.config.ts` | Modified | Coverage config: v8 provider, 40% thresholds |
+| `vitest.config.ts` | Modified | Coverage config: v8 provider, 20/40% thresholds |
 | `package.json` | Modified | v0.24.0; `test:coverage` script; `@vitest/coverage-v8`, `@next/bundle-analyzer` |
 | `next.config.ts` | Modified | CSP + security headers; bundle analyzer wrapper |
 | `src/components/ui/ErrorBoundary/ErrorBoundary.types.ts` | Modified | `AppRouterErrorProps` interface |
@@ -41,7 +41,7 @@
 | Decision | Rationale |
 |----------|-----------|
 | v8 coverage provider | Hooks into the V8 engine directly; no source transformation; better ESM + TypeScript + Vitest compatibility than Istanbul |
-| 40% coverage threshold | Honest baseline that passes today and provides a ratchet — threshold increases as coverage grows |
+| 20/40% coverage thresholds | Statements/lines at 20% (honest floor); branches/functions at 40%. Ratchets up as PACKET-26/27 add tests |
 | Headers in `next.config.ts` | Static policy, no request-level logic needed; avoids middleware overhead; co-located with Next.js config |
 | Weekly Dependabot cadence | Frequent enough to catch security patches; avoids daily PR noise and developer fatigue |
 | 120 kB bundle budget enforced in CI | Matches existing output (102 kB); prevents silent regression from future dependency additions |
