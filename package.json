@@ -1,12 +1,13 @@
 {
   "name": "learning-speaking-app",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "private": true,
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:e2e": "next dev",
     "build": "next build",
     "analyze": "ANALYZE=true next build",
     "start": "next start",
@@ -15,6 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "prepare": "husky install",
     "db:seed": "npx prisma db seed",
     "db:push": "npx prisma db push",
@@ -45,9 +48,19 @@
   "overrides": {
     "ws": "^8.18.0"
   },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "15.5.14",
+    "@rollup/rollup-linux-x64-gnu": "4.60.1",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
+    "lightningcss-linux-x64-gnu": "1.32.0"
+  },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.2",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.2.3",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.14",
@@ -58,6 +71,7 @@
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
     "husky": "^9.1.7",
+    "jsdom": "^26.1.0",
     "postcss": "^8.5.6",
     "qrcode": "^1.5.4",
     "tailwindcss": "^4.2.0",

@@ -75,3 +75,65 @@ jobs:
           AUTH_CLIENT_ID: "ci-placeholder"
           AUTH_CLIENT_SECRET: "ci-placeholder"
           APP_URL: "http://localhost:3000"
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: check
+    env:
+      # Real Postgres (service below) — required because (app) layout calls syncUser → Prisma on every request
+      # 127.0.0.1 avoids Node resolving localhost to ::1 while the service is IPv4-only
+      DATABASE_URL: "postgresql://e2e:e2e@127.0.0.1:5432/e2e"
+      NEXTAUTH_SECRET: "ci-placeholder-secret-minimum-32-characters-long"
+      NEXTAUTH_URL: "http://localhost:3000"
+      AUTH_CLIENT_ID: "ci-placeholder"
+      AUTH_CLIENT_SECRET: "ci-placeholder"
+      APP_URL: "http://localhost:3000"
+      E2E_TEST_USER: "true"
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: e2e
+          POSTGRES_PASSWORD: e2e
+          POSTGRES_DB: e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U e2e -d e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Run E2E tests
+        run: npx playwright test
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
