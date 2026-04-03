@@ -47,6 +47,9 @@
   "overrides": {
     "ws": "^8.18.0"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.60.1"
+  },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.2",
     "@playwright/test": "^1.59.1",
