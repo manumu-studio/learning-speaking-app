@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   check:
-    name: Type Check + Lint + Build
+    name: Type Check + Lint + Test + Build
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Security audit
+        run: npm audit --audit-level=high --omit=dev
+
       - name: Generate Prisma client
         run: npx prisma generate
 
@@ -39,8 +42,30 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Build
-        run: npm run build
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Build and check bundle size
+        run: |
+          npm run build 2>&1 | tee build-output.txt
+          node -e "
+            const fs = require('fs');
+            const output = fs.readFileSync('build-output.txt', 'utf8');
+            const match = output.match(/First Load JS shared by all\s+([\d.]+)\s+(kB|MB)/);
+            if (match) {
+              const size = parseFloat(match[1]);
+              const unit = match[2];
+              const sizeKB = unit === 'MB' ? size * 1024 : size;
+              console.log('Shared JS bundle: ' + sizeKB.toFixed(1) + ' kB');
+              if (sizeKB > 120) {
+                console.error('ERROR: Shared JS exceeds 120 kB budget (' + sizeKB.toFixed(1) + ' kB)');
+                process.exit(1);
+              }
+              console.log('Bundle size OK (under 120 kB budget)');
+            } else {
+              console.log('Could not parse bundle size from build output — skipping check');
+            }
+          "
         env:
           DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
           NEXTAUTH_SECRET: "ci-placeholder-secret-minimum-32-characters-long"

@@ -5,3 +5,8 @@ export interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
 }
+
+export interface AppRouterErrorProps {
+  error: Error & { digest?: string };
+  reset: () => void;
+}
