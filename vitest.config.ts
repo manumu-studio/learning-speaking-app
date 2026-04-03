@@ -1,14 +1,17 @@
 // Vitest configuration — test runner with coverage for the speaking coach app
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  plugins: [react()],
   test: {
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    exclude: ['node_modules', '.next'],
-    setupFiles: ['./src/__mocks__/prisma.ts'],
+    exclude: ['node_modules', '.next', 'e2e'],
+    setupFiles: ['./src/__mocks__/prisma.ts', './src/__mocks__/rtl-setup.ts'],
+    environmentMatchGlobs: [['src/**/*.test.tsx', 'jsdom']],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'lcov'],
@@ -22,10 +25,10 @@ export default defineConfig({
         'src/__mocks__/**',
       ],
       thresholds: {
-        statements: 30,
-        branches: 55,
-        functions: 60,
-        lines: 30,
+        statements: 36,
+        branches: 75,
+        functions: 88,
+        lines: 36,
       },
     },
   },

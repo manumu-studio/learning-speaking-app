@@ -73,7 +73,9 @@ See `.env.example` for the full list of required environment variables.
 
 ### Tests
 
-Run unit tests (Vitest): `npm run test`
+Run unit and component tests (Vitest): `npm run test`. Coverage: `npm run test:coverage`.
+
+End-to-end tests (Playwright, Chromium): `npm run test:e2e` — requires Node 20+ and a working dev toolchain (`npm run dev` must start; the runner can start it automatically). UI mode: `npm run test:e2e:ui`.
 
 ## Project Structure
 

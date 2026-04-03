@@ -81,6 +81,7 @@ yarn-error.log*
 /docs/build-packets/
 /docs/build-packet-reports/
 /docs/audits/
+/docs/superpowers
 
 # template
 /_template/
@@ -96,3 +97,8 @@ yarn-error.log*
 .claude/
 
 reports/
+
+# Playwright
+playwright-report/
+test-results/
+.auth-state.json
