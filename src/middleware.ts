@@ -4,6 +4,11 @@ import type { NextRequest } from 'next/server';
 import { getRateLimiter } from '@/lib/rateLimit';
 
 export async function middleware(request: NextRequest) {
+  // E2E test bypass -- only when E2E_TEST_USER is set and app is not in production
+  if (process.env.E2E_TEST_USER === 'true' && process.env.NODE_ENV !== 'production') {
+    return NextResponse.next();
+  }
+
   const rateLimiter = getRateLimiter();
   if (!rateLimiter) {
     return NextResponse.next();

@@ -75,3 +75,47 @@ jobs:
           AUTH_CLIENT_ID: "ci-placeholder"
           AUTH_CLIENT_SECRET: "ci-placeholder"
           APP_URL: "http://localhost:3000"
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # E2E uses E2E_TEST_USER mock auth. DATABASE_URL is a placeholder; some API-backed views may show empty or error states — specs allow that.
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
+          NEXTAUTH_SECRET: "ci-placeholder-secret-minimum-32-characters-long"
+          NEXTAUTH_URL: "http://localhost:3000"
+          AUTH_CLIENT_ID: "ci-placeholder"
+          AUTH_CLIENT_SECRET: "ci-placeholder"
+          APP_URL: "http://localhost:3000"
+          E2E_TEST_USER: "true"
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
