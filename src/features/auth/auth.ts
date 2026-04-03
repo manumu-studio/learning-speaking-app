@@ -1,8 +1,9 @@
 // NextAuth configuration with ManuMuStudio OAuth/OIDC provider
 import NextAuth from 'next-auth';
+import type { Session } from 'next-auth';
 import { env } from '@/lib/env';
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const nextAuth = NextAuth({
   secret: env.NEXTAUTH_SECRET,
   providers: [
     {
@@ -62,3 +63,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   debug: env.NODE_ENV === 'development',
 });
+
+/** Synthetic session for Playwright E2E when E2E_TEST_USER is set (never in production). */
+const e2eBypassSession = (): Session => ({
+  user: {
+    externalId: 'e2e-test-external-id',
+    email: 'e2e@test.local',
+    name: 'E2E Test User',
+    image: null,
+  },
+  expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+});
+
+/** Server/session helper; codebase only uses zero-arg `auth()` (not middleware wrapping). */
+export async function auth(): Promise<Session | null> {
+  if (process.env.E2E_TEST_USER === 'true' && process.env.NODE_ENV !== 'production') {
+    return e2eBypassSession();
+  }
+  const getSession = nextAuth.auth as () => Promise<Session | null>;
+  return getSession();
+}
+
+export const { handlers, signIn, signOut } = nextAuth;

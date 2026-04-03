@@ -96,3 +96,8 @@ yarn-error.log*
 .claude/
 
 reports/
+
+# Playwright
+playwright-report/
+test-results/
+.auth-state.json
