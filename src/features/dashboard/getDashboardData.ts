@@ -50,6 +50,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const allSessions = await prisma.speakingSession.findMany({
     where: { userId, status: 'DONE' },
     orderBy: { createdAt: 'desc' },
+    take: 100,
     select: { createdAt: true },
   });
 

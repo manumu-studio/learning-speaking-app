@@ -62,6 +62,8 @@ describe('middleware — rate limiting', () => {
     // NextResponse.next() has no body and status 200
     expect(res.status).toBe(200);
     expect(mockLimit).not.toHaveBeenCalled();
+    expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
   });
 
   it('passes through when rate limiter returns success: true', async () => {
@@ -150,5 +152,27 @@ describe('middleware — rate limiting', () => {
     await middleware(req);
 
     expect(mockLimit).toHaveBeenCalledWith('ip:unknown');
+  });
+
+  it('applies security headers on non-API routes without calling rate limiter', async () => {
+    mockedGetRateLimiter.mockReturnValue(makeRateLimiterStub());
+
+    const req = new NextRequest('http://localhost/dashboard');
+    const res = await middleware(req);
+
+    expect(mockLimit).not.toHaveBeenCalled();
+    expect(res.headers.get('Content-Security-Policy')).toContain('connect-src');
+    expect(res.headers.get('Permissions-Policy')).toContain('microphone=(self)');
+  });
+
+  it('includes CSP on 429 rate-limit responses', async () => {
+    mockLimit.mockResolvedValue({ success: false });
+    mockedGetRateLimiter.mockReturnValue(makeRateLimiterStub());
+
+    const req = makeRequest();
+    const res = await middleware(req);
+
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
   });
 });
