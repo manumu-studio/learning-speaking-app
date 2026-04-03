@@ -1,5 +1,6 @@
 // E2E tests for session-related pages — UI and navigation only (no full recording)
 import { test, expect } from './fixtures/auth';
+import { cleanupSeedData, seedCompletedSession, SEED_SESSION_ID } from './fixtures/seed';
 
 test.describe('Session flow', () => {
   test('new session page loads with recording UI', async ({ authenticatedPage }) => {
@@ -25,14 +26,6 @@ test.describe('Session flow', () => {
     await expect(loading.or(settled).first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('session detail page loads main content for a placeholder id', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto('/session/00000000-0000-4000-8000-000000000001');
-    await expect(authenticatedPage).toHaveURL(/\/session\/00000000/);
-    await expect(authenticatedPage.locator('#main-content')).toBeVisible({ timeout: 15000 });
-  });
-
   test('navigation between new session and history via main nav', async ({
     authenticatedPage,
   }) => {
@@ -41,5 +34,49 @@ test.describe('Session flow', () => {
     await expect(authenticatedPage).toHaveURL(/\/history/);
     await authenticatedPage.getByRole('link', { name: 'New Session' }).click();
     await expect(authenticatedPage).toHaveURL(/\/session\/new/);
+  });
+});
+
+test.describe('session detail with real data', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeAll(async () => {
+    await seedCompletedSession();
+  });
+
+  test.afterAll(async () => {
+    await cleanupSeedData();
+  });
+
+  test('session detail page renders completed session results', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto(`/session/${SEED_SESSION_ID}`);
+
+    await expect(authenticatedPage.getByText(/session not found/i)).toHaveCount(0, {
+      timeout: 15_000,
+    });
+
+    await expect(
+      authenticatedPage.getByText(/testing strategies with good structural variety/i),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await authenticatedPage.getByRole('button', { name: /show transcript/i }).click();
+    await expect(
+      authenticatedPage.getByText(/test transcript for the e2e seeded session/i),
+    ).toBeVisible();
+
+    await expect(authenticatedPage.getByText(/argument closure/i)).toBeVisible();
+  });
+
+  test('session detail shows focus highlight when focusMetricKey is set', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(`/session/${SEED_SESSION_ID}`);
+    await expect(
+      authenticatedPage.getByText(/testing strategies with good structural variety/i),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await expect(authenticatedPage.getByText(/focus area.*structural variety/i)).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });
