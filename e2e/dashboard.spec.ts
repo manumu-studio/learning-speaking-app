@@ -33,10 +33,13 @@ test.describe('Dashboard', () => {
     authenticatedPage,
   }) => {
     const error = authenticatedPage.getByText(/unable to load dashboard/i);
-    const dl = authenticatedPage.locator('dl').first();
-    await expect(error.or(dl)).toBeVisible({ timeout: 20000 });
-    if (await dl.isVisible()) {
-      await expect(authenticatedPage.getByRole('term', { name: /this week/i })).toBeVisible();
+    const statsDl = authenticatedPage.locator('dl').first();
+    await expect(error.or(statsDl)).toBeVisible({ timeout: 20_000 });
+    if (await statsDl.isVisible()) {
+      // dt inside dl>div may not always map to role "term" in Chromium; assert label text in the stats dl
+      await expect(
+        statsDl.locator('dt').filter({ hasText: /^This Week$/i }),
+      ).toBeVisible({ timeout: 20_000 });
     }
   });
 
