@@ -57,6 +57,6 @@ test.describe('completed drill detail', () => {
     await authenticatedPage.goto(`/drill/${SEED_DRILL_ID}`);
     await expect(authenticatedPage.getByText(/great improvement/i)).toBeVisible({ timeout: 15_000 });
 
-    await expect(authenticatedPage.getByText(/improved/i)).toBeVisible();
+    await expect(authenticatedPage.getByText('✅ Improved')).toBeVisible();
   });
 });

@@ -82,10 +82,7 @@ test.describe('Dashboard', () => {
       timeout: 20_000,
     });
     const statsDl = authenticatedPage.locator('dl').first();
-    const emptyState = authenticatedPage.getByText(
-      /record a few more sessions to see your patterns emerge/i,
-    );
     const errorBanner = authenticatedPage.getByText(/unable to load dashboard/i);
-    await expect(statsDl.or(emptyState).or(errorBanner)).toBeVisible({ timeout: 20_000 });
+    await expect(statsDl.or(errorBanner)).toBeVisible({ timeout: 20_000 });
   });
 });
