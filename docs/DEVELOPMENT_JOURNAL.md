@@ -44,6 +44,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.24.0 | [ENTRY-24](journal/ENTRY-24.md) | 2026-04-03 | CI/CD pipeline hardening: tests in CI, coverage, security headers, error/loading surfaces, Dependabot |
 | 0.25.0 | [ENTRY-25](journal/ENTRY-25.md) | 2026-04-03 | Unit & integration testing coverage (0.25.0) |
 | 0.26.0 | [ENTRY-26](journal/ENTRY-26.md) | 2026-04-03 | E2E (Playwright) + component tests (RTL) |
+| 0.27.0 | [ENTRY-27](journal/ENTRY-27.md) | 2026-04-03 | Coverage thresholds, CSP, route boundaries, CI + Dependabot hardening |
 
 ## Pull Requests
 
@@ -79,3 +80,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.24.0 | [PR-0.24.0](pull-requests/PR-0.24.0.md) | 2026-04-03 | CI/CD pipeline hardening |
 | 0.25.0 | [PR-0.25.0](pull-requests/PR-0.25.0.md) | 2026-04-03 | Unit & integration testing coverage |
 | 0.26.0 | [PR-0.26.0](pull-requests/PR-0.26.0.md) | 2026-04-03 | E2E + component testing, CI E2E job |
+| 0.27.0 | [PR-0.27.0](pull-requests/PR-0.27.0.md) | 2026-04-03 | Test coverage hardening, security headers, DB/CI polish |

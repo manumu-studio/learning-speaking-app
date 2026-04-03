@@ -1,17 +1,48 @@
-// API rate limiting middleware — applies Upstash Redis sliding window to all API routes
+// API rate limiting + security headers (CSP, framing, permissions) for matched routes
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getRateLimiter } from '@/lib/rateLimit';
 
+const CSP_HEADER = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' blob: data:",
+  "font-src 'self'",
+  "connect-src 'self' https://auth.manumustudio.com https://qstash.upstash.io",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "base-uri 'self'",
+].join('; ');
+
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('Content-Security-Policy', CSP_HEADER);
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(self), geolocation=()',
+  );
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
-  // E2E test bypass -- only when E2E_TEST_USER is set and app is not in production
+  const pathname = request.nextUrl.pathname;
+  const isRateLimitedApi =
+    pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/');
+
   if (process.env.E2E_TEST_USER === 'true' && process.env.NODE_ENV !== 'production') {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
+  }
+
+  if (!isRateLimitedApi) {
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const rateLimiter = getRateLimiter();
   if (!rateLimiter) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const token =
@@ -29,18 +60,22 @@ export async function middleware(request: NextRequest) {
   try {
     ({ success } = await rateLimiter.limit(identifier));
   } catch {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
   if (!success) {
-    return NextResponse.json(
-      { error: 'Too many requests', code: 'RATE_LIMITED' },
-      { status: 429 }
+    return applySecurityHeaders(
+      NextResponse.json(
+        { error: 'Too many requests', code: 'RATE_LIMITED' },
+        { status: 429 },
+      ),
     );
   }
 
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {
-  matcher: ['/api/((?!auth/).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|assets/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };
