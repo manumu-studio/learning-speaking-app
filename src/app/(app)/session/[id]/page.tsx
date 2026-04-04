@@ -4,6 +4,7 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import { InsightExamplesSchema } from '@/lib/schemas/jsonFields';
 import { Container } from '@/components/ui/Container';
 import { ProcessingStatus } from '@/components/ui/ProcessingStatus';
 import { SessionHeader } from '@/components/ui/SessionHeader';
@@ -50,9 +51,8 @@ function pickWeakestMetric(metrics: SessionMetricSnapshot[]): SessionMetricSnaps
 function collectRecentExamplesForDrill(session: SessionDetail): string[] {
   const fromInsights = session.insights
     .flatMap((i) => {
-      const ex = i.examples;
-      if (!Array.isArray(ex)) return [];
-      return ex.filter((item): item is string => typeof item === 'string');
+      const parsed = InsightExamplesSchema.safeParse(i.examples);
+      return parsed.success ? parsed.data : [];
     })
     .slice(0, 5);
   if (fromInsights.length > 0) return fromInsights;

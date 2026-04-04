@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
+import { InsightExamplesSchema } from '@/lib/schemas/jsonFields';
 import type { DrillType } from '@/features/training/training.types';
 
 type DrillState = 'prompt' | 'recording' | 'processing' | 'feedback';
@@ -101,9 +102,8 @@ interface SessionForDrillPayload {
 function buildRecentExamples(session: SessionForDrillPayload): string[] {
   const fromInsights = session.insights
     .flatMap((i) => {
-      const ex = i.examples;
-      if (!Array.isArray(ex)) return [];
-      return ex.filter((item): item is string => typeof item === 'string');
+      const parsed = InsightExamplesSchema.safeParse(i.examples);
+      return parsed.success ? parsed.data : [];
     })
     .slice(0, 5);
   if (fromInsights.length > 0) return fromInsights;

@@ -1,6 +1,12 @@
 // Tests for dashboard data aggregation — streaks, trends, and zero states
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prismaMock } from '@/__mocks__/prisma';
+
+// Mock unstable_cache as a passthrough — no Next.js incremental cache in test env
+vi.mock('next/cache', () => ({
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+}));
+
 import { getDashboardData } from './getDashboardData';
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
@@ -107,27 +113,11 @@ describe('getDashboardData', () => {
     prismaMock.speakingSession.findMany.mockResolvedValue([] as never);
     prismaMock.speakingSession.count.mockResolvedValue(0);
     prismaMock.speakingSession.findFirst.mockResolvedValue(null);
-    (
-      prismaMock.metricSnapshot.findMany as unknown as {
-        mockImplementation: (fn: (args: unknown) => Promise<unknown>) => void;
-      }
-    ).mockImplementation((args) => {
-      const key =
-        args &&
-        typeof args === 'object' &&
-        'where' in args &&
-        args.where &&
-        typeof args.where === 'object' &&
-        'key' in args.where &&
-        typeof args.where.key === 'string'
-          ? args.where.key
-          : undefined;
-      if (key === 'connectorRepetition') {
-        const scoresDesc = [9, 8, 7, 3, 3, 3, 3];
-        return Promise.resolve(scoresDesc.map((score) => ({ score, level: 'medium' })));
-      }
-      return Promise.resolve([]);
-    });
+    // Single consolidated query returns all snapshots — scores desc for connectorRepetition
+    const scoresDesc = [9, 8, 7, 3, 3, 3, 3];
+    prismaMock.metricSnapshot.findMany.mockResolvedValue(
+      scoresDesc.map((score) => ({ key: 'connectorRepetition', score, level: 'medium' })) as never,
+    );
     prismaMock.drillAttempt.count.mockResolvedValue(0);
     mockDrillGroupBy.mockResolvedValue([] as never);
 

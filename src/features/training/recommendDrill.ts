@@ -1,6 +1,7 @@
 // Recommends the best drill for a user based on session metrics and focus priority
 
 import { prisma } from '@/lib/prisma';
+import { InsightExamplesSchema } from '@/lib/schemas/jsonFields';
 import { generateDrill } from './generateDrill';
 import type { DrillRecommendation, DrillType } from './training.types';
 
@@ -26,9 +27,9 @@ function examplesFromInsights(
   insights: Array<{ examples: unknown; pattern: string; detail: string }>
 ): string[] {
   for (const insight of insights) {
-    const ex = insight.examples;
-    if (Array.isArray(ex)) {
-      const strings = ex.filter((item): item is string => typeof item === 'string' && item.length > 0);
+    const parsed = InsightExamplesSchema.safeParse(insight.examples);
+    if (parsed.success) {
+      const strings = parsed.data.filter((s) => s.length > 0);
       if (strings.length > 0) {
         return strings.slice(0, 3);
       }
