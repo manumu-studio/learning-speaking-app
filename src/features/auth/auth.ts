@@ -1,7 +1,16 @@
 // NextAuth configuration with ManuMuStudio OAuth/OIDC provider
 import NextAuth from 'next-auth';
 import type { Session } from 'next-auth';
+import { z } from 'zod';
 import { env } from '@/lib/env';
+
+// Zod schema for OIDC profile shape — replaces unsafe `as string` casts
+const OidcProfileSchema = z.object({
+  sub: z.string(),
+  name: z.string().nullish(),
+  email: z.string().nullish(),
+  picture: z.string().nullish(),
+});
 
 const nextAuth = NextAuth({
   secret: env.NEXTAUTH_SECRET,
@@ -11,22 +20,23 @@ const nextAuth = NextAuth({
       name: 'ManuMuStudio',
       type: 'oauth',
       // Must match the "iss" claim in JWTs signed by the auth server
-      issuer: 'https://auth.manumustudio.com/',
+      issuer: `${env.AUTH_ISSUER_URL}/`,
       authorization: {
-        url: 'https://auth.manumustudio.com/oauth/authorize',
+        url: `${env.AUTH_ISSUER_URL}/oauth/authorize`,
         params: { scope: 'openid email profile' },
       },
-      token: 'https://auth.manumustudio.com/oauth/token',
-      userinfo: 'https://auth.manumustudio.com/oauth/userinfo',
+      token: `${env.AUTH_ISSUER_URL}/oauth/token`,
+      userinfo: `${env.AUTH_ISSUER_URL}/oauth/userinfo`,
       clientId: env.AUTH_CLIENT_ID,
       clientSecret: env.AUTH_CLIENT_SECRET,
       checks: ['pkce', 'state'],
       profile(profile: Record<string, unknown>) {
+        const parsed = OidcProfileSchema.parse(profile);
         return {
-          id: profile['sub'] as string,
-          name: (profile['name'] ?? profile['email'] ?? null) as string | null,
-          email: (profile['email'] ?? null) as string | null,
-          image: (profile['picture'] ?? null) as string | null,
+          id: parsed.sub,
+          name: parsed.name ?? parsed.email ?? null,
+          email: parsed.email ?? null,
+          image: parsed.picture ?? null,
         };
       },
     },
@@ -43,9 +53,10 @@ const nextAuth = NextAuth({
     async jwt({ token, account, profile }) {
       // On first sign-in, add external ID and user info to token
       if (profile?.sub) {
-        token.externalId = profile.sub as string;
-        token.email = (profile.email as string | undefined) ?? null;
-        token.name = (profile.name as string | undefined) ?? null;
+        const parsed = OidcProfileSchema.parse(profile);
+        token.externalId = parsed.sub;
+        token.email = parsed.email ?? null;
+        token.name = parsed.name ?? null;
       }
       // Store OIDC id_token for federated logout
       if (account?.id_token) {
@@ -55,8 +66,8 @@ const nextAuth = NextAuth({
     },
     async session({ session, token }) {
       // Add external ID to session for use in app
-      if (token.externalId) {
-        session.user.externalId = token.externalId as string;
+      if (typeof token.externalId === 'string') {
+        session.user.externalId = token.externalId;
       }
       return session;
     },
@@ -80,6 +91,7 @@ export async function auth(): Promise<Session | null> {
   if (process.env.E2E_TEST_USER === 'true' && process.env.NODE_ENV !== 'production') {
     return e2eBypassSession();
   }
+  // NextAuth v5 beta types don't expose zero-arg auth() — cast is the documented workaround
   const getSession = nextAuth.auth as () => Promise<Session | null>;
   return getSession();
 }

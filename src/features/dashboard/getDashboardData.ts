@@ -1,4 +1,5 @@
-// Dashboard data aggregation — computes stats, streaks, and metric trends
+// Dashboard data aggregation — computes stats, streaks, and metric trends with caching
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import type { DashboardData, DashboardMetric, MetricKey, MetricLevel, TrendDirection } from './dashboard.types';
 
@@ -23,116 +24,64 @@ const METRIC_LABELS: Record<MetricKey, string> = {
 /**
  * Loads and derives dashboard metrics for one user: weekly totals, streak, per-metric trends/history,
  * recent sessions, and drill aggregates. Call only after auth has resolved `userId`.
+ * Cached for 60s per user via unstable_cache to reduce database load.
  */
-export async function getDashboardData(userId: string): Promise<DashboardData> {
+export const getDashboardData = (userId: string): Promise<DashboardData> =>
+  unstable_cache(
+    async (): Promise<DashboardData> => fetchDashboardData(userId),
+    ['dashboard', userId],
+    { revalidate: 60, tags: ['dashboard'] },
+  )();
+
+async function fetchDashboardData(userId: string): Promise<DashboardData> {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  // Weekly stats — sessions from last 7 days
-  const weeklySessions = await prisma.speakingSession.findMany({
-    where: {
-      userId,
-      createdAt: { gte: weekAgo },
-      status: 'DONE',
-    },
-    select: {
-      durationSecs: true,
-    },
-  });
-
-  const weeklyMinutes = Math.round(
-    weeklySessions.reduce((sum, s) => sum + (s.durationSecs ?? 0), 0) / 60
-  );
-  const weeklySessionCount = weeklySessions.length;
-
-  // Total sessions
-  const totalSessions = await prisma.speakingSession.count({
-    where: { userId, status: 'DONE' },
-  });
-
-  // Streak — count consecutive days with at least one session
-  const allSessions = await prisma.speakingSession.findMany({
-    where: { userId, status: 'DONE' },
-    orderBy: { createdAt: 'desc' },
-    take: 100,
-    select: { createdAt: true },
-  });
-
-  const currentStreak = computeStreak(allSessions.map((s) => s.createdAt));
-
-  // Query today's focus session to determine which metric was trained today
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const todayFocusSession = await prisma.speakingSession.findFirst({
-    where: {
-      userId,
-      focusMetricKey: { not: null },
-      createdAt: { gte: todayStart },
-      status: 'DONE',
-    },
-    orderBy: { createdAt: 'desc' },
-    select: { focusMetricKey: true },
-  });
-
-  // Metrics — last 7 snapshots per key, compute trend
-  const metrics: DashboardMetric[] = await Promise.all(
-    METRIC_KEYS.map(async (key) => {
-      const snapshots = await prisma.metricSnapshot.findMany({
-        where: {
-          session: { userId },
-          key,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 7,
-        select: {
-          score: true,
-          level: true,
-        },
-      });
-
-      const history = snapshots.map((s) => s.score).reverse();
-      const currentScore = history[history.length - 1] ?? 0;
-      const rawLevel = snapshots[0]?.level ?? 'medium';
-      const currentLevel: MetricLevel = rawLevel === 'low' || rawLevel === 'medium' || rawLevel === 'high' ? rawLevel : 'medium';
-      const trend = computeTrend(history);
-
-      return {
-        key,
-        label: METRIC_LABELS[key],
-        currentLevel,
-        currentScore,
-        trend,
-        history,
-        lastTrainedToday: todayFocusSession?.focusMetricKey === key,
-      };
-    })
-  );
-
-  // Recent sessions — last 5
-  const recentSessions = await prisma.speakingSession.findMany({
-    where: { userId, status: 'DONE' },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-    select: {
-      id: true,
-      createdAt: true,
-      intentLabel: true,
-      focusNext: true,
-    },
-  });
-
-  const weekAgoDrills = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  const [drillTotal, drillWeekly, drillImproved, drillByMetric] = await Promise.all([
+  // Parallelize all independent session queries
+  const [weeklySessions, totalSessions, allSessions, todayFocusSession, allSnapshots, recentSessions, drillTotal, drillWeekly, drillImproved, drillByMetric] = await Promise.all([
+    // Weekly stats
+    prisma.speakingSession.findMany({
+      where: { userId, createdAt: { gte: weekAgo }, status: 'DONE' },
+      select: { durationSecs: true },
+    }),
+    // Total count
+    prisma.speakingSession.count({
+      where: { userId, status: 'DONE' },
+    }),
+    // Streak data
+    prisma.speakingSession.findMany({
+      where: { userId, status: 'DONE' },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: { createdAt: true },
+    }),
+    // Today's focus session
+    prisma.speakingSession.findFirst({
+      where: { userId, focusMetricKey: { not: null }, createdAt: { gte: todayStart }, status: 'DONE' },
+      orderBy: { createdAt: 'desc' },
+      select: { focusMetricKey: true },
+    }),
+    // All metric snapshots in a single query (consolidated from 6 → 1)
+    prisma.metricSnapshot.findMany({
+      where: { session: { userId }, key: { in: [...METRIC_KEYS] } },
+      orderBy: { createdAt: 'desc' },
+      select: { key: true, score: true, level: true },
+    }),
+    // Recent sessions
+    prisma.speakingSession.findMany({
+      where: { userId, status: 'DONE' },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { id: true, createdAt: true, intentLabel: true, focusNext: true },
+    }),
+    // Drill stats (4 queries, already parallelized)
     prisma.drillAttempt.count({
       where: { userId, completedAt: { not: null } },
     }),
     prisma.drillAttempt.count({
-      where: {
-        userId,
-        completedAt: { not: null, gte: weekAgoDrills },
-      },
+      where: { userId, completedAt: { not: null, gte: weekAgo } },
     }),
     prisma.drillAttempt.count({
       where: { userId, completedAt: { not: null }, improved: true },
@@ -143,6 +92,44 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       _count: { _all: true },
     }),
   ]);
+
+  const weeklyMinutes = Math.round(
+    weeklySessions.reduce((sum, s) => sum + (s.durationSecs ?? 0), 0) / 60
+  );
+  const weeklySessionCount = weeklySessions.length;
+  const currentStreak = computeStreak(allSessions.map((s) => s.createdAt));
+
+  // Group snapshots by key client-side (single query instead of 6)
+  const snapshotsByKey = new Map<MetricKey, Array<{ score: number; level: string }>>();
+  for (const key of METRIC_KEYS) {
+    snapshotsByKey.set(key, []);
+  }
+  for (const snap of allSnapshots) {
+    const bucket = snapshotsByKey.get(snap.key as MetricKey);
+    if (bucket && bucket.length < 7) {
+      bucket.push(snap);
+    }
+  }
+
+  // Build metrics from grouped snapshots
+  const metrics: DashboardMetric[] = METRIC_KEYS.map((key) => {
+    const snapshots = snapshotsByKey.get(key) ?? [];
+    const history = snapshots.map((s) => s.score).reverse();
+    const currentScore = history[history.length - 1] ?? 0;
+    const rawLevel = snapshots[0]?.level ?? 'medium';
+    const currentLevel: MetricLevel = rawLevel === 'low' || rawLevel === 'medium' || rawLevel === 'high' ? rawLevel : 'medium';
+    const trend = computeTrend(history);
+
+    return {
+      key,
+      label: METRIC_LABELS[key],
+      currentLevel,
+      currentScore,
+      trend,
+      history,
+      lastTrainedToday: todayFocusSession?.focusMetricKey === key,
+    };
+  });
 
   const improvementRate =
     drillTotal > 0 ? (drillImproved / drillTotal) * 100 : 0;
