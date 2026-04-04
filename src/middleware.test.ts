@@ -12,6 +12,12 @@ vi.mock('@/lib/rateLimit', () => ({
   getRateLimiter: vi.fn(),
 }));
 
+vi.mock('@/lib/env', () => ({
+  env: {
+    AUTH_ISSUER_URL: 'https://auth.manumustudio.com',
+  },
+}));
+
 import { getRateLimiter } from '@/lib/rateLimit';
 import { middleware } from './middleware';
 

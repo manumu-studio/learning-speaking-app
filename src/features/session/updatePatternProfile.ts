@@ -1,5 +1,6 @@
 // Utility for aggregating pattern insights into user pattern profiles
 import { prisma } from '@/lib/prisma';
+import { PatternProfilePatternsSchema } from '@/lib/schemas/jsonFields';
 
 interface PatternInsight {
   category: string;
@@ -16,14 +17,9 @@ export async function updatePatternProfile(
     where: { userId },
   });
 
-  // Parse from Prisma JsonValue — patterns are stored as { "category:pattern": count }
-  const rawPatterns: unknown = existing?.patterns;
-  const patterns: Record<string, number> =
-    rawPatterns !== null && rawPatterns !== undefined && typeof rawPatterns === 'object' && !Array.isArray(rawPatterns)
-      ? Object.fromEntries(
-          Object.entries(rawPatterns).filter(([, v]) => typeof v === 'number')
-        )
-      : {};
+  // Validate patterns JSON field via Zod — graceful default on parse failure
+  const parsed = PatternProfilePatternsSchema.safeParse(existing?.patterns);
+  const patterns: Record<string, number> = parsed.success ? { ...parsed.data } : {};
 
   for (const insight of insights) {
     const key = `${insight.category}:${insight.pattern}`;

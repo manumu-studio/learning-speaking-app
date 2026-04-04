@@ -7,8 +7,25 @@ import { validateAudioFile, successResponse, errorResponse } from '@/lib/api';
 import { SessionStatus } from '@prisma/client';
 import { enqueueProcessing } from '@/lib/queue/qstash';
 import { log } from '@/lib/logger';
-import { isSpeakingMetricKey } from '@/lib/metric-keys';
+import { SPEAKING_METRIC_KEYS } from '@/lib/metric-keys';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
+import { z } from 'zod';
+
+// Zod schema for session creation FormData
+const SessionFormDataSchema = z.object({
+  audio: z.custom<File>(
+    (val) => typeof File !== 'undefined' && val instanceof File,
+    { message: 'Audio file is required' },
+  ),
+  duration: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0, {
+    message: 'Valid duration is required',
+  }),
+  topic: z.string().nullable(),
+  language: z.string().nullable(),
+  focusMetricKey: z
+    .enum(SPEAKING_METRIC_KEYS)
+    .nullable(),
+});
 
 /**
  * POST /api/sessions
@@ -36,34 +53,31 @@ export async function POST(request: Request) {
       return errorResponse('Recording consent required', 'CONSENT_REQUIRED', 403);
     }
 
-    // Parse multipart form data
+    // Parse and validate multipart form data through Zod
     const formData = await request.formData();
-    const audioEntry = formData.get('audio');
-    const audioFile = audioEntry instanceof File ? audioEntry : null;
-    const durationSecs = formData.get('duration');
-    const durationStr = typeof durationSecs === 'string' ? durationSecs : null;
-    const topicEntry = formData.get('topic');
-    const topic = typeof topicEntry === 'string' ? topicEntry : null;
-    const languageEntry = formData.get('language');
-    const language = typeof languageEntry === 'string' ? languageEntry : null;
-    const focusEntry = formData.get('focusMetricKey');
-    const rawFocusMetricKey = typeof focusEntry === 'string' ? focusEntry : null;
-    let focusMetricKey: string | null = null;
-    if (rawFocusMetricKey !== null && rawFocusMetricKey.trim() !== '') {
-      const trimmed = rawFocusMetricKey.trim();
-      if (!isSpeakingMetricKey(trimmed)) {
-        return errorResponse('Invalid focusMetricKey', 'INVALID_FOCUS', 400);
-      }
-      focusMetricKey = trimmed;
+    const rawAudio = formData.get('audio');
+    const rawDuration = formData.get('duration');
+    const rawTopic = formData.get('topic');
+    const rawLanguage = formData.get('language');
+    const rawFocus = formData.get('focusMetricKey');
+
+    const parsed = SessionFormDataSchema.safeParse({
+      audio: rawAudio instanceof File ? rawAudio : undefined,
+      duration: typeof rawDuration === 'string' ? rawDuration : undefined,
+      topic: typeof rawTopic === 'string' ? rawTopic : null,
+      language: typeof rawLanguage === 'string' ? rawLanguage : null,
+      focusMetricKey:
+        typeof rawFocus === 'string' && rawFocus.trim() !== ''
+          ? rawFocus.trim()
+          : null,
+    });
+
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Invalid form data';
+      return errorResponse(firstError, 'VALIDATION_ERROR', 400);
     }
 
-    if (!audioFile) {
-      return errorResponse('Audio file is required', 'MISSING_AUDIO', 400);
-    }
-
-    if (!durationStr || isNaN(Number(durationStr))) {
-      return errorResponse('Valid duration is required', 'INVALID_DURATION', 400);
-    }
+    const { audio: audioFile, duration: durationStr, topic, language, focusMetricKey } = parsed.data;
 
     // Validate audio file
     const validation = validateAudioFile(audioFile);

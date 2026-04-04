@@ -1,5 +1,8 @@
 # Learning Speaking App
 
+[![CI](https://github.com/manumu-studio/learning-speaking-app/actions/workflows/ci.yml/badge.svg)](https://github.com/manumu-studio/learning-speaking-app/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/manumu-studio/learning-speaking-app/branch/main/graph/badge.svg)](https://codecov.io/gh/manumu-studio/learning-speaking-app)
+
 AI-powered English speaking coach that provides real-time feedback on spoken language patterns. Record yourself speaking, get transcription and analysis powered by OpenAI Whisper and Claude, and track your improvement over time.
 
 ## Tech Stack
@@ -45,7 +48,7 @@ Training Gym ← AI-generated drills per metric → record response → evaluate
 
 ## Documentation
 
-- [API Reference](docs/api/openapi.yaml) — OpenAPI 3.1 spec (with `npm run dev`, open `/api/docs` for Swagger UI)
+- [API Reference](docs/api/openapi.yaml) — OpenAPI 3.1 spec — API documentation available at `/api/docs` in development mode (Swagger UI)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [Contributing](CONTRIBUTING.md) — Setup, workflow, and code standards
 - [Testing](docs/TESTING.md) — Test strategy and commands
