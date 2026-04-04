@@ -9,7 +9,7 @@ const SESSION_COOKIE_NAMES = [
   '__Secure-authjs.session-token',
 ];
 
-const AUTH_LOGOUT_URL = 'https://auth.manumustudio.com/oauth/logout';
+const AUTH_LOGOUT_URL = `${env.AUTH_ISSUER_URL}/oauth/logout`;
 
 export async function GET() {
   const cookieStore = await cookies();

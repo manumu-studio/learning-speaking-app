@@ -2,14 +2,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getRateLimiter } from '@/lib/rateLimit';
+import { env } from '@/lib/env';
 
+// CSP with auth URL from environment
 const CSP_HEADER = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self'",
-  "connect-src 'self' https://auth.manumustudio.com https://qstash.upstash.io",
+  `connect-src 'self' ${env.AUTH_ISSUER_URL} https://qstash.upstash.io`,
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",

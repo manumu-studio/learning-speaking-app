@@ -16,6 +16,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'text-summary', 'lcov'],
       reportsDirectory: './coverage',
+      // src/app/** excluded — expanding scope requires ~20 new tests to maintain 70% thresholds
       include: ['src/lib/**', 'src/features/**'],
       exclude: [
         'src/**/*.types.ts',

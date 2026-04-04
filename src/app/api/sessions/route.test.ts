@@ -15,7 +15,10 @@ vi.mock('@/lib/db-utils', () => ({ findOrCreateUser: vi.fn(), hasConsent: vi.fn(
 vi.mock('@/lib/storage/r2', () => ({ uploadAudio: vi.fn(), generateAudioKey: vi.fn() }));
 vi.mock('@/lib/queue/qstash', () => ({ enqueueProcessing: vi.fn() }));
 vi.mock('@/lib/logger', () => ({ log: vi.fn() }));
-vi.mock('@/lib/metric-keys', () => ({ isSpeakingMetricKey: vi.fn().mockReturnValue(true) }));
+vi.mock('@/lib/metric-keys', () => ({
+  SPEAKING_METRIC_KEYS: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'argumentClosure', 'fillerUsage'] as const,
+  isSpeakingMetricKey: vi.fn().mockReturnValue(true),
+}));
 vi.mock('@/lib/csrf', () => ({
   validateOrigin: vi.fn().mockReturnValue(true),
   csrfForbiddenResponse: vi.fn(),
@@ -210,7 +213,7 @@ describe('POST /api/sessions', () => {
 
     // Assert
     expect(response.status).toBe(400);
-    expect(body.code).toBe('MISSING_AUDIO');
+    expect(body.code).toBe('VALIDATION_ERROR');
   });
 
   // ─── Test 6: database error returns 500 ──────────────────────────────────

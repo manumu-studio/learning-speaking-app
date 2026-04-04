@@ -46,6 +46,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.26.0 | [ENTRY-26](journal/ENTRY-26.md) | 2026-04-03 | E2E (Playwright) + component tests (RTL) |
 | 0.27.0 | [ENTRY-27](journal/ENTRY-27.md) | 2026-04-03 | Coverage thresholds, CSP, route boundaries, CI + Dependabot hardening |
 | 0.28.0 | [ENTRY-28](journal/ENTRY-28.md) | 2026-04-03 | Documentation excellence — OpenAPI, guides, ADRs, Swagger UI (dev) |
+| 0.29.0 | [ENTRY-29](journal/ENTRY-29.md) | 2026-04-04 | V5 audit remediation |
 
 ## Pull Requests
 
@@ -83,3 +84,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.26.0 | [PR-0.26.0](pull-requests/PR-0.26.0.md) | 2026-04-03 | E2E + component testing, CI E2E job |
 | 0.27.0 | [PR-0.27.0](pull-requests/PR-0.27.0.md) | 2026-04-03 | Test coverage hardening, security headers, DB/CI polish |
 | 0.28.0 | [PR-0.28.0](pull-requests/PR-0.28.0.md) | 2026-04-03 | OpenAPI, contributing/deployment/testing docs, ADRs, dev Swagger UI |
+| 0.29.0 | [PR-0.29.0](pull-requests/PR-0.29.0.md) | 2026-04-04 | V5 audit remediation: TypeScript safety, perf, security, CI/CD, errors |
