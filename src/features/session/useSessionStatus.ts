@@ -5,7 +5,7 @@ import type { SessionDetail, UseSessionStatusReturn } from '@/features/session/u
 
 const sessionDetailSchema = z.object({
   id: z.string(),
-  status: z.enum(['CREATED', 'UPLOADED', 'TRANSCRIBING', 'ANALYZING', 'DONE', 'FAILED']),
+  status: z.enum(['CREATED', 'UPLOADED', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
   durationSecs: z.number().nullable(),
   topic: z.string().nullable(),
   focusNext: z.string().nullable(),
@@ -35,6 +35,31 @@ const sessionDetailSchema = z.object({
     note: z.string().nullable(),
     createdAt: z.string(),
   })).nullable().optional(),
+  pronunciationReport: z.object({
+    pronScore: z.number(),
+    accuracyScore: z.number(),
+    fluencyScore: z.number(),
+    completenessScore: z.number(),
+    prosodyScore: z.number(),
+    speakingRateWpm: z.number(),
+    failureReason: z.string().nullable(),
+    words: z.array(
+      z.object({
+        word: z.string(),
+        accuracyScore: z.number(),
+        errorType: z.string(),
+        offsetMs: z.number(),
+        durationMs: z.number(),
+        phonemes: z.unknown(),
+        l1Tags: z.array(z.string()),
+        breakErrorTypes: z.array(z.string()),
+        intonationErrorTypes: z.array(z.string()),
+        monotonePitchDelta: z.number().nullable(),
+      }),
+    ),
+  })
+    .nullable()
+    .optional(),
 }).transform((val): SessionDetail => {
   const result: SessionDetail = {
     id: val.id,
@@ -54,6 +79,9 @@ const sessionDetailSchema = z.object({
   if (val.metrics != null) {
     result.metrics = val.metrics;
   }
+  if (val.pronunciationReport !== undefined) {
+    result.pronunciationReport = val.pronunciationReport;
+  }
   return result;
 });
 
@@ -62,7 +90,7 @@ const POLL_INTERVAL_SLOW = 10000;
 const FAST_POLL_DURATION = 30000;
 const MAX_POLL_DURATION = 300000;
 
-const PROCESSING_STATUSES = ['UPLOADED', 'TRANSCRIBING', 'ANALYZING'] as const;
+const PROCESSING_STATUSES = ['UPLOADED', 'TRANSCRIBING', 'SCORING', 'ANALYZING'] as const;
 
 export function useSessionStatus(sessionId: string): UseSessionStatusReturn {
   const [session, setSession] = useState<SessionDetail | null>(null);

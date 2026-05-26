@@ -33,11 +33,15 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       chunksRef.current = [];
       setDuration(0);
 
+      // 16kHz mono, NS/EC/AGC disabled: Azure operates at 16kHz and NS/EC attenuate
+      // fricatives (/s/ /ʃ/ /θ/) that pronunciation scoring relies on.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
         },
       });
       streamRef.current = stream;

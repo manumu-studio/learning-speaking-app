@@ -10,7 +10,15 @@ const METRIC_KEYS: MetricKey[] = [
   'verbAccuracy',
   'argumentClosure',
   'fillerUsage',
+  'pronunciationAccuracy',
+  'prosodyScore',
+  'speakingRate',
 ];
+
+const METRIC_KEY_SET = new Set<string>(METRIC_KEYS);
+function isMetricKey(key: string): key is MetricKey {
+  return METRIC_KEY_SET.has(key);
+}
 
 const METRIC_LABELS: Record<MetricKey, string> = {
   connectorRepetition: 'Connector Repetition',
@@ -19,6 +27,9 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   verbAccuracy: 'Verb Accuracy',
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Usage',
+  pronunciationAccuracy: 'Pronunciation Accuracy',
+  prosodyScore: 'Prosody & Rhythm',
+  speakingRate: 'Speaking Rate',
 };
 
 /**
@@ -105,7 +116,8 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
     snapshotsByKey.set(key, []);
   }
   for (const snap of allSnapshots) {
-    const bucket = snapshotsByKey.get(snap.key as MetricKey);
+    if (!isMetricKey(snap.key)) continue;
+    const bucket = snapshotsByKey.get(snap.key);
     if (bucket && bucket.length < 7) {
       bucket.push(snap);
     }
@@ -141,12 +153,10 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
     verbAccuracy: 0,
     argumentClosure: 0,
     fillerUsage: 0,
+    pronunciationAccuracy: 0,
+    prosodyScore: 0,
+    speakingRate: 0,
   };
-
-  const METRIC_KEY_SET = new Set<string>(METRIC_KEYS);
-  function isMetricKey(key: string): key is MetricKey {
-    return METRIC_KEY_SET.has(key);
-  }
 
   for (const row of drillByMetric) {
     const key = row.metricKey;

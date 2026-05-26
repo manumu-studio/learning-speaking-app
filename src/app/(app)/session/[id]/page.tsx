@@ -26,6 +26,9 @@ const METRIC_LABELS: Record<string, string> = {
   verbAccuracy: 'Verb Accuracy',
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Usage',
+  pronunciationAccuracy: 'Pronunciation Accuracy',
+  prosodyScore: 'Prosody & Rhythm',
+  speakingRate: 'Speaking Rate',
 };
 
 interface FocusComparison {
@@ -41,6 +44,9 @@ const METRIC_DRILL_MAP: Record<string, { drillType: DrillType; timeLimit: number
   verbAccuracy: { drillType: 'rephrase', timeLimit: 60 },
   argumentClosure: { drillType: 'conclusion', timeLimit: 120 },
   fillerUsage: { drillType: 'precision', timeLimit: 60 },
+  pronunciationAccuracy: { drillType: 'pronunciation', timeLimit: 90 },
+  prosodyScore: { drillType: 'pronunciation', timeLimit: 90 },
+  speakingRate: { drillType: 'pronunciation', timeLimit: 90 },
 };
 
 function pickWeakestMetric(metrics: SessionMetricSnapshot[]): SessionMetricSnapshot | null {
@@ -129,7 +135,7 @@ export default function SessionResultsPage({
           Processing Your Session
         </h1>
         <ProcessingStatus
-          status={session.status as 'UPLOADED' | 'TRANSCRIBING' | 'ANALYZING' | 'DONE' | 'FAILED'}
+          status={session.status}
           onRetry={retry}
         />
       </Container>

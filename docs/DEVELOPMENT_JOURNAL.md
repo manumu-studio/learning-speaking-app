@@ -86,3 +86,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.28.0 | [PR-0.28.0](pull-requests/PR-0.28.0.md) | 2026-04-03 | OpenAPI, contributing/deployment/testing docs, ADRs, dev Swagger UI |
 | 0.29.0 | [PR-0.29.0](pull-requests/PR-0.29.0.md) | 2026-04-04 | V5 audit remediation: TypeScript safety, perf, security, CI/CD, errors |
 | 0.30.0 | [PR-0.30.0](pull-requests/PR-0.30.0.md) | 2026-05-26 | Pronunciation assessment foundation: audio transcoder, Azure client, L1 tagger |
+| 0.30.0-alpha.2 | [PR-0.30.0-alpha.2](pull-requests/PR-0.30.0-alpha.2.md) | 2026-05-26 | Pipeline pronunciation integration: schema, SCORING status, 9 metric keys, persist layer |
