@@ -36,6 +36,33 @@ export async function GET(
         transcript: true,
         insights: { orderBy: { severity: 'desc' } },
         metrics: { orderBy: { key: 'asc' } },
+        pronunciationReport: {
+          select: {
+            pronScore: true,
+            accuracyScore: true,
+            fluencyScore: true,
+            completenessScore: true,
+            prosodyScore: true,
+            speakingRateWpm: true,
+            failureReason: true,
+            // rawJson intentionally excluded — too large for API response
+            words: {
+              select: {
+                word: true,
+                accuracyScore: true,
+                errorType: true,
+                offsetMs: true,
+                durationMs: true,
+                phonemes: true,
+                l1Tags: true,
+                breakErrorTypes: true,
+                intonationErrorTypes: true,
+                monotonePitchDelta: true,
+              },
+              orderBy: { wordIndex: 'asc' },
+            },
+          },
+        },
       },
     });
 

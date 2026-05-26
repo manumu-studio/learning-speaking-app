@@ -1,4 +1,4 @@
-// Unit tests for executePipeline — covers all 14 steps, both production and dev modes
+// Unit tests for executePipeline — covers all steps, both production and dev modes
 import { describe, it, expect, vi } from 'vitest';
 import { prismaMock } from '@/__mocks__/prisma';
 import { SessionStatus } from '@prisma/client';
@@ -24,6 +24,25 @@ vi.mock('@/features/session/updatePatternProfile', () => ({
 
 vi.mock('@/lib/logger', () => ({
   log: vi.fn(),
+}));
+
+// Mock transcode so tests don't spawn ffmpeg
+vi.mock('@/lib/audio/transcode', () => ({
+  toPcm16kMonoWav: vi.fn().mockResolvedValue(Buffer.from('pcm-audio')),
+}));
+
+// Mock Azure and L1 tagger — not exercised in unit tests (no credentials)
+vi.mock('@/lib/ai/azurePronunciation', () => ({
+  assessPronunciation: vi.fn(),
+}));
+
+vi.mock('@/lib/ai/l1Spanish', () => ({
+  tagSpanishL1: vi.fn((words: unknown) => words),
+}));
+
+// Mock persistPronunciation — tested separately
+vi.mock('@/lib/pipeline/persistPronunciation', () => ({
+  persistPronunciation: vi.fn(),
 }));
 
 import { executePipeline } from './executePipeline';

@@ -10,13 +10,37 @@ export interface SessionMetricSnapshot {
   createdAt: string;
 }
 
+export type WordPronunciationDetail = {
+  word: string;
+  accuracyScore: number;
+  errorType: string;
+  offsetMs: number;
+  durationMs: number;
+  phonemes: unknown;
+  l1Tags: string[];
+  breakErrorTypes: string[];
+  intonationErrorTypes: string[];
+  monotonePitchDelta: number | null;
+};
+
+export type PronunciationReportDetail = {
+  pronScore: number;
+  accuracyScore: number;
+  fluencyScore: number;
+  completenessScore: number;
+  prosodyScore: number;
+  speakingRateWpm: number;
+  failureReason: string | null;
+  words: WordPronunciationDetail[];
+};
+
 /**
  * Full session the client polls while processing — transcript and insights load when the server includes them.
  * Status values align with Prisma `SessionStatus`.
  */
 export interface SessionDetail {
   id: string;
-  status: 'CREATED' | 'UPLOADED' | 'TRANSCRIBING' | 'ANALYZING' | 'DONE' | 'FAILED';
+  status: 'CREATED' | 'UPLOADED' | 'TRANSCRIBING' | 'SCORING' | 'ANALYZING' | 'DONE' | 'FAILED';
   durationSecs: number | null;
   topic: string | null;
   focusNext: string | null;
@@ -39,6 +63,7 @@ export interface SessionDetail {
     suggestion: string | null;
   }>;
   metrics?: SessionMetricSnapshot[];
+  pronunciationReport?: PronunciationReportDetail | null;
 }
 
 export interface UseSessionStatusReturn {

@@ -12,6 +12,7 @@ enum SessionStatus {
   CREATED
   UPLOADED
   TRANSCRIBING
+  SCORING
   ANALYZING
   DONE
   FAILED
@@ -65,11 +66,12 @@ model SpeakingSession {
   summary        String?       @db.Text
   intentLabel    String?       @db.Text
   location       String?
-  transcript     Transcript?
-  insights       Insight[]
-  metrics        MetricSnapshot[]
-  drills         DrillAttempt[]
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcript          Transcript?
+  insights            Insight[]
+  metrics             MetricSnapshot[]
+  drills              DrillAttempt[]
+  pronunciationReport PronunciationReport?
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   @@index([userId, createdAt])
@@ -145,4 +147,46 @@ model PatternProfile {
   lastUpdated DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@map("pattern_profiles")
+}
+
+model PronunciationReport {
+  id                String              @id @default(cuid())
+  sessionId         String              @unique
+  session           SpeakingSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  pronScore         Float
+  accuracyScore     Float
+  fluencyScore      Float
+  completenessScore Float
+  prosodyScore      Float
+  speakingRateWpm   Float
+  azureLocale       String              @default("en-US")
+  azureSdkVersion   String
+  rawJson           Json
+  failureReason     String?
+  createdAt         DateTime            @default(now())
+  words             WordPronunciation[]
+
+  @@index([sessionId])
+  @@map("pronunciation_reports")
+}
+
+model WordPronunciation {
+  id                   String              @id @default(cuid())
+  reportId             String
+  report               PronunciationReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  wordIndex            Int
+  word                 String
+  accuracyScore        Float
+  errorType            String
+  offsetMs             Int
+  durationMs           Int
+  breakErrorTypes      String[]
+  intonationErrorTypes String[]
+  monotonePitchDelta   Float?
+  phonemes             Json
+  l1Tags               String[]
+
+  @@index([reportId, wordIndex])
+  @@index([reportId, errorType])
+  @@map("word_pronunciations")
 }

@@ -46,7 +46,7 @@ describe('getDashboardData', () => {
     expect(result.weeklySessionCount).toBe(0);
     expect(result.totalSessions).toBe(0);
     expect(result.currentStreak).toBe(0);
-    expect(result.metrics).toHaveLength(6);
+    expect(result.metrics).toHaveLength(9);
     expect(result.metrics.every((m) => m.currentScore === 0)).toBe(true);
   });
 

@@ -23,6 +23,7 @@ const DRILL_TIME_LIMITS: Record<DrillType, number> = {
   vocabUpgrade: 60,
   precision: 60,
   conclusion: 120,
+  pronunciation: 90,
 };
 
 // Extract a vague phrase from transcript for precision drill targeting
@@ -164,6 +165,18 @@ Generate a drill prompt that:
 2. Asks them to deliver a strong 2-3 sentence conclusion
 3. Reminds them to tie back to their main point
 Keep the prompt to 2-3 sentences.`,
+
+  pronunciation: `The user is working on pronunciation clarity and natural rhythm.
+Here are examples from their recent speech:
+{examples}
+
+The pattern to address: {focusPattern}
+
+Generate a drill prompt that:
+1. Picks a short sentence from their examples (or creates a similar one)
+2. Asks them to say it slowly, focusing on clear consonants and natural stress
+3. Encourages them to speak at a steady pace (not too fast, not too slow)
+Keep the prompt to 2-3 sentences. Focus on intelligibility, not perfection.`,
 };
 
 export async function generateDrill(params: GenerateDrillParams): Promise<DrillPrompt> {

@@ -6,6 +6,9 @@ export const SPEAKING_METRIC_KEYS = [
   'verbAccuracy',
   'argumentClosure',
   'fillerUsage',
+  'pronunciationAccuracy',
+  'prosodyScore',
+  'speakingRate',
 ] as const;
 
 export type SpeakingMetricKey = (typeof SPEAKING_METRIC_KEYS)[number];

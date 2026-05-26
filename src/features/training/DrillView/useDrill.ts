@@ -14,6 +14,7 @@ const DRILL_TIME_LIMIT_SECONDS: Record<DrillType, number> = {
   vocabUpgrade: 60,
   precision: 60,
   conclusion: 120,
+  pronunciation: 90,
 };
 
 const DRILL_TYPES: readonly DrillType[] = [
@@ -22,6 +23,7 @@ const DRILL_TYPES: readonly DrillType[] = [
   'vocabUpgrade',
   'precision',
   'conclusion',
+  'pronunciation',
 ];
 
 const METRIC_LABELS: Record<string, string> = {
@@ -31,6 +33,9 @@ const METRIC_LABELS: Record<string, string> = {
   verbAccuracy: 'Verb Accuracy',
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Usage',
+  pronunciationAccuracy: 'Pronunciation Accuracy',
+  prosodyScore: 'Prosody Score',
+  speakingRate: 'Speaking Rate',
 };
 
 function isDrillType(value: string): value is DrillType {

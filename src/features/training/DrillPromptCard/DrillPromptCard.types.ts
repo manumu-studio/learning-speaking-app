@@ -1,6 +1,6 @@
 // DrillPromptCard component type definitions
 
-export type DrillType = 'rephrase' | 'constraint' | 'vocabUpgrade' | 'precision' | 'conclusion';
+export type DrillType = 'rephrase' | 'constraint' | 'vocabUpgrade' | 'precision' | 'conclusion' | 'pronunciation';
 
 export interface DrillPromptCardProps {
   drillType: DrillType;

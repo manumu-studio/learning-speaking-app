@@ -9,6 +9,7 @@ const DRILL_TYPE_CONFIG: Record<DrillType, { icon: string; label: string }> = {
   vocabUpgrade: { icon: '📚', label: 'Vocab Upgrade' },
   precision: { icon: '🎯', label: 'Precision' },
   conclusion: { icon: '🎬', label: 'Conclusion' },
+  pronunciation: { icon: '🗣', label: 'Pronunciation' },
 };
 
 function formatTimeLimit(seconds: number): string {
