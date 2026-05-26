@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   transpilePackages: ['swagger-ui-react'],
 
+  outputFileTracingIncludes: {
+    '/api/internal/process/**': [
+      './node_modules/ffmpeg-static/ffmpeg',
+      './node_modules/ffmpeg-static/index.js',
+    ],
+  },
+
   async headers() {
     return [
       {
