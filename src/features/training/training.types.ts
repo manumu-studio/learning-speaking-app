@@ -1,6 +1,6 @@
 // Training system type definitions — drill types, prompts, feedback, and recommendations
 
-export type DrillType = 'rephrase' | 'constraint' | 'vocabUpgrade' | 'precision' | 'conclusion';
+export type DrillType = 'rephrase' | 'constraint' | 'vocabUpgrade' | 'precision' | 'conclusion' | 'pronunciation';
 
 /** LLM-generated drill shown to the learner — includes timing and optional source sentence. */
 export type DrillPrompt = {

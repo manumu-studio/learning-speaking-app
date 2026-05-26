@@ -4,7 +4,7 @@ import { SPEAKING_METRIC_KEYS, isSpeakingMetricKey } from './metric-keys';
 
 describe('metric-keys', () => {
   it('lists six canonical keys', () => {
-    expect(SPEAKING_METRIC_KEYS).toHaveLength(6);
+    expect(SPEAKING_METRIC_KEYS).toHaveLength(9);
     expect(SPEAKING_METRIC_KEYS).toContain('verbAccuracy');
   });
 

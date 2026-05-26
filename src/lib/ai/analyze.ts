@@ -14,7 +14,7 @@ export const insightSchema = z.object({
   suggestion: z.string().optional(),
 });
 
-// Metric scoring schema for 6 structured dimensions
+// Metric scoring schema — accepts 6 Claude-scored keys + 3 Azure-computed keys (for schema completeness)
 export const metricSchema = z.object({
   key: z.enum([
     'connectorRepetition',
@@ -23,6 +23,9 @@ export const metricSchema = z.object({
     'verbAccuracy',
     'argumentClosure',
     'fillerUsage',
+    'pronunciationAccuracy',
+    'prosodyScore',
+    'speakingRate',
   ]),
   level: z.enum(['low', 'medium', 'high']),
   score: z.number().min(1).max(10),
@@ -40,6 +43,14 @@ export const analysisResultSchema = z.object({
 
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
 export type Insight = z.infer<typeof insightSchema>;
+
+/** Lean Azure pronunciation data passed to Claude as context — not scored by Claude. */
+export type PronunciationSummary = {
+  topWeakPhonemes: string[];
+  l1Tags: string[];
+  accuracyScore: number;
+  prosodyScore: number;
+};
 
 // Metric key to human-readable label mapping
 const METRIC_LABELS: Record<string, string> = {
@@ -79,9 +90,10 @@ Also provide:
 - summary: 2-3 sentence overall assessment of speaking proficiency and main strengths/weaknesses
 - intentLabel: A concise 3-5 word label describing the main topic of this conversation (e.g., "Daily routine discussion", "Job interview practice", "Travel experiences sharing")
 
-Rate each of the following 6 metrics on a 1-10 scale (10 = native-like proficiency):
+Score ONLY these 6 metrics on a 1-10 scale (10 = native-like proficiency):
 connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, argumentClosure, fillerUsage.
 For each metric provide: key, level (low=1-3, medium=4-6, high=7-10), score (1-10), note (one sentence observation).
+Do NOT score pronunciationAccuracy, prosodyScore, or speakingRate — those are computed separately from Azure data.
 
 CRITICAL: Respond with ONLY valid JSON. No markdown, no explanations. Just the JSON object.
 
@@ -101,6 +113,7 @@ Schema:
   "metrics": [
     {
       "key": "connectorRepetition" | "structuralVariety" | "vocabularyPrecision" | "verbAccuracy" | "argumentClosure" | "fillerUsage",
+      // DO NOT include pronunciationAccuracy, prosodyScore, or speakingRate
       "level": "low" | "medium" | "high",
       "score": number,
       "note": "string"
@@ -111,19 +124,51 @@ Schema:
   "intentLabel": "string"
 }`;
 
+function buildPronunciationContext(summary: PronunciationSummary): string {
+  const phonemeList =
+    summary.topWeakPhonemes.length > 0
+      ? summary.topWeakPhonemes.join(', ')
+      : 'none detected';
+
+  const l1TagList =
+    summary.l1Tags.length > 0
+      ? summary.l1Tags.join(', ')
+      : 'none detected';
+
+  return `
+PRONUNCIATION CONTEXT (from Azure Speech Assessment -- do NOT score these):
+- Overall pronunciation accuracy: ${summary.accuracyScore.toFixed(0)}/100
+- Prosody naturalness: ${summary.prosodyScore.toFixed(0)}/100
+- Weak phonemes (below 60% accuracy): ${phonemeList}
+- Spanish L1 interference patterns detected: ${l1TagList}
+
+If any patterns above are strong (e.g., recurring phoneme errors or clear L1 interference), include 1-2 brief pronunciation observations in your insights section. Frame all pronunciation feedback using intelligibility-first language:
+- Good: "your /b/-for-/v/ substitution is understandable but a learnable target"
+- Avoid: "mispronunciation" or "incorrect"
+Do NOT produce numeric scores for pronunciation -- those are computed separately.
+`.trim();
+}
+
 // Analyze transcript using Claude Haiku — returns structured insights validated against Prisma schema
 export async function analyzeTranscript(
   transcript: string,
-  focusMetricKey?: string | null
+  focusMetricKey?: string | null,
+  pronunciationSummary?: PronunciationSummary | null,
 ): Promise<AnalysisResult> {
   const client = getAnthropicClient();
 
-  // Build prompt with optional focus instruction
+  // Build prompt with optional focus instruction and optional pronunciation context
   let prompt = '';
   if (focusMetricKey && isSpeakingMetricKey(focusMetricKey)) {
     prompt += buildFocusInstruction(focusMetricKey);
   }
-  prompt += `${ANALYSIS_PROMPT}\n\nTranscript:\n${transcript}`;
+
+  const pronunciationContext =
+    pronunciationSummary != null
+      ? `\n\n${buildPronunciationContext(pronunciationSummary)}`
+      : '';
+
+  prompt += `${ANALYSIS_PROMPT}${pronunciationContext}\n\nTranscript:\n${transcript}`;
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',

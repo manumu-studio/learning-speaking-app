@@ -9,6 +9,7 @@ const DRILL_TYPE_LABELS: Record<DrillRecommendationProps['drillType'], string> =
   vocabUpgrade: 'Vocab Upgrade',
   precision: 'Precision',
   conclusion: 'Conclusion Builder',
+  pronunciation: 'Pronunciation',
 };
 
 function formatTimeEstimate(seconds: number): string {
