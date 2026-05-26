@@ -5,7 +5,7 @@ vi.mock('@/lib/ai/client', () => ({
   getAnthropicClient: vi.fn(),
 }));
 
-import { analysisResultSchema } from '@/lib/ai/analyze';
+import { analysisResultSchema, applyInsightGuardrails } from '@/lib/ai/analyze';
 
 describe('Analysis result schema', () => {
   it('validates a correct analysis result', () => {
@@ -138,5 +138,45 @@ describe('Analysis result schema', () => {
       intentLabel: 'Daily chat',
     };
     expect(() => analysisResultSchema.parse(missingMetrics)).toThrow();
+  });
+});
+
+describe('applyInsightGuardrails', () => {
+  it('removes insights referencing ⟨?...?⟩ markers with question marks inside', () => {
+    const kept = applyInsightGuardrails([
+      {
+        category: 'vocabulary',
+        pattern: 'Uncertain phrase',
+        detail: 'Low confidence segment',
+        examples: ['asked ⟨?How does this work??⟩ during the demo'],
+      },
+    ]);
+    expect(kept).toHaveLength(0);
+  });
+
+  it('removes insights with confidence below 4', () => {
+    const kept = applyInsightGuardrails([
+      {
+        category: 'grammar',
+        pattern: 'Articles',
+        detail: 'Missing articles',
+        frequency: 3,
+        confidence: 3,
+        examples: ['went to store', 'is teacher'],
+      },
+    ]);
+    expect(kept).toHaveLength(0);
+  });
+
+  it('keeps genuine pattern with frequency >= 2 and confidence >= 4', () => {
+    const insight = {
+      category: 'grammar' as const,
+      pattern: 'Subject-verb agreement',
+      detail: 'Uses goes with I',
+      frequency: 3,
+      confidence: 5,
+      examples: ['I goes to work', 'I goes home'],
+    };
+    expect(applyInsightGuardrails([insight])).toEqual([insight]);
   });
 });

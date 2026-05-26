@@ -81,7 +81,7 @@ const mockAnalysis = {
       detail: 'Frequently omits articles',
       frequency: 5,
       severity: 'high' as const,
-      examples: ['I went to store'],
+      examples: ['I went to store', 'she is teacher'],
       suggestion: 'Add articles',
     },
   ],
@@ -108,7 +108,21 @@ function setupHappyPath(sessionOverride?: Partial<typeof mockSession>): void {
   prismaMock.speakingSession.findUnique.mockResolvedValue(session as never);
   prismaMock.speakingSession.update.mockResolvedValue(session as never);
   (getAudio as ReturnType<typeof vi.fn>).mockResolvedValue(Buffer.from('audio'));
-  (transcribeAudio as ReturnType<typeof vi.fn>).mockResolvedValue('Hello world transcript');
+  (transcribeAudio as ReturnType<typeof vi.fn>).mockResolvedValue({
+    text: 'I went to store. I went to store again. she is teacher.',
+    language: 'en',
+    segments: [
+      {
+        id: 0,
+        start: 0,
+        end: 1,
+        text: 'I went to store. I went to store again. she is teacher.',
+        avg_logprob: -0.2,
+        no_speech_prob: 0.1,
+        compression_ratio: 1.2,
+      },
+    ],
+  });
   prismaMock.transcript.create.mockResolvedValue({} as never);
   prismaMock.transcript.upsert.mockResolvedValue({} as never);
   (deleteAudio as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
