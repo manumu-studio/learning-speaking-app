@@ -47,6 +47,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.27.0 | [ENTRY-27](journal/ENTRY-27.md) | 2026-04-03 | Coverage thresholds, CSP, route boundaries, CI + Dependabot hardening |
 | 0.28.0 | [ENTRY-28](journal/ENTRY-28.md) | 2026-04-03 | Documentation excellence — OpenAPI, guides, ADRs, Swagger UI (dev) |
 | 0.29.0 | [ENTRY-29](journal/ENTRY-29.md) | 2026-04-04 | V5 audit remediation |
+| 0.30.0-rc.1 | [ENTRY-31](journal/ENTRY-31.md) | 2026-05-26 | Dashboard pronunciation metrics + pipeline reliability |
 
 ## Pull Requests
 
@@ -87,3 +88,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.29.0 | [PR-0.29.0](pull-requests/PR-0.29.0.md) | 2026-04-04 | V5 audit remediation: TypeScript safety, perf, security, CI/CD, errors |
 | 0.30.0 | [PR-0.30.0](pull-requests/PR-0.30.0.md) | 2026-05-26 | Pronunciation assessment foundation: audio transcoder, Azure client, L1 tagger |
 | 0.30.0-alpha.2 | [PR-0.30.0-alpha.2](pull-requests/PR-0.30.0-alpha.2.md) | 2026-05-26 | Pipeline pronunciation integration: schema, SCORING status, 9 metric keys, persist layer |
+| 0.30.0-rc.1 | [PR-0.30.0-rc.1](pull-requests/PR-0.30.0-rc.1.md) | 2026-05-26 | Dashboard pronunciation metrics + pipeline reliability hardening |

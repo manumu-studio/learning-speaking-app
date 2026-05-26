@@ -11,6 +11,8 @@ import { SPEAKING_METRIC_KEYS } from '@/lib/metric-keys';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
 
+const MAX_AUDIO_BYTES = 8 * 1024 * 1024; // 8 MB — ~6 minutes of webm/opus at ~20 KB/s
+
 // Zod schema for session creation FormData
 const SessionFormDataSchema = z.object({
   audio: z.custom<Blob>(
@@ -78,6 +80,14 @@ export async function POST(request: Request) {
     }
 
     const { audio: audioFile, duration: durationStr, topic, language, focusMetricKey } = parsed.data;
+
+    if (audioFile.size > MAX_AUDIO_BYTES) {
+      return errorResponse(
+        'Audio file too large. Maximum session length is 6 minutes.',
+        'FILE_TOO_LARGE',
+        413,
+      );
+    }
 
     // Validate audio file
     const validation = validateAudioFile(audioFile);
