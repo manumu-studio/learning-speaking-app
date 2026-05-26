@@ -82,6 +82,7 @@ yarn-error.log*
 /docs/build-packet-reports/
 /docs/audits/
 /docs/superpowers
+docs/research
 
 # template
 /_template/
