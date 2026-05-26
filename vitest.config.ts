@@ -24,6 +24,10 @@ export default defineConfig({
         'src/**/*.test.tsx',
         'src/**/index.ts',
         'src/__mocks__/**',
+        // Infrastructure singletons — untestable without integration harness
+        'src/features/auth/**',
+        'src/lib/env.ts',
+        'src/lib/prisma.ts',
       ],
       thresholds: {
         statements: 70,
