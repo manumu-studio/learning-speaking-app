@@ -85,3 +85,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.27.0 | [PR-0.27.0](pull-requests/PR-0.27.0.md) | 2026-04-03 | Test coverage hardening, security headers, DB/CI polish |
 | 0.28.0 | [PR-0.28.0](pull-requests/PR-0.28.0.md) | 2026-04-03 | OpenAPI, contributing/deployment/testing docs, ADRs, dev Swagger UI |
 | 0.29.0 | [PR-0.29.0](pull-requests/PR-0.29.0.md) | 2026-04-04 | V5 audit remediation: TypeScript safety, perf, security, CI/CD, errors |
+| 0.30.0 | [PR-0.30.0](pull-requests/PR-0.30.0.md) | 2026-05-26 | Pronunciation assessment foundation: audio transcoder, Azure client, L1 tagger |
