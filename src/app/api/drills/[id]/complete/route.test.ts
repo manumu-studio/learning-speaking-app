@@ -196,7 +196,11 @@ describe('POST /api/drills/[id]/complete', () => {
     vi.mocked(findOrCreateUser).mockResolvedValue(mockUser as never);
     prismaMock.drillAttempt.findUnique.mockResolvedValue(mockDrill as never);
     vi.mocked(uploadAudio).mockResolvedValue('drills/user-1/drill-1/audio.webm');
-    vi.mocked(transcribeAudio).mockResolvedValue('I was tired, however I went home.');
+    vi.mocked(transcribeAudio).mockResolvedValue({
+      text: 'I was tired, however I went home.',
+      language: 'en',
+      segments: [],
+    });
     vi.mocked(deleteAudio).mockResolvedValue(undefined);
     vi.mocked(evaluateDrill).mockResolvedValue(mockEvalResult);
     prismaMock.drillAttempt.update.mockResolvedValue(mockUpdatedDrill as never);
