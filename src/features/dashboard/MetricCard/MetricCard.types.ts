@@ -10,7 +10,7 @@ export interface MetricCardProps {
   trend: TrendDirection;
   history: number[];
   isSelected: boolean;
-  onSelect: (key: MetricKey) => void;
+  onSelect?: ((key: MetricKey) => void) | undefined;
   lastTrainedToday?: boolean | undefined;
   /** Completed drills targeting this metric */
   drillCount?: number | undefined;

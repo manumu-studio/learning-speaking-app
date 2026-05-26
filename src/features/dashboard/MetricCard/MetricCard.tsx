@@ -37,22 +37,19 @@ export function MetricCard({
 }: MetricCardProps) {
   const levelStyle = LEVEL_STYLES[currentLevel];
   const trendDisplay = TREND_DISPLAY[trend];
+  const isSelectable = onSelect !== undefined;
 
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(metricKey)}
-      aria-label={`Select ${label} as training focus`}
-      className={`
-        w-full rounded-xl border p-4 text-left transition-all duration-200
-        hover:shadow-md hover:border-blue-200
-        dark:hover:border-blue-700
-        ${isSelected
-          ? 'border-blue-400 bg-blue-50/50 shadow-sm dark:border-blue-600 dark:bg-blue-950/50'
-          : 'border-slate-100 bg-white dark:border-slate-700 dark:bg-gray-900'
-        }
-      `}
-    >
+  const cardClassName = `
+    w-full rounded-xl border p-4 text-left transition-all duration-200
+    ${isSelectable ? 'hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700' : 'cursor-default'}
+    ${isSelected
+      ? 'border-blue-400 bg-blue-50/50 shadow-sm dark:border-blue-600 dark:bg-blue-950/50'
+      : 'border-slate-100 bg-white dark:border-slate-700 dark:bg-gray-900'
+    }
+  `;
+
+  const cardContent = (
+    <>
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</h3>
@@ -103,6 +100,25 @@ export function MetricCard({
           {drillCount} drill{drillCount !== 1 ? 's' : ''}
         </span>
       ) : null}
+    </>
+  );
+
+  if (!isSelectable) {
+    return (
+      <div className={cardClassName} aria-label={label}>
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(metricKey)}
+      aria-label={`Select ${label} as training focus`}
+      className={cardClassName}
+    >
+      {cardContent}
     </button>
   );
 }
