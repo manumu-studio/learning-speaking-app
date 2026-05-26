@@ -62,7 +62,7 @@ function scoreToLevel(score: number): 'low' | 'medium' | 'high' {
 }
 
 // SDK version constant — kept as a literal to avoid dynamic require in Next.js edge runtime.
-const AZURE_SDK_VERSION = '1.42.0';
+export const AZURE_SDK_VERSION = '1.42.0';
 
 export async function persistPronunciation(
   sessionId: string,

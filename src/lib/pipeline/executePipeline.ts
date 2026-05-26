@@ -12,6 +12,7 @@ import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { env } from '@/lib/env';
 import { log } from '@/lib/logger';
+import { AZURE_SDK_VERSION } from '@/lib/pipeline/persistPronunciation';
 
 type PipelineMode = 'production' | 'dev';
 
@@ -150,14 +151,43 @@ export async function executePipeline(
           words: tagSpanishL1(pronunciationResult.words),
         };
       } catch (azureError) {
-        // Non-blocking: log and continue without pronunciation data
+        const failureMessage =
+          azureError instanceof Error ? azureError.message : 'Unknown error';
+
         log({
-          level: 'error',
-          message: '[pipeline] Azure pronunciation failed',
+          level: 'warn',
+          message: 'Pronunciation assessment failed — continuing without it',
           sessionId: id,
-          error: azureError instanceof Error ? azureError.message : 'Unknown error',
+          userId: session.userId,
+          error: failureMessage,
+        });
+
+        await prisma.pronunciationReport.upsert({
+          where: { sessionId: id },
+          create: {
+            sessionId: id,
+            pronScore: 0,
+            accuracyScore: 0,
+            fluencyScore: 0,
+            completenessScore: 0,
+            prosodyScore: 0,
+            speakingRateWpm: 0,
+            azureSdkVersion: AZURE_SDK_VERSION,
+            rawJson: Prisma.JsonNull,
+            failureReason: failureMessage,
+          },
+          update: {
+            failureReason: failureMessage,
+          },
         });
       }
+    } else {
+      log({
+        level: 'info',
+        message: 'Pronunciation assessment skipped: Azure credentials not configured',
+        sessionId: id,
+        userId: session.userId,
+      });
     }
 
     // Step 10: Mark ANALYZING
