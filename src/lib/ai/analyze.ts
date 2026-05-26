@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { getAnthropicClient } from '@/lib/ai/client';
 import { isSpeakingMetricKey } from '@/lib/metric-keys';
 
-// Zod schema matching Prisma Insight model fields EXACTLY
+export const transcriptionArtefactSchema = z.object({
+  word: z.string(),
+  context: z.string(),
+});
+
+// Claude response insight shape — Prisma fields plus optional confidence (stripped before DB write)
 export const insightSchema = z.object({
   category: z.enum(['grammar', 'vocabulary', 'structure']),
   pattern: z.string(),
@@ -12,6 +17,7 @@ export const insightSchema = z.object({
   severity: z.enum(['high', 'medium', 'low']).optional(),
   examples: z.array(z.string()).optional(),
   suggestion: z.string().optional(),
+  confidence: z.number().min(1).max(5).optional(),
 });
 
 // Metric scoring schema — accepts 6 Claude-scored keys + 3 Azure-computed keys (for schema completeness)
@@ -39,6 +45,7 @@ export const analysisResultSchema = z.object({
   focusNext: z.string(),
   summary: z.string(),
   intentLabel: z.string(),
+  possible_transcription_artefacts: z.array(transcriptionArtefactSchema).optional(),
 });
 
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
@@ -66,6 +73,21 @@ function buildFocusInstruction(focusMetricKey: string): string {
   const label = METRIC_LABELS[focusMetricKey] ?? focusMetricKey;
   return `FOCUS PRIORITY: The user is specifically training "${label}". Pay extra attention to this area in your analysis. In focusNext, reference progress on this specific metric and suggest concrete next steps for improvement.\n\n`;
 }
+
+const ASR_GUARD_PROMPT = `The transcript below was produced by OpenAI Whisper, which has well-documented failure modes:
+- It sometimes substitutes near-homophones for low-frequency words, especially proper nouns and technical terms.
+- It sometimes invents text during speaker pauses.
+- It performs worse on accented and spontaneous L2 English than on native read speech.
+
+HARD RULES — do not violate these:
+- NEVER flag a proper noun, brand name, person name, product name, or technical term as a vocabulary or spelling error. Exclude these entirely from vocabulary analysis.
+- NEVER flag a word that appears only ONCE in the transcript as a recurring learner pattern. Single instances are slips, transcription artefacts, or noise — not patterns.
+- NEVER flag any word wrapped in ⟨?...?⟩ — these are low-confidence transcriptions. Treat them as unknown.
+- If your confidence that an issue is a genuine learner error (not a transcription artefact) is below 4 out of 5, do not surface it in insights.
+- Each insight must include at least 2 example quotes from the transcript (frequency floor enforcement).
+- List suspected ASR mistakes separately in possible_transcription_artefacts — never as learner errors.
+
+`;
 
 const ANALYSIS_PROMPT = `You are an English language pattern analyzer for B2-C1+ English learners practicing speaking.
 
@@ -121,8 +143,49 @@ Schema:
   ],
   "focusNext": "string",
   "summary": "string",
-  "intentLabel": "string"
+  "intentLabel": "string",
+  "possible_transcription_artefacts": [
+    { "word": "string", "context": "string" }
+  ]
 }`;
+
+// Match ⟨?...?⟩ markers — [^⟩]* allows question marks inside suspect transcript text
+const SUSPECT_MARKER_PATTERN = /⟨\?[^⟩]*\?⟩/;
+
+function insightReferencesSuspectMarkers(insight: Insight): boolean {
+  const fields = [insight.pattern, insight.detail, ...(insight.examples ?? [])];
+  return fields.some((field) => SUSPECT_MARKER_PATTERN.test(field));
+}
+
+function insightBelowConfidenceFloor(insight: Insight): boolean {
+  return insight.confidence != null && insight.confidence < 4;
+}
+
+function insightBelowFrequencyFloor(insight: Insight): boolean {
+  if (insight.frequency != null && insight.frequency < 2) {
+    return true;
+  }
+  if (insight.examples != null && insight.examples.length < 2) {
+    return true;
+  }
+  return false;
+}
+
+/** Programmatic guardrails applied after Claude parse — mirrors prompt hard rules. */
+export function applyInsightGuardrails(insights: Insight[]): Insight[] {
+  return insights.filter((insight) => {
+    if (insightReferencesSuspectMarkers(insight)) {
+      return false;
+    }
+    if (insightBelowConfidenceFloor(insight)) {
+      return false;
+    }
+    if (insightBelowFrequencyFloor(insight)) {
+      return false;
+    }
+    return true;
+  });
+}
 
 function buildPronunciationContext(summary: PronunciationSummary): string {
   const phonemeList =
@@ -168,7 +231,7 @@ export async function analyzeTranscript(
       ? `\n\n${buildPronunciationContext(pronunciationSummary)}`
       : '';
 
-  prompt += `${ANALYSIS_PROMPT}${pronunciationContext}\n\nTranscript:\n${transcript}`;
+  prompt += `${ASR_GUARD_PROMPT}${ANALYSIS_PROMPT}${pronunciationContext}\n\nTranscript:\n${transcript}`;
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -191,5 +254,10 @@ export async function analyzeTranscript(
 
   // Parse and validate response with Zod — throws ZodError on schema mismatch
   const parsed: unknown = JSON.parse(rawText);
-  return analysisResultSchema.parse(parsed);
+  const validated = analysisResultSchema.parse(parsed);
+
+  return {
+    ...validated,
+    insights: applyInsightGuardrails(validated.insights),
+  };
 }

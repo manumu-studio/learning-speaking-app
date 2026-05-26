@@ -4,6 +4,7 @@ import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';
 import { transcribeAudio } from '@/lib/ai/whisper';
+import { gateSegments } from '@/lib/ai/confidenceGating';
 import { evaluateDrill } from '@/features/training/evaluateDrill';
 import type { DrillType } from '@/features/training/training.types';
 import { uploadAudio, deleteAudio } from '@/lib/storage/r2';
@@ -97,7 +98,10 @@ export async function POST(
 
     let transcript: string;
     try {
-      transcript = await transcribeAudio(audioBuffer, `drill-${id}.webm`);
+      const whisperResult = await transcribeAudio(audioBuffer, `drill-${id}.webm`);
+      const gated = gateSegments(whisperResult.segments);
+      transcript =
+        gated.cleanText.length > 0 ? gated.cleanText : whisperResult.text;
     } finally {
       try {
         await deleteAudio(storageKey);
