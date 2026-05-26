@@ -1,39 +1,48 @@
-# ENTRY-31 — Dashboard Pronunciation Metrics + Pipeline Reliability
+# ENTRY-31 — Pronunciation Results UI
 **Date:** 2026-05-26
 **Type:** Feature
-**Branch:** `feat/dashboard-reliability`
-**Version:** `0.30.0-rc.1`
+**Branch:** `feat/pronunciation-results-ui`
+**Version:** `0.30.0-beta.1`
+
 ---
+
 ## What I Did
-- Added a "Pronunciation & Intonation" section to the dashboard with three MetricCards (accuracy, prosody, speaking rate) and an empty state for users without pronunciation data
-- Split the dashboard into "Speaking Patterns" (6 Claude metrics) and pronunciation metrics using a typed key constant
-- Hardened the pronunciation pipeline: `maxDuration = 180` on the process route, Azure failure isolation with `failureReason`, graceful skip when credentials are absent, and 8 MB upload rejection
-- Confirmed idempotent persistence (upsert + delete-then-createMany) was already in place from the pipeline integration work
+
+Built the session results UI for pronunciation assessment data. When a session has a `pronunciationReport`, the results page now shows:
+
+1. **Score gauges** — five circular indicators (Overall, Accuracy, Fluency, Completeness, Prosody) mapped from Azure's 0–100 scale to a learner-friendly 1–10 display scale
+2. **Word map** — a color-coded, clickable transcript where each word expands to show phoneme-level accuracy, L1 interference labels, and word-level prosody errors
+3. **Prosody panel** — a session-level summary of speaking rate, rhythm warnings, and the most frequent stress/intonation issues
+
+The block only appears when pronunciation data exists. Sessions without it are unchanged.
 
 ## Files Touched
+
 | File | Action | Notes |
 |------|--------|-------|
-| `src/features/dashboard/dashboard.types.ts` | Modified | Pronunciation metric key constant |
-| `src/features/dashboard/DashboardView/DashboardView.tsx` | Modified | Two metric sections + empty state |
-| `next.config.ts` | Modified | Azure CSP domains |
-| `src/app/api/internal/process/route.ts` | Modified | Vercel max duration |
-| `src/lib/pipeline/executePipeline.ts` | Modified | Failure isolation + skip logging |
-| `src/app/api/sessions/route.ts` | Modified | 8 MB upload guard |
+| `src/components/ui/PronunciationSection/` | Created | Container, Zod schemas, score mapping |
+| `src/components/ui/WordColorMap/` | Created | Color-coded word transcript |
+| `src/components/ui/PhonemeDetail/` | Created | Inline phoneme + L1 detail panel |
+| `src/components/ui/ProsodyPanel/` | Created | Prosody summary panel |
+| `src/app/(app)/session/[id]/page.tsx` | Modified | Wired block with staggered animations |
 
 ## Decisions
-- Filter pronunciation metrics in the view layer rather than changing `getDashboardData` — keeps the data API stable and avoids duplicate fetching logic
-- Use placeholder scores (0) on failed pronunciation reports because the schema requires non-null score fields; `failureReason` carries the diagnostic signal
-- Check file size before any DB or storage writes to fail fast on oversized recordings
+
+- Non-linear score mapping shared via `mapAzureScoreToDisplay` so gauges and prosody score stay consistent
+- L1 tags drive color overrides — intelligible accent patterns show yellow, not red
+- Runtime Zod validation at the page boundary before passing API data to components
+- 300ms animation offset added to downstream sections when the pronunciation block is present
 
 ## Still Open
-- Manual verification of end-to-end Azure scoring and QStash retry idempotency in staging
-- Dashboard empty state assumes score 0 + empty history means "no data" — a legitimate zero score with history would still render cards
+
+- Manual verification on a live session with pronunciation data in the database
+- Accessibility audit deferred to PACKET-33-DEFERRED-accessibility
 
 ## Validation
-```
-npx prisma generate → ✔
-npx tsc --noEmit → exit 0
-npm run lint → ✔ No ESLint warnings or errors
-npm run test → 259 passed | 4 skipped
-npm run build → ✓ Compiled successfully
+
+```bash
+npx tsc --noEmit  # exit 0
+npm run lint      # no errors
+npm run test      # 259 passed, 4 skipped
+npm run build     # success
 ```
