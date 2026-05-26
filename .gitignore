@@ -101,4 +101,4 @@ reports/
 # Playwright
 playwright-report/
 test-results/
-.auth-state.json
+.auth-state.json.planning/

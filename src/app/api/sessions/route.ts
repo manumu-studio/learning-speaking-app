@@ -13,8 +13,8 @@ import { z } from 'zod';
 
 // Zod schema for session creation FormData
 const SessionFormDataSchema = z.object({
-  audio: z.custom<File>(
-    (val) => typeof File !== 'undefined' && val instanceof File,
+  audio: z.custom<Blob>(
+    (val) => val instanceof Blob,
     { message: 'Audio file is required' },
   ),
   duration: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0, {
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const rawFocus = formData.get('focusMetricKey');
 
     const parsed = SessionFormDataSchema.safeParse({
-      audio: rawAudio instanceof File ? rawAudio : undefined,
+      audio: rawAudio instanceof Blob ? rawAudio : undefined,
       duration: typeof rawDuration === 'string' ? rawDuration : undefined,
       topic: typeof rawTopic === 'string' ? rawTopic : null,
       language: typeof rawLanguage === 'string' ? rawLanguage : null,
