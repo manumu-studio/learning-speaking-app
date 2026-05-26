@@ -12,6 +12,15 @@ export type MetricKey =
   | 'prosodyScore'
   | 'speakingRate';
 
+// Pronunciation metric keys introduced in PACKET-32
+export const PRONUNCIATION_METRIC_KEYS = [
+  'pronunciationAccuracy',
+  'prosodyScore',
+  'speakingRate',
+] as const;
+
+export type PronunciationMetricKey = (typeof PRONUNCIATION_METRIC_KEYS)[number];
+
 export type MetricLevel = 'low' | 'medium' | 'high';
 
 /** One metric dimension with level, numeric score, and short coaching note. */

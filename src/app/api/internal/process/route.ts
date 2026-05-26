@@ -10,6 +10,10 @@ import {
 import { log } from '@/lib/logger';
 import { z } from 'zod';
 
+// Tell Vercel Fluid Compute this function may run up to 3 minutes.
+// Required for long audio files processed by Whisper + Azure Speech.
+export const maxDuration = 180;
+
 const processBodySchema = z.object({ sessionId: z.string() });
 
 // Runtime validation — QStash signing keys are optional in env.ts but required here

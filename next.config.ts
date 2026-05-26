@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self' https://*.upstash.io https://api.anthropic.com https://api.openai.com https://auth.manumustudio.com",
+              "connect-src 'self' https://*.upstash.io https://api.anthropic.com https://api.openai.com https://auth.manumustudio.com wss://*.stt.speech.microsoft.com https://*.stt.speech.microsoft.com https://*.cognitiveservices.azure.com",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
