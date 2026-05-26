@@ -10,6 +10,7 @@ const CSP_HEADER = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
+  "media-src 'self' blob:",
   "font-src 'self'",
   `connect-src 'self' ${env.AUTH_ISSUER_URL} https://qstash.upstash.io`,
   "frame-ancestors 'none'",

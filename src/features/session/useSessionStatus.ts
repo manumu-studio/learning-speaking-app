@@ -16,7 +16,7 @@ const sessionDetailSchema = z.object({
   transcript: z.object({
     text: z.string(),
     wordCount: z.number().nullable(),
-  }).optional(),
+  }).nullable().optional(),
   insights: z.array(z.object({
     id: z.string(),
     category: z.string(),
@@ -34,7 +34,7 @@ const sessionDetailSchema = z.object({
     score: z.number(),
     note: z.string().nullable(),
     createdAt: z.string(),
-  })).optional(),
+  })).nullable().optional(),
 }).transform((val): SessionDetail => {
   const result: SessionDetail = {
     id: val.id,
@@ -48,10 +48,10 @@ const sessionDetailSchema = z.object({
     createdAt: val.createdAt,
     insights: val.insights,
   };
-  if (val.transcript !== undefined) {
+  if (val.transcript != null) {
     result.transcript = val.transcript;
   }
-  if (val.metrics !== undefined) {
+  if (val.metrics != null) {
     result.metrics = val.metrics;
   }
   return result;

@@ -25,6 +25,12 @@ export type UserSessionListItem = Prisma.SpeakingSessionGetPayload<{
   select: typeof userSessionListSelect;
 }>;
 
+const DEFAULT_CONSENTS: Array<'AUDIO_STORAGE' | 'TRANSCRIPT_STORAGE' | 'PATTERN_TRACKING'> = [
+  'AUDIO_STORAGE',
+  'TRANSCRIPT_STORAGE',
+  'PATTERN_TRACKING',
+];
+
 /**
  * Find or create a user by external ID (from OAuth provider)
  */
@@ -37,6 +43,7 @@ export async function findOrCreateUser(
   });
 
   if (existing) {
+    await ensureConsents(existing.id);
     return existing;
   }
 
@@ -45,8 +52,27 @@ export async function findOrCreateUser(
       externalId,
       ...(data.email !== undefined ? { email: data.email } : {}),
       ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
+      consents: {
+        create: DEFAULT_CONSENTS.map((flag) => ({ flag, granted: true })),
+      },
     },
   });
+}
+
+async function ensureConsents(userId: string): Promise<void> {
+  const existing = await prisma.userConsent.findMany({
+    where: { userId },
+    select: { flag: true },
+  });
+  const existingFlags = new Set(existing.map((c) => c.flag));
+  const missing = DEFAULT_CONSENTS.filter((f) => !existingFlags.has(f));
+
+  if (missing.length > 0) {
+    await prisma.userConsent.createMany({
+      data: missing.map((flag) => ({ userId, flag, granted: true })),
+      skipDuplicates: true,
+    });
+  }
 }
 
 /**
