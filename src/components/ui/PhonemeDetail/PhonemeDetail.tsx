@@ -1,0 +1,134 @@
+// PhonemeDetail: inline expansion panel showing phoneme accuracy, L1 tags, and prosody feedback
+'use client';
+
+import React from 'react';
+import type { PhonemeDetailProps, L1TagKey } from './PhonemeDetail.types';
+import { L1_TAG_LABELS } from './PhonemeDetail.types';
+import { usePhonemeDetail, phonemeScoreToColorClass } from './usePhonemeDetail';
+
+export function PhonemeDetail({
+  word,
+  onClose,
+}: PhonemeDetailProps): React.JSX.Element {
+  const { phonemes, parseError } = usePhonemeDetail(word);
+
+  const knownL1Tags = word.l1Tags.filter(
+    (tag): tag is L1TagKey => tag in L1_TAG_LABELS,
+  );
+
+  const hasProsodicFeedback =
+    word.breakErrorTypes.length > 0 || word.intonationErrorTypes.length > 0;
+
+  return (
+    <div
+      role="region"
+      aria-label={`Phoneme detail for "${word.word}"`}
+      className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4 transition-all duration-200"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+          &ldquo;{word.word}&rdquo; — accuracy: {word.accuracyScore}%
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close phoneme detail"
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors text-lg leading-none"
+        >
+          &times;
+        </button>
+      </div>
+
+      {parseError && (
+        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+          Phoneme data unavailable for this word.
+        </p>
+      )}
+
+      {!parseError && phonemes.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            Phonemes
+          </p>
+          <div className="space-y-2">
+            {phonemes.map((phoneme, i) => {
+              const topAlternative = phoneme.nBest?.[0];
+              const showAlternative =
+                topAlternative !== undefined &&
+                topAlternative.phoneme !== phoneme.phoneme;
+
+              return (
+                <div key={`${phoneme.phoneme}-${i}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">
+                      /{phoneme.phoneme}/
+                    </span>
+                    <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${phonemeScoreToColorClass(phoneme.accuracyScore)}`}
+                        style={{ width: `${phoneme.accuracyScore}%` }}
+                        role="meter"
+                        aria-valuenow={phoneme.accuracyScore}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`/${phoneme.phoneme}/ accuracy`}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 w-8 text-right">
+                      {phoneme.accuracyScore}%
+                    </span>
+                  </div>
+                  {showAlternative && (
+                    <p className="ml-10 mt-0.5 text-xs text-red-600 dark:text-red-400">
+                      You said: /{topAlternative.phoneme}/ &nbsp;&rarr;&nbsp; Expected: /
+                      {phoneme.phoneme}/
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {knownL1Tags.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            Accent pattern
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {knownL1Tags.map((tag) => (
+              <span
+                key={tag}
+                title={L1_TAG_LABELS[tag]}
+                className="inline-block text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full px-2.5 py-1 leading-tight"
+              >
+                {L1_TAG_LABELS[tag]}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasProsodicFeedback && (
+        <div>
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            Prosody
+          </p>
+          <ul className="space-y-1">
+            {word.breakErrorTypes.map((err) => (
+              <li key={`break-${err}`} className="text-xs text-orange-700 dark:text-orange-400">
+                Break error: {err}
+              </li>
+            ))}
+            {word.intonationErrorTypes.map((err) => (
+              <li key={`intonation-${err}`} className="text-xs text-orange-700 dark:text-orange-400">
+                Intonation error: {err}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

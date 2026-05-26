@@ -12,6 +12,12 @@ import { InsightsList } from '@/components/ui/InsightsList';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
 import { FocusHighlight } from '@/components/ui/FocusHighlight';
 import { TranscriptSection } from '@/components/ui/TranscriptSection';
+import {
+  PronunciationSection,
+  PronunciationReportSchema,
+} from '@/components/ui/PronunciationSection';
+import { WordColorMap } from '@/components/ui/WordColorMap';
+import { ProsodyPanel } from '@/components/ui/ProsodyPanel';
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import type { SessionDetail, SessionMetricSnapshot } from '@/features/session/useSessionStatus.types';
 import { DrillRecommendation } from '@/features/training/DrillRecommendation';
@@ -158,13 +164,23 @@ export default function SessionResultsPage({
   }
 
   if (isDone && session) {
-    const focusHighlightDelay = 200 + session.insights.length * 100 + 100;
-    const focusBannerDelay = focusComparison
-      ? 200 + session.insights.length * 100 + 200
-      : 200 + session.insights.length * 100 + 100;
-    const transcriptDelay = focusComparison
-      ? 200 + session.insights.length * 100 + 300
-      : 200 + session.insights.length * 100 + 200;
+    const pronunciationReport = (() => {
+      if (session.pronunciationReport === null || session.pronunciationReport === undefined) {
+        return null;
+      }
+      const result = PronunciationReportSchema.safeParse(session.pronunciationReport);
+      return result.success ? result.data : null;
+    })();
+
+    const baseDelay = 200;
+    const insightDelay = baseDelay + session.insights.length * 100;
+    const pronunciationBlockOffset = pronunciationReport !== null ? 300 : 0;
+    const pronunciationSectionDelay = insightDelay + 100;
+    const wordColorMapDelay = pronunciationSectionDelay + 100;
+    const prosodyPanelDelay = wordColorMapDelay + 100;
+    const focusHighlightDelay = insightDelay + pronunciationBlockOffset + 100;
+    const focusBannerDelay = insightDelay + pronunciationBlockOffset + (focusComparison ? 200 : 100);
+    const transcriptDelay = insightDelay + pronunciationBlockOffset + (focusComparison ? 300 : 200);
 
     const metrics = session.metrics ?? [];
     const weakestSnapshot = pickWeakestMetric(metrics);
@@ -207,6 +223,25 @@ export default function SessionResultsPage({
           />
 
           <InsightsList insights={session.insights} baseDelay={200} />
+
+          {pronunciationReport !== null && (
+            <div className="space-y-6">
+              <PronunciationSection
+                pronunciationReport={pronunciationReport}
+                animationDelay={pronunciationSectionDelay}
+              />
+              <WordColorMap
+                words={pronunciationReport.words}
+                animationDelay={wordColorMapDelay}
+              />
+              <ProsodyPanel
+                words={pronunciationReport.words}
+                speakingRateWpm={pronunciationReport.speakingRateWpm}
+                prosodyScore={pronunciationReport.prosodyScore}
+                animationDelay={prosodyPanelDelay}
+              />
+            </div>
+          )}
 
           {focusComparison && (
             <FocusHighlight
