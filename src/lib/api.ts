@@ -15,7 +15,7 @@ export function successResponse<T>(data: T, status = 200): Response {
  * Validate file size and MIME type for audio uploads
  */
 export function validateAudioFile(
-  file: File,
+  file: Blob,
   maxSizeMB = 50
 ): { valid: boolean; error?: string } {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
