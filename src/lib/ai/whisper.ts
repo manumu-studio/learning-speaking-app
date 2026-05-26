@@ -1,12 +1,21 @@
-// OpenAI Whisper client for speech-to-text transcription
+// OpenAI Whisper client for speech-to-text transcription with verbose_json confidence segments
 import { File as NodeFile } from 'node:buffer';
 import OpenAI, { toFile } from 'openai';
 import { env } from '@/lib/env';
+import {
+  whisperVerboseResponseSchema,
+  type WhisperVerboseResult,
+} from '@/lib/ai/whisper.types';
 
 // Node.js 18 has File in node:buffer but not as a global — polyfill for OpenAI SDK
 if (typeof globalThis.File === 'undefined') {
   Object.defineProperty(globalThis, 'File', { value: NodeFile, writable: true, configurable: true });
 }
+
+const WHISPER_DOMAIN_PROMPT =
+  'The speaker is a software engineer discussing API integration, debugging, and deployment. ' +
+  'Likely terms: JSON, API, Anthropic, Claude, OpenAI, Whisper, OAuth, PostgreSQL, TypeScript, ' +
+  'React, Docker, Kubernetes.';
 
 // Runtime validation — OPENAI_API_KEY is optional in env.ts but required here
 function requireEnv(value: string | undefined, name: string): string {
@@ -31,21 +40,34 @@ function getOpenAIClient(): OpenAI {
   return _openaiClient;
 }
 
-// Transcribe audio using Whisper API — audioBuffer as Buffer, filename for MIME inference
+function parseVerboseResponse(raw: unknown): WhisperVerboseResult {
+  const parsed = whisperVerboseResponseSchema.parse(raw);
+  return {
+    text: parsed.text,
+    language: parsed.language,
+    segments: parsed.segments,
+  };
+}
+
+// Transcribe audio using Whisper API — returns full text and per-segment confidence signals
 export async function transcribeAudio(
   audioBuffer: Buffer,
   filename: string
-): Promise<string> {
+): Promise<WhisperVerboseResult> {
   const client = getOpenAIClient();
 
-  // toFile handles Buffer → File conversion without relying on Node.js global File (unavailable in Node 18)
   const file = await toFile(audioBuffer, filename, { type: 'audio/webm' });
 
   const response = await client.audio.transcriptions.create({
     model: 'whisper-1',
     file,
     language: 'en',
+    response_format: 'verbose_json',
+    temperature: 0,
+    prompt: WHISPER_DOMAIN_PROMPT,
   });
 
-  return response.text;
+  return parseVerboseResponse(response);
 }
+
+export type { WhisperSegment, WhisperVerboseResult } from '@/lib/ai/whisper.types';

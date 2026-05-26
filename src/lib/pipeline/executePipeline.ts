@@ -2,7 +2,9 @@
 import { Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { transcribeAudio } from '@/lib/ai/whisper';
+import { gateSegments } from '@/lib/ai/confidenceGating';
 import { analyzeTranscript } from '@/lib/ai/analyze';
+import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import type { PronunciationSummary } from '@/lib/ai/analyze';
 import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
@@ -103,27 +105,34 @@ export async function executePipeline(
   });
 
   // Step 6: Transcribe audio with Whisper (opus buffer is fine for Whisper)
-  const transcriptText = await transcribeAudio(audioBuffer, `session-${id}.webm`);
-  const wordCount = transcriptText.trim().split(/\s+/).length;
+  const whisperResult = await transcribeAudio(audioBuffer, `session-${id}.webm`);
+  const gated = gateSegments(whisperResult.segments);
+  const userTranscriptText = gated.cleanText.length > 0 ? gated.cleanText : whisperResult.text;
+  const analysisTranscriptText =
+    gated.annotatedText.length > 0 ? gated.annotatedText : whisperResult.text;
+  const wordCount = userTranscriptText.trim().split(/\s+/).filter(Boolean).length;
 
   log({
     level: 'info',
     message: 'Transcription complete',
     sessionId: id,
     userId: session.userId,
-    metadata: { wordCount },
+    metadata: {
+      wordCount,
+      gating: gated.stats,
+    },
   });
 
   // Step 7: Store transcript — production creates, dev upserts for re-run safety
   if (mode === 'dev') {
     await prisma.transcript.upsert({
       where: { sessionId: id },
-      create: { sessionId: id, text: transcriptText, wordCount },
-      update: { text: transcriptText, wordCount },
+      create: { sessionId: id, text: userTranscriptText, wordCount },
+      update: { text: userTranscriptText, wordCount },
     });
   } else {
     await prisma.transcript.create({
-      data: { sessionId: id, text: transcriptText, wordCount },
+      data: { sessionId: id, text: userTranscriptText, wordCount },
     });
   }
 
@@ -142,7 +151,7 @@ export async function executePipeline(
       try {
         pronunciationResult = await assessPronunciation(
           pcmBuffer,
-          transcriptText,
+          userTranscriptText,
           env.AZURE_SPEECH_KEY,
           env.AZURE_SPEECH_REGION,
         );
@@ -205,17 +214,52 @@ export async function executePipeline(
     // Step 12: Analyze transcript with Claude (pronunciation summary added when available)
     const pronunciationSummary = buildPronunciationSummary(pronunciationResult ?? null);
     const analysis = await analyzeTranscript(
-      transcriptText,
+      analysisTranscriptText,
       session.focusMetricKey,
       pronunciationSummary,
     );
+
+    const nerFilterResult = filterTranscriptionArtefacts(
+      analysis.insights,
+      userTranscriptText,
+    );
+
+    if (nerFilterResult.filtered.length > 0) {
+      log({
+        level: 'info',
+        message: 'NER filter removed transcription false positives',
+        sessionId: id,
+        userId: session.userId,
+        metadata: {
+          filteredCount: nerFilterResult.filtered.length,
+          filterReasons: nerFilterResult.filterReasons,
+        },
+      });
+    }
+
+    if (
+      analysis.possible_transcription_artefacts != null &&
+      analysis.possible_transcription_artefacts.length > 0
+    ) {
+      log({
+        level: 'info',
+        message: 'Possible transcription artefacts detected',
+        sessionId: id,
+        userId: session.userId,
+        metadata: {
+          artefacts: analysis.possible_transcription_artefacts,
+        },
+      });
+    }
+
+    const insightsForStorage = nerFilterResult.kept;
 
     log({
       level: 'info',
       message: 'Analysis complete',
       sessionId: id,
       userId: session.userId,
-      metadata: { insightCount: analysis.insights.length },
+      metadata: { insightCount: insightsForStorage.length },
     });
 
     // Step 13: Store insights — dev deletes existing first for re-run safety
@@ -224,7 +268,7 @@ export async function executePipeline(
     }
 
     await prisma.insight.createMany({
-      data: analysis.insights.map((insight) => ({
+      data: insightsForStorage.map((insight) => ({
         sessionId: id,
         category: insight.category,
         pattern: insight.pattern,
@@ -265,7 +309,7 @@ export async function executePipeline(
     });
 
     // Step 16: Aggregate insights into user's long-term pattern profile
-    await updatePatternProfile(session.userId, analysis.insights);
+    await updatePatternProfile(session.userId, insightsForStorage);
 
     // Step 17: Mark DONE
     await prisma.speakingSession.update({
