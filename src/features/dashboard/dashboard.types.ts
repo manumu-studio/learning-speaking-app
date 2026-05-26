@@ -1,13 +1,16 @@
 // Dashboard feature type definitions
 
-/** One of six fixed speaking dimensions scored each session (see Prisma `MetricSnapshot.key`). */
+/** One of nine metric dimensions tracked per session: 6 Claude-scored + 3 Azure-computed (see Prisma `MetricSnapshot.key`). */
 export type MetricKey =
   | 'connectorRepetition'
   | 'structuralVariety'
   | 'vocabularyPrecision'
   | 'verbAccuracy'
   | 'argumentClosure'
-  | 'fillerUsage';
+  | 'fillerUsage'
+  | 'pronunciationAccuracy'
+  | 'prosodyScore'
+  | 'speakingRate';
 
 export type MetricLevel = 'low' | 'medium' | 'high';
 
