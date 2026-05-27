@@ -30,22 +30,28 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
+function nextWithPathname(request: NextRequest): NextResponse {
+  const response = NextResponse.next();
+  response.headers.set('x-pathname', request.nextUrl.pathname);
+  return applySecurityHeaders(response);
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isRateLimitedApi =
     pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/');
 
   if (process.env.E2E_TEST_USER === 'true' && process.env.NODE_ENV !== 'production') {
-    return applySecurityHeaders(NextResponse.next());
+    return nextWithPathname(request);
   }
 
   if (!isRateLimitedApi) {
-    return applySecurityHeaders(NextResponse.next());
+    return nextWithPathname(request);
   }
 
   const rateLimiter = getRateLimiter();
   if (!rateLimiter) {
-    return applySecurityHeaders(NextResponse.next());
+    return nextWithPathname(request);
   }
 
   const token =
@@ -63,7 +69,7 @@ export async function middleware(request: NextRequest) {
   try {
     ({ success } = await rateLimiter.limit(identifier));
   } catch {
-    return applySecurityHeaders(NextResponse.next());
+    return nextWithPathname(request);
   }
   if (!success) {
     return applySecurityHeaders(
@@ -74,7 +80,7 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  return applySecurityHeaders(NextResponse.next());
+  return nextWithPathname(request);
 }
 
 export const config = {

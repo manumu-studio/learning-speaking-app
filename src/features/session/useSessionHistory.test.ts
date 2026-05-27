@@ -12,23 +12,24 @@ function jsonResponse(body: unknown, ok = true, status = 200) {
   }) as Promise<Response>;
 }
 
+const sampleSession = {
+  id: 'a',
+  status: 'DONE',
+  intentLabel: null,
+  topic: 't',
+  durationSecs: 60,
+  wordCount: null,
+  createdAt: '2026-04-03T12:00:00.000Z',
+  overallScore: 7.5,
+  pronunciationScore: 8,
+  workoutNumber: 1,
+};
+
 const sampleApi = {
-  sessions: [
-    {
-      id: 'a',
-      status: 'DONE',
-      durationSecs: 60,
-      language: 'en',
-      topic: 't',
-      intentLabel: null,
-      summary: null,
-      createdAt: '2026-04-03T12:00:00.000Z',
-      updatedAt: '2026-04-03T12:00:00.000Z',
-    },
-  ],
+  sessions: [sampleSession],
+  nextCursor: null,
+  nextCursorId: null,
   total: 1,
-  page: 1,
-  limit: 50,
 };
 
 describe('useSessionHistory', () => {
@@ -105,19 +106,19 @@ describe('useSessionHistory', () => {
         Promise.resolve({
           sessions: [
             {
-              ...sampleApi.sessions[0],
+              ...sampleSession,
               id: 'morning',
               createdAt: '2026-04-03T08:00:00.000Z',
             },
             {
-              ...sampleApi.sessions[0],
+              ...sampleSession,
               id: 'evening',
               createdAt: '2026-04-03T18:00:00.000Z',
             },
           ],
+          nextCursor: null,
+          nextCursorId: null,
           total: 2,
-          page: 1,
-          limit: 50,
         }),
     } as Response);
 
