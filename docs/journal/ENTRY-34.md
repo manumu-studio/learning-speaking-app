@@ -33,6 +33,9 @@
 - Store **clean** transcript for users; send **annotated** transcript to Claude so markers are visible to the model but not the UI
 - Log `possible_transcription_artefacts` and NER filter reasons instead of a new DB column — avoids migration for debug-only data
 - Frequency filter uses max token occurrence across example quotes, not per-token AND logic — avoids over-filtering multi-word patterns
+- `WhisperSegment` types derived from Zod schemas (`z.infer`) — single source of truth with API validation
+- Suspect-marker regex uses `[^⟩]*` so question marks inside wrapped text still trigger guardrails
+- Drills route applies `gateSegments` for consistency with session pipeline
 - Deferred dual-ASR consensus, self-hosted Whisper, and UI transcript correction to future work
 
 ## Still Open
@@ -43,6 +46,5 @@
 ```
 npx tsc --noEmit → exit 0
 npm run lint → No ESLint warnings or errors
-npm run test → 290 passed | 4 skipped
-npm run build → Compiled successfully
+npm run test → 284 passed | 4 skipped
 ```
