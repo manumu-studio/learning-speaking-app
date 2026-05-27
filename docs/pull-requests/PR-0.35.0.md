@@ -1,4 +1,4 @@
-# PR-v0.35.0 — Recording UX & Flow
+# PR-0.35.0 — Recording UX & Flow
 **Branch:** `feat/recording-ux` → `main`
 **Version:** `0.35.0`
 **Date:** 2026-05-27
