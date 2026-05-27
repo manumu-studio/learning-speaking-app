@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import type { WordPronunciation } from '@/components/ui/PronunciationSection';
+import type { L1Tag } from '@/lib/ai/l1Spanish.types';
 
 export const PhonemeResultSchema = z.object({
   phoneme: z.string(),
@@ -47,6 +48,6 @@ export const L1_TAG_LABELS = {
   monophthongised_diphthong: 'Flattening diphthongs to single vowels',
   wrong_stress: 'Stress on wrong syllable',
   question_intonation: 'Falling intonation on yes/no questions',
-} as const satisfies Record<string, string>;
+} as const satisfies Record<L1Tag, string>;
 
 export type L1TagKey = keyof typeof L1_TAG_LABELS;

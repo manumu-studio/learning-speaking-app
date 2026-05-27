@@ -10,7 +10,7 @@ export function PhonemeDetail({
   word,
   onClose,
 }: PhonemeDetailProps): React.JSX.Element {
-  const { phonemes, parseError } = usePhonemeDetail(word);
+  const { phonemes, parseError, bridgeFeedback } = usePhonemeDetail(word);
 
   const knownL1Tags = word.l1Tags.filter(
     (tag): tag is L1TagKey => tag in L1_TAG_LABELS,
@@ -107,6 +107,46 @@ export function PhonemeDetail({
               </span>
             ))}
           </div>
+          {bridgeFeedback.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                How to improve
+              </p>
+              <div className="space-y-3">
+                {bridgeFeedback.map(({ tag, rule }) => (
+                  <div
+                    key={tag}
+                    className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 space-y-1.5"
+                  >
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {rule.bridgeInstruction}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="font-medium">From Spanish:</span> {rule.spanishAnchor}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="font-medium">English target:</span> {rule.englishTarget}
+                    </p>
+                    {rule.minimalPairs.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          Practice:
+                        </span>
+                        {rule.minimalPairs.slice(0, 3).map(([a, b]) => (
+                          <span
+                            key={`${a}-${b}`}
+                            className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5"
+                          >
+                            {a} / {b}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
