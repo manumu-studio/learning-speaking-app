@@ -23,7 +23,7 @@ test.describe('Dashboard', () => {
       name: /select .+ as training focus/i,
     });
     const emptyMessage = authenticatedPage.getByText(
-      /record a few more sessions to see your patterns emerge/i,
+      /record a few more workouts to see your patterns emerge/i,
     );
     await expect(metricButtons.first().or(emptyMessage)).toBeVisible({ timeout: 15_000 });
     const count = await metricButtons.count();
