@@ -64,6 +64,7 @@ export interface SessionDetail {
   }>;
   metrics?: SessionMetricSnapshot[];
   pronunciationReport?: PronunciationReportDetail | null;
+  workoutNumber?: number;
 }
 
 export interface UseSessionStatusReturn {

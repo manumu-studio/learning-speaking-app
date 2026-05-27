@@ -16,6 +16,10 @@ const mockDrillGroupBy = prismaMock.drillAttempt.groupBy as unknown as {
   mockResolvedValue: (value: unknown) => void;
 };
 
+const mockMetricGroupBy = prismaMock.metricSnapshot.groupBy as unknown as {
+  mockResolvedValue: (value: unknown) => void;
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -25,6 +29,8 @@ function mockEmptyState() {
   prismaMock.speakingSession.count.mockResolvedValue(0);
   prismaMock.speakingSession.findFirst.mockResolvedValue(null);
   prismaMock.metricSnapshot.findMany.mockResolvedValue([] as never);
+  mockMetricGroupBy.mockResolvedValue([] as never);
+  prismaMock.metricSnapshot.findFirst.mockResolvedValue(null);
   prismaMock.drillAttempt.count.mockResolvedValue(0);
   mockDrillGroupBy.mockResolvedValue([] as never);
 }
@@ -46,6 +52,9 @@ describe('getDashboardData', () => {
     expect(result.weeklySessionCount).toBe(0);
     expect(result.totalSessions).toBe(0);
     expect(result.currentStreak).toBe(0);
+    expect(result.workoutWeeks).toBe(0);
+    expect(result.personalRecords).toEqual([]);
+    expect(result.totalWorkoutCount).toBe(0);
     expect(result.metrics).toHaveLength(9);
     expect(result.metrics.every((m) => m.currentScore === 0)).toBe(true);
   });
@@ -66,6 +75,8 @@ describe('getDashboardData', () => {
     );
     prismaMock.speakingSession.findFirst.mockResolvedValue(null);
     prismaMock.metricSnapshot.findMany.mockResolvedValue([] as never);
+    mockMetricGroupBy.mockResolvedValue([] as never);
+    prismaMock.metricSnapshot.findFirst.mockResolvedValue(null);
     prismaMock.drillAttempt.count.mockResolvedValue(0);
     mockDrillGroupBy.mockResolvedValue([] as never);
 
@@ -83,6 +94,8 @@ describe('getDashboardData', () => {
     stubSequentialFindMany([], [{ createdAt: today }, { createdAt: threeDaysAgo }], []);
     prismaMock.speakingSession.findFirst.mockResolvedValue(null);
     prismaMock.metricSnapshot.findMany.mockResolvedValue([] as never);
+    mockMetricGroupBy.mockResolvedValue([] as never);
+    prismaMock.metricSnapshot.findFirst.mockResolvedValue(null);
     prismaMock.drillAttempt.count.mockResolvedValue(0);
     mockDrillGroupBy.mockResolvedValue([] as never);
 
@@ -102,6 +115,8 @@ describe('getDashboardData', () => {
     stubSequentialFindMany([], [{ createdAt: today }, { createdAt: today2 }, { createdAt: today3 }], []);
     prismaMock.speakingSession.findFirst.mockResolvedValue(null);
     prismaMock.metricSnapshot.findMany.mockResolvedValue([] as never);
+    mockMetricGroupBy.mockResolvedValue([] as never);
+    prismaMock.metricSnapshot.findFirst.mockResolvedValue(null);
     prismaMock.drillAttempt.count.mockResolvedValue(0);
     mockDrillGroupBy.mockResolvedValue([] as never);
 
@@ -118,6 +133,8 @@ describe('getDashboardData', () => {
     prismaMock.metricSnapshot.findMany.mockResolvedValue(
       scoresDesc.map((score) => ({ key: 'connectorRepetition', score, level: 'medium' })) as never,
     );
+    mockMetricGroupBy.mockResolvedValue([] as never);
+    prismaMock.metricSnapshot.findFirst.mockResolvedValue(null);
     prismaMock.drillAttempt.count.mockResolvedValue(0);
     mockDrillGroupBy.mockResolvedValue([] as never);
 
@@ -131,6 +148,8 @@ describe('getDashboardData', () => {
     prismaMock.speakingSession.count.mockResolvedValue(0);
     prismaMock.speakingSession.findFirst.mockResolvedValue(null);
     prismaMock.metricSnapshot.findMany.mockResolvedValue([] as never);
+    mockMetricGroupBy.mockResolvedValue([] as never);
+    prismaMock.metricSnapshot.findFirst.mockResolvedValue(null);
     (
       prismaMock.drillAttempt.count as unknown as {
         mockImplementation: (fn: (args: { where?: Record<string, unknown> } | undefined) => Promise<number>) => void;

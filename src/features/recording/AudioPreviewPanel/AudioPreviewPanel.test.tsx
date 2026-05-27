@@ -21,7 +21,7 @@ describe('AudioPreviewPanel', () => {
     expect(
       screen.getByRole('button', { name: /submit recording for analysis/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /try recording again/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /go recording again/i })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /discard recording and return/i }),
     ).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe('AudioPreviewPanel', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /submit recording/i }));
-    await user.click(screen.getByRole('button', { name: /try recording again/i }));
+    await user.click(screen.getByRole('button', { name: /go recording again/i }));
     await user.click(screen.getByRole('button', { name: /discard recording/i }));
 
     expect(onSubmit).toHaveBeenCalledOnce();
@@ -75,7 +75,7 @@ describe('AudioPreviewPanel', () => {
       screen.queryByRole('button', { name: /submit recording for analysis/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /try recording again/i }),
+      screen.queryByRole('button', { name: /go recording again/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /discard recording and return/i }),

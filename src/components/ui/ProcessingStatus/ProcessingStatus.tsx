@@ -34,7 +34,7 @@ export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingSt
 
   return (
     <div className="rounded-lg border border-blue-200 bg-blue-50 p-6" aria-live="polite" role="status">
-      <h3 className="text-lg font-semibold text-blue-900">Processing Your Session</h3>
+      <h3 className="text-lg font-semibold text-blue-900">Processing Your Workout</h3>
       <div className="mt-4 space-y-3">
         {STEPS.map((step, index) => {
           const isActive = index === currentIndex;

@@ -15,7 +15,7 @@ const TIER_CONFIG = {
     classes: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   },
   'needs-work': {
-    label: 'Needs Work',
+    label: 'Sharpen',
     classes: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
   },
 } as const;
