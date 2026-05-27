@@ -224,7 +224,7 @@ export function useDrill(drillId: string): UseDrillReturn {
     const current = drill;
     if (!current) return null;
     if (!current.sessionId) {
-      setError('Open this drill from session results to try again with a fresh prompt.');
+      setError('Open this drill from workout results to go again with a fresh prompt.');
       return null;
     }
 

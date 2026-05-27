@@ -210,7 +210,7 @@ describe('useDrill', () => {
     });
 
     expect(nextId).toBeNull();
-    expect(result.current.error).toContain('session results');
+    expect(result.current.error).toContain('workout results');
   });
 
   it('tryAgain fetches session and returns new drill id on success', async () => {

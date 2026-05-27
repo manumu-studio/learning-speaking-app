@@ -1,4 +1,5 @@
 // Dashboard feature type definitions
+import type { PersonalRecord } from '@/lib/personalRecords.types';
 
 /** One of nine metric dimensions tracked per session: 6 Claude-scored + 3 Azure-computed (see Prisma `MetricSnapshot.key`). */
 export type MetricKey =
@@ -66,8 +67,11 @@ export type DashboardData = {
   weeklySessionCount: number;
   totalSessions: number;
   currentStreak: number;
+  workoutWeeks: number;
   currentFocus: string | null;
   metrics: DashboardMetric[];
   recentSessions: RecentSession[];
   drillStats: DrillStatsData;
+  personalRecords: PersonalRecord[];
+  totalWorkoutCount: number;
 };

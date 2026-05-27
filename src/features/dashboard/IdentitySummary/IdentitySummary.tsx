@@ -7,13 +7,15 @@ export function IdentitySummary({
   currentFocus,
   currentStreak,
   totalDrillsCompleted = 0,
+  workoutWeeks,
 }: IdentitySummaryProps) {
+  void currentStreak;
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-100 dark:bg-gray-900 dark:border-slate-800">
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatColumn label="This Week" value={`${weeklyMinutes} min`} />
         <div className="text-center">
-          <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Sessions</dt>
+          <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Workouts</dt>
           <dd className="mt-1 text-xl font-semibold text-slate-800 dark:text-slate-200">{weeklySessionCount}</dd>
           {totalDrillsCompleted > 0 ? (
             <dd className="mt-1 text-xs text-slate-400 dark:text-slate-500">
@@ -26,8 +28,8 @@ export function IdentitySummary({
           value={currentFocus ?? 'Not set'}
           muted={currentFocus === null}
         />
-        {currentStreak >= 2 && (
-          <StatColumn label="Streak" value={`${currentStreak} days`} />
+        {workoutWeeks !== undefined && workoutWeeks > 0 && (
+          <StatColumn label="Workout Weeks" value={String(workoutWeeks)} />
         )}
       </dl>
     </div>
