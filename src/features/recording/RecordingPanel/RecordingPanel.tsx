@@ -1,24 +1,56 @@
-// Main recording interface — orchestrates timer, button, and upload flow
+// Main recording interface — orchestrates timer, button, and upload flow with auto-segmentation
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAudioRecorder } from '@/features/recording/useAudioRecorder';
+import { useSegmentUploader } from '@/features/recording/useSegmentUploader';
 import { useUploadSession } from '@/features/session';
 import { RecordButton } from '@/components/ui/RecordButton';
 import { SessionTimer } from '@/components/ui/SessionTimer';
 import type { RecordingPanelProps } from './RecordingPanel.types';
 
+const SEGMENT_STATUS_CLASSES = {
+  completed:
+    'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+  uploading:
+    'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+  failed:
+    'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+} as const;
+
 export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
   const router = useRouter();
-  const { state, duration, audioBlob, error: recordError, startRecording, stopRecording, resetRecording } =
-    useAudioRecorder();
-  const { upload, isUploading, error: uploadError } = useUploadSession();
+  const { segments, uploadSegment, latestSessionId, isUploading: isSegmentUploading } =
+    useSegmentUploader({ topic, focus });
+  const { upload, isUploading: isFinalUploading, error: uploadError } = useUploadSession();
 
-  // Combined error from either recording or upload
+  const handleSegmentReady = useCallback(
+    (blob: Blob, segmentDuration: number, segmentIndex: number) => {
+      uploadSegment(blob, segmentDuration, segmentIndex);
+    },
+    [uploadSegment]
+  );
+
+  const {
+    state,
+    duration,
+    audioBlob,
+    error: recordError,
+    startRecording,
+    stopRecording,
+    resetRecording,
+    segmentIndex,
+    secondsUntilSplit,
+  } = useAudioRecorder({
+    maxDurationSecs: 300,
+    onSegmentReady: handleSegmentReady,
+    warningBeforeSplitSecs: 30,
+  });
+
   const error = recordError ?? uploadError;
+  const isUploading = isFinalUploading || isSegmentUploading;
 
-  // Create stable Object URL from audio blob — revoke on cleanup to prevent memory leak
   const audioPreviewUrl = useMemo(() => {
     if (audioBlob) return URL.createObjectURL(audioBlob);
     return null;
@@ -35,13 +67,16 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
 
     try {
       const sessionId = await upload(audioBlob, duration, topic, focus);
-      router.push(`/session/${sessionId}`);
+      if (latestSessionId !== null && segmentIndex > 0) {
+        router.push(`/session/${sessionId}`);
+      } else {
+        router.push(`/session/${sessionId}`);
+      }
     } catch {
       // Error displayed via uploadError state from the hook
     }
   };
 
-  // Browser compatibility check
   if (typeof window !== 'undefined' && !navigator.mediaDevices?.getUserMedia) {
     return (
       <div className="text-center py-12">
@@ -58,12 +93,45 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
     );
   }
 
-  return (
-    <div className="flex flex-col items-center justify-center py-6 sm:py-12 space-y-6 sm:space-y-8">
-      {/* Timer */}
-      <SessionTimer seconds={duration} isActive={state === 'recording'} />
+  const recordingStatusMessage = (() => {
+    if (segmentIndex > 0) {
+      return `Segment ${segmentIndex + 1} — previous segment uploading...`;
+    }
+    return 'Speaking... segment will save automatically at 5:00';
+  })();
 
-      {/* Record Button */}
+  return (
+    <div className="flex flex-col items-center justify-center py-6 sm:py-12 space-y-6 sm:space-y-8 w-full max-w-md mx-auto px-4">
+      {secondsUntilSplit !== null && (
+        <div className="w-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2 text-sm text-amber-800 dark:text-amber-200 transition-all">
+          Wrapping up in {secondsUntilSplit}s — a new segment will start automatically
+        </div>
+      )}
+
+      <div className="flex items-center gap-3">
+        <SessionTimer seconds={duration} isActive={state === 'recording'} />
+        {segmentIndex > 0 && (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 animate-pulse">
+            Segment {segmentIndex + 1}
+          </span>
+        )}
+      </div>
+
+      {segments.length > 0 && (
+        <div className="flex flex-wrap gap-2 justify-center w-full">
+          {segments.map((seg) => (
+            <span
+              key={seg.segmentIndex}
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SEGMENT_STATUS_CLASSES[seg.status]}`}
+            >
+              {seg.status === 'completed' && `Seg ${seg.segmentIndex + 1} ✓`}
+              {seg.status === 'uploading' && `Seg ${seg.segmentIndex + 1} ↑`}
+              {seg.status === 'failed' && `Seg ${seg.segmentIndex + 1} ✗`}
+            </span>
+          ))}
+        </div>
+      )}
+
       <RecordButton
         state={state}
         onStart={startRecording}
@@ -71,10 +139,9 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
         disabled={isUploading}
       />
 
-      {/* Status Messages */}
-      <div className="text-center min-h-[60px] px-4" aria-live="polite" role="status">
+      <div className="text-center min-h-[60px] w-full" aria-live="polite" role="status">
         {error && (
-          <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md">
+          <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md mx-auto">
             <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
           </div>
         )}
@@ -87,7 +154,7 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
 
         {!error && state === 'recording' && (
           <p className="text-gray-700 dark:text-gray-200 text-base sm:text-lg font-medium">
-            Speaking... take your time
+            {recordingStatusMessage}
           </p>
         )}
 
@@ -124,7 +191,6 @@ export function RecordingPanel({ topic, focus }: RecordingPanelProps) {
         )}
       </div>
 
-      {/* Audio preview */}
       {audioPreviewUrl && state === 'stopped' && !isUploading && (
         <div className="mt-4 w-full max-w-xs sm:max-w-sm mx-auto">
           <audio
