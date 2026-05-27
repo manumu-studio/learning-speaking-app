@@ -1,70 +1,80 @@
-# PR-0.30.0-alpha.2 — Pipeline Pronunciation Integration
-**Branch:** `feat/pipeline-integration` → `main`
-**Version:** `v0.30.0-alpha.2`
-**Date:** 2026-05-26
+# PR-0.31.0 — Whisper Hallucination Guardrails
+**Branch:** `feat/whisper-guardrails` → `main`
+**Version:** `v0.31.0`
+**Date:** 2026-05-27
 **Status:** ✅ Ready to merge
 
 ---
 
 ## Summary
-- Integrates Azure pronunciation assessment into the processing pipeline as a non-blocking step between transcription and Claude analysis
-- Adds `pronunciation_reports` and `word_pronunciations` database tables with full phoneme and L1 interference data
-- Expands the metric system to 9 keys: 6 Claude-scored + 3 Azure-computed (`pronunciationAccuracy`, `prosodyScore`, `speakingRate`)
+- Prevents Whisper transcription errors from appearing as learner vocabulary or grammar issues in coaching feedback
+- Adds four defence layers: domain-biased Whisper, confidence gating, Claude prompt guardrails, and a Compromise.js NER post-filter
+- User-facing transcripts stay clean; Claude receives annotated text with `⟨?...?⟩` markers on low-confidence segments
+
+## Architecture
+
+### Before
+```
+Whisper (default) → plain text → Claude (trusts transcript) → insights
+```
+
+### After
+```
+Whisper (verbose_json + prompt + temp 0)
+  → confidence gating (drop silence, ⟨?...?⟩ suspects)
+  → clean text → DB / user UI
+  → annotated text → Claude (ASR guardrails in prompt)
+  → programmatic insight filter + NER post-filter
+  → insights stored
+```
 
 ## Files Changed
 | File | Action | Notes |
 |------|--------|-------|
-| `prisma/schema.prisma` | Modified | SCORING enum, PronunciationReport, WordPronunciation, SpeakingSession relation |
-| `prisma/migrations/…/migration.sql` | Created | Schema migration |
-| `src/lib/pipeline/executePipeline.ts` | Modified | Pipeline restructure with Azure step + finally block |
-| `src/lib/pipeline/persistPronunciation.ts` | Created | Atomic DB persistence for pronunciation data |
-| `src/lib/ai/analyze.ts` | Modified | PronunciationSummary type, optional third parameter |
-| `src/lib/metric-keys.ts` | Modified | 9 keys (was 6) |
-| `src/features/session/useSessionStatus.ts` | Modified | SCORING + pronunciationReport schema |
-| `src/features/session/useSessionStatus.types.ts` | Modified | New pronunciation types |
-| `src/features/dashboard/dashboard.types.ts` | Modified | 3 new MetricKey literals |
-| `src/features/dashboard/getDashboardData.ts` | Modified | 9-key metric system |
-| `src/features/dashboard/DashboardView/useDashboard.ts` | Modified | Updated Zod validation |
-| `src/app/(app)/session/[id]/page.tsx` | Modified | Metric labels + drill map for 3 new keys |
-| `src/app/api/sessions/[id]/route.ts` | Modified | pronunciationReport in API response |
-| `src/components/ui/ProcessingStatus/ProcessingStatus.tsx` | Modified | SCORING step in UI |
-| `src/components/ui/ProcessingStatus/ProcessingStatus.types.ts` | Modified | SCORING in status union |
-| `src/features/recording/useAudioRecorder.ts` | Modified | 16kHz mono, NS/EC/AGC disabled |
-| Training components (7 files) | Modified | 'pronunciation' DrillType added throughout |
-| Test files (3 files) | Modified | Updated mocks and assertions |
+| `docs/research/WHISPER-HALLUCINATION-GUARDRAILS.md` | Created | Research reference |
+| `src/lib/ai/whisper.ts` | Modified | verbose_json API call |
+| `src/lib/ai/whisper.types.ts` | Created | Zod schemas + inferred segment types |
+| `src/lib/ai/confidenceGating.ts` | Created | Threshold constants + `gateSegments` |
+| `src/lib/ai/confidenceGating.types.ts` | Created | Annotated transcript types |
+| `src/lib/ai/analyze.ts` | Modified | ASR prompt + `applyInsightGuardrails` |
+| `src/lib/ai/nerFilter.ts` | Created | Compromise NER filter |
+| `src/lib/ai/nerFilter.types.ts` | Created | Filter result types |
+| `src/lib/pipeline/executePipeline.ts` | Modified | Gating + NER in pipeline |
+| `src/app/api/drills/[id]/complete/route.ts` | Modified | Gated transcript for drills |
+| `package.json` / `package-lock.json` | Modified | `compromise` dependency |
+| `src/lib/ai/confidenceGating.test.ts` | Created | 9 tests |
+| `src/lib/ai/nerFilter.test.ts` | Created | 13 tests |
+| `src/lib/ai/analyze.test.ts` | Modified | Guardrail tests incl. `?` in markers |
+| `src/lib/pipeline/executePipeline.test.ts` | Modified | Whisper mock shape |
+| `src/app/api/drills/[id]/complete/route.test.ts` | Modified | Whisper mock shape |
 
 ## Architecture Decisions
 | Decision | Why |
 |----------|-----|
-| R2 deletion in `finally` block | Azure needs PCM buffer (derived from same download); cleanup must happen after Azure, not after Whisper |
-| Azure failure is non-blocking | Missing pronunciation data is acceptable; failing the whole pipeline is not |
-| 3 new metrics not scored by Claude | Azure provides higher-precision phoneme scoring; Claude's prompt explicitly excludes them |
-| Intelligibility-first score curve | Accented speech is not penalized like genuinely unclear speech |
-| NS/EC/AGC disabled in recorder | Processing enhancers attenuate `/s/`, `/ʃ/`, `/θ/` — exactly the phonemes pronunciation scoring depends on |
+| `verbose_json` + Zod at API boundary | Segment confidence required for gating; never trust raw API shape |
+| Domain prompt for engineering vocabulary | Reduces proper-noun substitutions without model retraining |
+| `⟨?...?⟩` markers with `[^⟩]*` regex | Safe in JSX; matches suspect text that contains `?` (e.g. questions) |
+| Types derived via `z.infer` from whisper schemas | Single source of truth — no manual/Zod drift |
+| NER runs after Claude | Deterministic safety net for residual LLM false positives |
+| Artefacts logged, not stored in Prisma | Debug transparency without schema migration |
+| Drills use `gateSegments` on clean text | Consistent gating on short drill audio |
 
 ## Testing Checklist
-- [x] `npx prisma migrate dev` applies cleanly
-- [x] `npx tsc --noEmit` passes with zero errors
+- [x] `npx tsc --noEmit` passes
 - [x] `npm run lint` passes
-- [x] `npm run test` passes (250 tests, 4 skipped)
-- [ ] Pipeline reaches DONE with Azure credentials present (manual)
-- [ ] Pipeline reaches DONE without Azure credentials (manual)
-- [ ] `pronunciation_reports` row exists after a scored session (manual)
-- [ ] `word_pronunciations` rows exist for each word (manual)
-- [ ] 3 MetricSnapshots created for pronunciation keys (manual)
-- [ ] Session detail API returns `pronunciationReport` field (manual)
-- [ ] Zod parse on session detail does not throw (manual)
-- [ ] ProcessingStatus UI shows "Scoring pronunciation..." step (manual)
+- [x] `npm run test` passes (284 tests, 4 skipped)
+- [ ] End-to-end session with technical vocabulary (manual)
+- [ ] Verify user transcript has no `⟨?...?⟩` markers (manual)
+- [ ] Verify insights exclude known Whisper false positives (manual)
 
 ## Deployment Notes
-- Prisma migration required: `npx prisma migrate deploy`
-- No new env vars required — `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` were already in `.env`
-- Existing sessions are unaffected — `pronunciationReport` is optional on all responses
+- No new environment variables — uses existing `OPENAI_API_KEY` and Anthropic credentials
+- New npm dependency: `compromise`
+- No Prisma migration required
 
 ## Validation
 ```
-npx prisma migrate dev → Applied migration clean
-npx tsc --noEmit → 0 errors
+npx tsc --noEmit → exit 0
 npm run lint → No ESLint warnings or errors
-npm run test → 250 passed | 4 skipped
+npm run test → 284 passed | 4 skipped
 ```
