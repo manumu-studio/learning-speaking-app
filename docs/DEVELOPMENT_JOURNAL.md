@@ -107,3 +107,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.37.0 | [PR-0.37.0](pull-requests/PR-0.37.0.md) | 2026-05-27 | L1 pronunciation bridge rules with client-side coaching lookup |
 | 0.38.0 | [ENTRY-42](journal/ENTRY-42.md) | 2026-05-27 | IPA phoneme display, speaking rate fix, break error filter |
 | 0.38.0 | [PR-0.38.0](pull-requests/PR-0.38.0.md) | 2026-05-27 | SAPI→IPA toggle, word transcription, ProsodyPanel rounding |
+| 0.39.0 | [ENTRY-43](journal/ENTRY-43.md) | 2026-05-27 | No-red color system + ScoreChip coaching labels |
+| 0.39.0 | [PR-0.39.0](pull-requests/PR-0.39.0.md) | 2026-05-27 | Coaching palette, ScoreChip in phoneme/metric/prosody UI |

@@ -14,14 +14,14 @@ const NON_BLOCKING_L1_TAGS = new Set([
 function computeWordColor(word: WordPronunciation): WordColor {
   if (word.errorType === 'Insertion') return 'gray-italic';
 
-  if (word.errorType === 'Mispronunciation' || word.errorType === 'Omission') return 'red';
+  if (word.errorType === 'Mispronunciation' || word.errorType === 'Omission') return 'amber';
 
   const allL1NonBlocking =
     word.l1Tags.length > 0 && word.l1Tags.every((tag) => NON_BLOCKING_L1_TAGS.has(tag));
 
   if (allL1NonBlocking) return 'yellow';
 
-  if (word.accuracyScore < 60) return 'red';
+  if (word.accuracyScore < 60) return 'amber';
 
   if (word.accuracyScore < 80) return 'yellow';
 
