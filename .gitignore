@@ -52,6 +52,7 @@ yarn-error.log*
 # Session continuity (private — not pushed)
 /CONTINUATION_PROMPT_NEXT_SESSION.md
 /continuation-prompts/
+/docs/continuation-prompts/
 
 # Project map
 /PROJECT_MAP.md
@@ -100,6 +101,9 @@ yarn-error.log*
 .claude/
 
 reports/
+
+# Audit trigger (ephemeral, consumed by Claude Code)
+.audit-trigger
 
 # Playwright
 playwright-report/
