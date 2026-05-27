@@ -1,11 +1,15 @@
-// DashboardView — renders the full dashboard: speaking pattern metrics,
-// pronunciation metrics, recent sessions, streak, and drill stats.
+// DashboardView — renders the full dashboard: pillar-grouped metrics,
+// recent sessions, streak, and drill stats.
 'use client';
 
 import { IdentitySummary } from '../IdentitySummary';
 import { MetricCard } from '../MetricCard';
 import { FocusSelector } from '../FocusSelector';
 import { DashboardSkeleton } from '../DashboardSkeleton';
+import { PillarCard } from '../PillarCard';
+import { usePillarCard } from '../PillarCard/usePillarCard';
+import { computePillarScores, PILLAR_CONFIG, PILLAR_KEYS } from '../pillars';
+import type { PillarKey } from '../pillars';
 import { useDashboard } from './useDashboard';
 import type {
   DashboardViewProps,
@@ -13,6 +17,7 @@ import type {
   PronunciationMetricCardItemProps,
   SpeakingMetricCardItemProps,
 } from './DashboardView.types';
+import type { DashboardMetric } from '@/features/dashboard/dashboard.types';
 import { PRONUNCIATION_METRIC_KEYS } from '@/features/dashboard/dashboard.types';
 
 const MIN_SESSIONS_FOR_METRICS = 3;
@@ -59,6 +64,68 @@ function PronunciationMetricCardItem({ metric, drillCount }: PronunciationMetric
   );
 }
 
+interface PillarCardWithStateProps {
+  pillarKey: PillarKey;
+  label: string;
+  averageScore: number;
+  delta: number;
+  sparklineData: number[];
+  color: string;
+  metricContext: MetricCardContext;
+  constituents: DashboardMetric[];
+  pronunciationEmpty: boolean;
+}
+
+function PillarCardWithState({
+  pillarKey,
+  label,
+  averageScore,
+  delta,
+  sparklineData,
+  color,
+  metricContext,
+  constituents,
+  pronunciationEmpty,
+}: PillarCardWithStateProps) {
+  const { isExpanded, toggle } = usePillarCard(pillarKey);
+
+  return (
+    <PillarCard
+      pillarKey={pillarKey}
+      label={label}
+      averageScore={averageScore}
+      delta={delta}
+      sparklineData={sparklineData}
+      color={color}
+      isExpanded={isExpanded}
+      onToggle={toggle}
+    >
+      {pronunciationEmpty ? (
+        <p className="col-span-full text-sm text-slate-500 dark:text-slate-400">
+          Complete a session with pronunciation assessment enabled to see metrics here.
+        </p>
+      ) : (
+        constituents.map((metric) => {
+          const isPronunciationMetric = PRONUNCIATION_METRIC_KEY_SET.has(metric.key);
+          return isPronunciationMetric ? (
+            <PronunciationMetricCardItem
+              key={metric.key}
+              metric={metric}
+              drillCount={metricContext.data.drillStats.byMetric[metric.key]}
+            />
+          ) : (
+            <SpeakingMetricCardItem
+              key={metric.key}
+              metric={metric}
+              context={metricContext}
+            />
+          );
+        })
+      )}
+    </PillarCard>
+  );
+}
+
 export function DashboardView({ className }: DashboardViewProps) {
   const { data, isLoading, error, focus, setFocus, clearFocus } = useDashboard();
 
@@ -78,12 +145,10 @@ export function DashboardView({ className }: DashboardViewProps) {
 
   const showMetrics = data.totalSessions >= MIN_SESSIONS_FOR_METRICS;
 
-  const pronunciationMetrics = data.metrics.filter((m) =>
-    PRONUNCIATION_METRIC_KEY_SET.has(m.key),
-  );
+  const pillarScores = computePillarScores(data.metrics);
 
-  const speakingMetrics = data.metrics.filter(
-    (m) => !PRONUNCIATION_METRIC_KEY_SET.has(m.key),
+  const pronunciationMetrics = data.metrics.filter((m) =>
+    (PILLAR_CONFIG.pronunciation.metricKeys as readonly string[]).includes(m.key),
   );
 
   const pronunciationEmpty = pronunciationMetrics.every(
@@ -94,7 +159,6 @@ export function DashboardView({ className }: DashboardViewProps) {
 
   return (
     <div className={className}>
-      {/* Identity summary — top stats row */}
       <IdentitySummary
         weeklyMinutes={data.weeklyMinutes}
         weeklySessionCount={data.weeklySessionCount}
@@ -104,61 +168,39 @@ export function DashboardView({ className }: DashboardViewProps) {
       />
 
       {showMetrics ? (
-        <>
-          {/* Speaking pattern metrics */}
-          <section aria-labelledby="speaking-section-heading" className="mt-6">
-            <h2
-              id="speaking-section-heading"
-              className="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-200"
-            >
-              Speaking Patterns
-            </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {speakingMetrics.map((metric) => (
-                <SpeakingMetricCardItem
-                  key={metric.key}
-                  metric={metric}
-                  context={metricContext}
-                />
-              ))}
-            </div>
-          </section>
+        <section aria-label="Speaking metrics by pillar" className="mt-6 flex flex-col gap-4">
+          {PILLAR_KEYS.map((pillarKey) => {
+            const config = PILLAR_CONFIG[pillarKey];
+            const score = pillarScores.find((s) => s.pillarKey === pillarKey);
+            const isPronunciation = pillarKey === 'pronunciation';
+            const constituents = data.metrics.filter((m) =>
+              (config.metricKeys as readonly string[]).includes(m.key),
+            );
 
-          {/* Pronunciation & intonation metrics */}
-          <section aria-labelledby="pronunciation-section-heading" className="mt-8">
-            <h2
-              id="pronunciation-section-heading"
-              className="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-200"
-            >
-              Pronunciation & Intonation
-            </h2>
-
-            {pronunciationEmpty ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Complete a session with pronunciation assessment enabled to see metrics here.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {pronunciationMetrics.map((metric) => (
-                  <PronunciationMetricCardItem
-                    key={metric.key}
-                    metric={metric}
-                    drillCount={data.drillStats.byMetric[metric.key]}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        </>
+            return (
+              <PillarCardWithState
+                key={pillarKey}
+                pillarKey={pillarKey}
+                label={config.label}
+                averageScore={score?.averageScore ?? 0}
+                delta={score?.delta ?? 0}
+                sparklineData={score?.sparklineData ?? []}
+                color={config.color}
+                metricContext={metricContext}
+                constituents={constituents}
+                pronunciationEmpty={isPronunciation ? pronunciationEmpty : false}
+              />
+            );
+          })}
+        </section>
       ) : (
-        <div className="mt-6 rounded-xl border border-slate-100 bg-white p-8 text-center">
-          <p className="text-slate-500">
+        <div className="mt-6 rounded-xl border border-slate-100 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
+          <p className="text-slate-500 dark:text-slate-400">
             Record a few more sessions to see your patterns emerge.
           </p>
         </div>
       )}
 
-      {/* Focus selector — sticky bottom banner */}
       <FocusSelector
         focusLabel={focus?.focusLabel ?? null}
         onClear={clearFocus}

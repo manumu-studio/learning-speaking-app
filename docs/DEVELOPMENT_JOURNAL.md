@@ -109,3 +109,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.38.0 | [PR-0.38.0](pull-requests/PR-0.38.0.md) | 2026-05-27 | SAPI→IPA toggle, word transcription, ProsodyPanel rounding |
 | 0.39.0 | [ENTRY-43](journal/ENTRY-43.md) | 2026-05-27 | No-red color system + ScoreChip coaching labels |
 | 0.39.0 | [PR-0.39.0](pull-requests/PR-0.39.0.md) | 2026-05-27 | Coaching palette, ScoreChip in phoneme/metric/prosody UI |
+| 0.40.0 | [ENTRY-44](journal/ENTRY-44.md) | 2026-05-27 | Three-pillar dashboard grouping + session hero row |
+| 0.40.0 | [PR-0.40.0](pull-requests/PR-0.40.0.md) | 2026-05-27 | PillarCards, strengths-first insights, pillar score tests |
