@@ -10,7 +10,7 @@ import { useWordColorMap } from './useWordColorMap';
 const COLOR_CLASSES: Record<WordColor, string> = {
   green: 'text-green-700 dark:text-green-400',
   yellow: 'text-yellow-700 dark:text-yellow-400',
-  red: 'text-red-700 dark:text-red-400',
+  amber: 'text-amber-700 dark:text-amber-400',
   'gray-italic': 'text-gray-400 italic dark:text-gray-500',
 } as const;
 
@@ -83,11 +83,11 @@ export function WordColorMap({
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-2.5 h-2.5 rounded-full bg-yellow-500" />
-          Learnable (60-79 or accent)
+          Building (60-79 or accent)
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" />
-          Needs work (&lt;60)
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
+          Sharpen (&lt;60)
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-400" />

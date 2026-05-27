@@ -2,7 +2,7 @@
 
 import type { WordPronunciation } from '@/components/ui/PronunciationSection';
 
-export type WordColor = 'green' | 'yellow' | 'red' | 'gray-italic';
+export type WordColor = 'green' | 'yellow' | 'amber' | 'gray-italic';
 
 export interface WordColorMapProps {
   words: WordPronunciation[];

@@ -1,15 +1,10 @@
 // MetricCard — interactive metric display with level badge, trend, and sparkline
 'use client';
 
+import { ScoreChip } from '@/components/ui/ScoreChip';
 import { SparkLine } from '@/components/ui/SparkLine';
 import type { MetricCardProps } from './MetricCard.types';
 import type { MetricLevel, TrendDirection } from '../dashboard.types';
-
-const LEVEL_STYLES: Record<MetricLevel, { badge: string; label: string }> = {
-  low: { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', label: 'Growth Area' },
-  medium: { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', label: 'Current Pattern' },
-  high: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', label: 'Strength Level' },
-};
 
 const TREND_DISPLAY: Record<TrendDirection, { arrow: string; color: string }> = {
   improving: { arrow: '\u2191', color: 'text-green-600' },
@@ -35,7 +30,6 @@ export function MetricCard({
   lastTrainedToday,
   drillCount = 0,
 }: MetricCardProps) {
-  const levelStyle = LEVEL_STYLES[currentLevel];
   const trendDisplay = TREND_DISPLAY[trend];
   const isSelectable = onSelect !== undefined;
 
@@ -54,11 +48,7 @@ export function MetricCard({
         <div>
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</h3>
           <div className="mt-1 flex items-center gap-2">
-            <span
-              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${levelStyle.badge}`}
-            >
-              {levelStyle.label}
-            </span>
+            <ScoreChip score={currentScore} scale="ten" />
             {lastTrainedToday && (
               <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                 Last trained: today
