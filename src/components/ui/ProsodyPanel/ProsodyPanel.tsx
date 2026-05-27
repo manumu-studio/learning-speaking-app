@@ -2,20 +2,15 @@
 'use client';
 
 import React from 'react';
+import { ScoreChip } from '@/components/ui/ScoreChip';
 import { mapAzureScoreToDisplay } from '@/components/ui/PronunciationSection';
 import type { ProsodyPanelProps, RateStatus } from './ProsodyPanel.types';
 import { useProsodyPanel } from './useProsodyPanel';
 
-const RATE_STATUS_LABELS: Record<RateStatus, string> = {
-  'too-slow': 'Below ideal (try to speak a bit faster)',
-  ideal: 'Ideal pace',
-  'too-fast': 'Above ideal (try to slow down slightly)',
-} as const;
-
-const RATE_STATUS_CLASSES: Record<RateStatus, string> = {
-  'too-slow': 'text-yellow-700 dark:text-yellow-400',
-  ideal: 'text-green-700 dark:text-green-400',
-  'too-fast': 'text-yellow-700 dark:text-yellow-400',
+const RATE_CHIP_CONFIG: Record<RateStatus, { score: number; label: string }> = {
+  ideal: { score: 9, label: 'Ideal pace' },
+  'too-fast': { score: 6, label: 'A bit fast' },
+  'too-slow': { score: 6, label: 'A bit slow' },
 } as const;
 
 export function ProsodyPanel({
@@ -27,6 +22,7 @@ export function ProsodyPanel({
   const { rateStatus, hasSyllableTimedRhythm, topErrors, isMonotone } =
     useProsodyPanel(words, speakingRateWpm);
 
+  const rateChip = RATE_CHIP_CONFIG[rateStatus];
   const displayProsodyScore = mapAzureScoreToDisplay(prosodyScore);
 
   return (
@@ -54,9 +50,12 @@ export function ProsodyPanel({
         <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
           Speaking rate
         </p>
-        <p className={`text-sm font-medium ${RATE_STATUS_CLASSES[rateStatus]}`}>
-          {Math.round(speakingRateWpm)} wpm &mdash; {RATE_STATUS_LABELS[rateStatus]}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {Math.round(speakingRateWpm)} wpm
+          </span>
+          <ScoreChip score={rateChip.score} scale="ten" label={rateChip.label} />
+        </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Ideal range: 110-140 words per minute
         </p>

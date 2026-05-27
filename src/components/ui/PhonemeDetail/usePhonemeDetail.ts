@@ -39,5 +39,5 @@ export function usePhonemeDetail(word: WordPronunciation): ParsedPhonemeData {
 export function phonemeScoreToColorClass(score: number): string {
   if (score >= 80) return 'bg-green-500';
   if (score >= 60) return 'bg-yellow-500';
-  return 'bg-red-500';
+  return 'bg-gray-400';
 }

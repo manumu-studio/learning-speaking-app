@@ -6,6 +6,7 @@ import { usePhonemeAlphabet } from '@/hooks/usePhonemeAlphabet';
 import { wordToIpa } from '@/lib/pronunciation/sapiToIpa';
 import type { PhonemeDetailProps, L1TagKey } from './PhonemeDetail.types';
 import { L1_TAG_LABELS } from './PhonemeDetail.types';
+import { ScoreChip } from '@/components/ui/ScoreChip';
 import { usePhonemeDetail, phonemeScoreToColorClass } from './usePhonemeDetail';
 
 export function PhonemeDetail({
@@ -102,9 +103,10 @@ export function PhonemeDetail({
                     <span className="text-xs text-gray-500 dark:text-gray-400 w-8 text-right">
                       {phoneme.accuracyScore}%
                     </span>
+                    <ScoreChip score={phoneme.accuracyScore} scale="hundred" />
                   </div>
                   {showAlternative && (
-                    <p className="ml-10 mt-0.5 text-xs text-red-600 dark:text-red-400">
+                    <p className="ml-10 mt-0.5 text-xs text-amber-600 dark:text-amber-400">
                       You said: /{displayPhoneme(topAlternative.phoneme)}/ &nbsp;&rarr;&nbsp; Expected: /
                       {displayPhoneme(phoneme.phoneme)}/
                     </p>
