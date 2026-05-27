@@ -62,6 +62,9 @@ describe('DrillView', () => {
       completeValidation: vi.fn(),
       failValidation: vi.fn(),
       resetRecording: vi.fn(),
+      segmentIndex: 0,
+      isAutoSegmenting: false,
+      secondsUntilSplit: null,
     });
   });
 

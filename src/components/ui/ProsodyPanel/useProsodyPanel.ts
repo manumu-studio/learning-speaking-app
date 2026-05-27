@@ -9,6 +9,18 @@ const IDEAL_WPM_MIN = 110;
 const IDEAL_WPM_MAX = 140;
 const TOP_N_ERRORS = 3;
 
+/** Maps raw Azure SDK error strings to plain English labels */
+const ERROR_LABEL_MAP: Record<string, string> = {
+  UnexpectedBreak: 'Unexpected pause',
+  MissingBreak: 'Missing pause',
+  MonotonePitch: 'Flat intonation',
+  MonotoneRate: 'Flat rhythm',
+};
+
+function toUserFacingErrorLabel(sdkType: string): string {
+  return ERROR_LABEL_MAP[sdkType] ?? sdkType;
+}
+
 export interface ProsodyAnalysis {
   rateStatus: RateStatus;
   hasSyllableTimedRhythm: boolean;
@@ -46,7 +58,7 @@ export function useProsodyPanel(
     }
 
     const topErrors: ErrorFrequency[] = [...errorCounts.entries()]
-      .map(([type, count]) => ({ type, count }))
+      .map(([type, count]) => ({ type: toUserFacingErrorLabel(type), count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, TOP_N_ERRORS);
 

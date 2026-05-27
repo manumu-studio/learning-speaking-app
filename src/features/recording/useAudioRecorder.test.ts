@@ -7,6 +7,7 @@ import { useAudioRecorder } from './useAudioRecorder';
 class MockMediaRecorder {
   static isTypeSupported = vi.fn(() => true);
   mimeType: string;
+  state: 'inactive' | 'recording' | 'paused' = 'inactive';
   ondataavailable: ((event: { data: Blob }) => void) | null = null;
   onstop: (() => void) | null = null;
   onerror: (() => void) | null = null;
@@ -19,10 +20,12 @@ class MockMediaRecorder {
   }
 
   start = vi.fn(() => {
+    this.state = 'recording';
     this.ondataavailable?.({ data: new Blob(['chunk'], { type: this.mimeType }) });
   });
 
   stop = vi.fn(() => {
+    this.state = 'inactive';
     this.onstop?.();
   });
 }
@@ -168,5 +171,164 @@ describe('useAudioRecorder', () => {
 
     expect(result.current.state).toBe('idle');
     expect(result.current.error).toContain('No supported audio MIME type');
+  });
+});
+
+describe('useAudioRecorder auto-segmentation', () => {
+  let trackStop: ReturnType<typeof vi.fn>;
+  let stream: MediaStream;
+  let createdRecorders: MockMediaRecorder[];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    createdRecorders = [];
+    trackStop = vi.fn();
+
+    class SegmentedMockMediaRecorder extends MockMediaRecorder {
+      constructor(recStream: MediaStream, options?: { mimeType?: string }) {
+        super(recStream, options);
+        createdRecorders.push(this);
+      }
+    }
+
+    vi.stubGlobal(
+      'MediaRecorder',
+      SegmentedMockMediaRecorder as unknown as typeof MediaRecorder,
+    );
+
+    stream = {
+      getTracks: () => [{ stop: trackStop }],
+    } as unknown as MediaStream;
+
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      mediaDevices: {
+        getUserMedia: vi.fn().mockResolvedValue(stream),
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('should auto-stop at maxDurationSecs and call onSegmentReady', async () => {
+    const onSegmentReady = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ maxDurationSecs: 300, onSegmentReady })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300_000);
+    });
+
+    expect(onSegmentReady).toHaveBeenCalledTimes(1);
+    expect(onSegmentReady.mock.calls[0]?.[2]).toBe(0);
+    expect(result.current.segmentIndex).toBe(1);
+    expect(trackStop).not.toHaveBeenCalled();
+  });
+
+  it('should restart recording on same stream after auto-segment', async () => {
+    const onSegmentReady = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ maxDurationSecs: 300, onSegmentReady })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    const initialCount = createdRecorders.length;
+
+    await act(async () => {
+      vi.advanceTimersByTime(300_000);
+    });
+
+    expect(createdRecorders.length).toBeGreaterThan(initialCount);
+    expect(result.current.state).toBe('recording');
+    expect(trackStop).not.toHaveBeenCalled();
+  });
+
+  it('should NOT auto-segment when maxDurationSecs is null', async () => {
+    const onSegmentReady = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ maxDurationSecs: null, onSegmentReady })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(400_000);
+    });
+
+    expect(onSegmentReady).not.toHaveBeenCalled();
+    expect(result.current.state).toBe('recording');
+  });
+
+  it('should fire onWarning callback before split', async () => {
+    const onWarning = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ maxDurationSecs: 300, warningBeforeSplitSecs: 30, onWarning })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(270_000);
+    });
+
+    expect(onWarning).toHaveBeenCalledWith(30);
+    expect(result.current.secondsUntilSplit).toBe(30);
+  });
+
+  it('should stop stream on manual stopRecording', async () => {
+    vi.useRealTimers();
+    const { result } = renderHook(() => useAudioRecorder({ maxDurationSecs: 300 }));
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    act(() => {
+      result.current.stopRecording();
+    });
+
+    await waitFor(() => {
+      expect(result.current.state).toBe('validating');
+    });
+
+    expect(trackStop).toHaveBeenCalled();
+    vi.useFakeTimers();
+  });
+
+  it('should reset segmentIndex on resetRecording', async () => {
+    const onSegmentReady = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ maxDurationSecs: 300, onSegmentReady })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300_000);
+    });
+
+    act(() => {
+      result.current.resetRecording();
+    });
+
+    expect(result.current.segmentIndex).toBe(0);
   });
 });

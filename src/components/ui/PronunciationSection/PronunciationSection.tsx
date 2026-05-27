@@ -1,13 +1,14 @@
-// PronunciationSection: top-level container showing score gauges and speaking rate for a pronunciation report
+// PronunciationSection: top-level container showing score tier badges and speaking rate for a pronunciation report
 'use client';
 
 import React from 'react';
 import type { PronunciationSectionProps, WpmStatus } from './PronunciationSection.types';
-import { mapAzureScoreToDisplay } from './usePronunciationSection';
+import { ScoreTierBadge } from '@/components/ui/ScoreTierBadge';
 
 export function PronunciationSection({
   pronunciationReport,
   animationDelay,
+  progressChip,
 }: PronunciationSectionProps): React.JSX.Element {
   const {
     pronScore,
@@ -60,38 +61,44 @@ export function PronunciationSection({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-4 mb-6" role="list" aria-label="Pronunciation scores">
-        {gauges.map(({ label, azureScore }) => {
-          const displayScore = mapAzureScoreToDisplay(azureScore);
-          return (
-            <div
-              key={label}
-              role="listitem"
-              className="flex flex-col items-center gap-1 min-w-[72px]"
-            >
-              <div
-                className="relative flex items-center justify-center w-16 h-16 rounded-full border-4"
-                style={{
-                  borderColor: scoreToColor(azureScore),
-                }}
-                aria-label={`${label}: ${displayScore} out of 10`}
-              >
-                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {displayScore}
-                </span>
-                <span className="absolute bottom-0.5 text-[9px] text-gray-500 dark:text-gray-400">
-                  /10
-                </span>
-              </div>
-              <span className="text-xs text-gray-600 dark:text-gray-400 text-center leading-tight">
-                {label}
-              </span>
-            </div>
-          );
-        })}
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-4" role="list" aria-label="Pronunciation scores">
+        {gauges.map(({ label, azureScore }) => (
+          <div key={label} role="listitem">
+            <ScoreTierBadge azureScore={azureScore} label={label} />
+          </div>
+        ))}
       </div>
 
-      <div className="flex items-center gap-2">
+      {progressChip !== undefined && progressChip.deltaPercent !== null && (
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+          {progressChip.metricLabel}{' '}
+          <span
+            className={
+              progressChip.deltaPercent >= 0
+                ? 'text-green-600 dark:text-green-400 font-medium'
+                : 'text-amber-600 dark:text-amber-400 font-medium'
+            }
+          >
+            {progressChip.deltaPercent >= 0 ? '+' : ''}
+            {progressChip.deltaPercent}% vs last session
+          </span>
+        </p>
+      )}
+
+      <details className="mt-2">
+        <summary className="cursor-pointer text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 select-none">
+          Score details
+        </summary>
+        <div className="flex flex-wrap gap-2 sm:gap-3 mt-3" role="list" aria-label="Numeric pronunciation scores">
+          {gauges.map(({ label, azureScore }) => (
+            <div key={label} role="listitem">
+              <ScoreTierBadge azureScore={azureScore} label={label} showNumeric />
+            </div>
+          ))}
+        </div>
+      </details>
+
+      <div className="flex items-center gap-2 mt-6">
         <span className="text-sm text-gray-600 dark:text-gray-400">Speaking rate:</span>
         <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${wpmColorClass}`}>
           {speakingRateWpm} words/min
@@ -107,10 +114,4 @@ export function PronunciationSection({
       </div>
     </section>
   );
-}
-
-function scoreToColor(azureScore: number): string {
-  if (azureScore >= 80) return '#22c55e';
-  if (azureScore >= 60) return '#eab308';
-  return '#ef4444';
 }

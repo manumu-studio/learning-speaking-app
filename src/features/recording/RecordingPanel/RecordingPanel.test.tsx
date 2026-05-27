@@ -18,6 +18,20 @@ vi.mock('@/features/recording/useAudioRecorder', () => ({
     completeValidation: vi.fn(),
     failValidation: vi.fn(),
     resetRecording: vi.fn(),
+    segmentIndex: 0,
+    isAutoSegmenting: false,
+    secondsUntilSplit: null,
+  }),
+}));
+
+vi.mock('@/features/recording/useSegmentUploader', () => ({
+  useSegmentUploader: () => ({
+    segments: [],
+    uploadSegment: vi.fn(),
+    totalUploaded: 0,
+    totalFailed: 0,
+    isUploading: false,
+    latestSessionId: null,
   }),
 }));
 
