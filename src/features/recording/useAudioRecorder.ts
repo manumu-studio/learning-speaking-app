@@ -36,12 +36,17 @@ export function useAudioRecorder(
   const segmentDurationRef = useRef(0);
   const mimeTypeRef = useRef<string>('audio/webm');
   const durationRef = useRef(0);
+  const isPausedRef = useRef(false);
   const optionsRef = useRef(options);
   const stopRecordingRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
+
+  useEffect(() => {
+    isPausedRef.current = options.isPaused ?? false;
+  }, [options.isPaused]);
 
   const state = getRecordingStatus(machineState);
 
@@ -237,13 +242,15 @@ export function useAudioRecorder(
       dispatch({ type: 'START_RECORDING', mimeType });
 
       timerRef.current = setInterval(() => {
-        const next = durationRef.current + 1;
-        durationRef.current = next;
-        setDuration(next);
+        if (!isPausedRef.current) {
+          const next = durationRef.current + 1;
+          durationRef.current = next;
+          setDuration(next);
 
-        const limit = optionsRef.current.timeLimitSecs ?? null;
-        if (limit !== null && next >= limit) {
-          stopRecordingRef.current();
+          const limit = optionsRef.current.timeLimitSecs ?? null;
+          if (limit !== null && next >= limit) {
+            stopRecordingRef.current();
+          }
         }
       }, 1000);
 

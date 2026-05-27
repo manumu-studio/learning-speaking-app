@@ -1,6 +1,6 @@
 // TimeLimitSelector component prop types
 
-export type TimeLimitOption = 30 | 60 | 120 | null;
+export type TimeLimitOption = 60 | 120 | 300 | null;
 
 export interface TimeLimitSelectorProps {
   selected: TimeLimitOption;
