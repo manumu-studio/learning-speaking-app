@@ -15,11 +15,13 @@ async function ensureE2eUser() {
     update: {
       email: 'e2e@test.local',
       displayName: 'E2E Test User',
+      onboardedAt: new Date(),
     },
     create: {
       externalId: E2E_SYNTHETIC_EXTERNAL_ID,
       email: 'e2e@test.local',
       displayName: 'E2E Test User',
+      onboardedAt: new Date(),
     },
   });
 }

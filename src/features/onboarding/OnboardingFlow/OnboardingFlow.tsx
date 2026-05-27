@@ -2,10 +2,15 @@
 'use client';
 
 import { use, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { OnboardingWelcome } from '@/features/onboarding/OnboardingWelcome';
-import { OnboardingRecorder } from '@/features/onboarding/OnboardingRecorder';
 import { VoiceProfile } from '@/features/onboarding/VoiceProfile';
 import type { OnboardingFlowProps, OnboardingStep } from './OnboardingFlow.types';
+
+const OnboardingRecorder = dynamic(
+  () => import('@/features/onboarding/OnboardingRecorder').then((m) => ({ default: m.OnboardingRecorder })),
+  { ssr: false },
+);
 
 export function OnboardingFlow({ searchParams }: OnboardingFlowProps) {
   const { session: initialSessionId } = use(searchParams);
