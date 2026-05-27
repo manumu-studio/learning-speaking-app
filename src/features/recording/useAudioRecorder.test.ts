@@ -64,10 +64,11 @@ describe('useAudioRecorder', () => {
     });
 
     expect(result.current.state).toBe('recording');
+    expect(result.current.mediaStream).not.toBeNull();
     expect(MockMediaRecorder.isTypeSupported).toHaveBeenCalled();
   });
 
-  it('stopRecording produces blob and stopped state', async () => {
+  it('stopRecording moves to validating then stopped after completeValidation', async () => {
     const { result } = renderHook(() => useAudioRecorder());
 
     await act(async () => {
@@ -79,11 +80,40 @@ describe('useAudioRecorder', () => {
     });
 
     await waitFor(() => {
+      expect(result.current.state).toBe('validating');
+    });
+
+    act(() => {
+      result.current.completeValidation(null);
+    });
+
+    await waitFor(() => {
       expect(result.current.state).toBe('stopped');
     });
 
     expect(result.current.audioBlob).toBeInstanceOf(Blob);
     expect(result.current.audioBlob?.size).toBeGreaterThan(0);
+  });
+
+  it('failValidation returns to idle with error message', async () => {
+    const { result } = renderHook(() => useAudioRecorder());
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+    act(() => {
+      result.current.stopRecording();
+    });
+    await waitFor(() => {
+      expect(result.current.state).toBe('validating');
+    });
+
+    act(() => {
+      result.current.failValidation('No speech detected — try again.');
+    });
+
+    expect(result.current.state).toBe('idle');
+    expect(result.current.error).toContain('No speech detected');
   });
 
   it('sets error when getUserMedia rejects with NotAllowedError', async () => {
@@ -109,6 +139,12 @@ describe('useAudioRecorder', () => {
     });
     act(() => {
       result.current.stopRecording();
+    });
+    await waitFor(() => {
+      expect(result.current.state).toBe('validating');
+    });
+    act(() => {
+      result.current.completeValidation(null);
     });
     await waitFor(() => {
       expect(result.current.state).toBe('stopped');
@@ -268,7 +304,7 @@ describe('useAudioRecorder auto-segmentation', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state).toBe('stopped');
+      expect(result.current.state).toBe('validating');
     });
 
     expect(trackStop).toHaveBeenCalled();

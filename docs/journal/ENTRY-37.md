@@ -1,38 +1,48 @@
-# ENTRY-37 — AI Analysis Quality
+# ENTRY-37 — Speaker Isolation (Push-to-Talk, Phase 1)
 **Date:** 2026-05-27
 **Type:** Feature
-**Branch:** `feat/ai-analysis-quality`
-**Version:** `0.34.0`
+**Branch:** `feat/speaker-isolation`
+**Version:** `0.33.0`
 ---
 ## What I Did
-
-Enriched Claude transcript analysis with three new optional dimensions — coherence scoring, vocabulary diversity metrics, and Spanish L1 interference detection — and restructured the API call to use a proper system prompt with chain-of-thought user instructions. Added growth-framed tone calibration rules and Redis-backed caching keyed by transcript SHA-256 hash to skip redundant Claude calls on repeat views.
+- Replaced ad-hoc recording state with a discriminated union state machine (`idle → recording → validating → stopped`)
+- Added pre-upload validation gates for duration (2–120 s), blob size (500 B–25 MB), and supported MIME types
+- Built a real-time `AudioLevelMeter` using Web Audio `AnalyserNode` with clipping and too-quiet warnings
+- Added push-to-talk mode (`hold-to-record`) alongside backward-compatible press-to-toggle
+- Integrated Silero VAD pre-flight via `@ricky0123/vad-web` with lazy ONNX model loading from `/public/vad/`
+- Wired validation + VAD into `RecordingPanel` before upload is offered
 
 ## Files Touched
 | File | Action | Notes |
 |------|--------|-------|
-| `src/lib/ai/analyze.ts` | Modified | New Zod fields, system/user prompt split, CoT, tone rules, cache integration |
-| `src/lib/ai/analysisCache.ts` | Created | Redis get/set with 7-day TTL |
-| `src/lib/ai/analyze.test.ts` | Modified | Schema, caching, and system prompt tests |
-| `src/lib/ai/analysisCache.test.ts` | Created | Hash, hit/miss, graceful degradation tests |
+| `src/features/recording/recordingState.types.ts` | Created | Discriminated union types |
+| `src/features/recording/recordingStateMachine.ts` | Created | Pure reducer |
+| `src/features/recording/validateRecording.ts` | Created | Pre-upload gates |
+| `src/features/recording/useSileroVad.ts` | Created | Lazy VAD pre-flight hook |
+| `src/features/recording/useAudioRecorder.ts` | Modified | State machine + stream exposure |
+| `src/features/recording/RecordingPanel/RecordingPanel.tsx` | Modified | Full wiring |
+| `src/components/ui/AudioLevelMeter/` | Created | 4-file component |
+| `src/components/ui/RecordButton/RecordButton.tsx` | Modified | Hold-to-record + validating UI |
+| `public/vad/silero_vad_legacy.onnx` | Created | Bundled VAD model |
+| `package.json` | Modified | `@ricky0123/vad-web`, `onnxruntime-web` |
+| Test files (6) | Created/Modified | State machine, validation, VAD, recorder |
 
 ## Decisions
-- **System + user prompt split** — Anthropic's `system` parameter separates role/rules/schema from transcript data, improving JSON adherence versus one concatenated user blob.
-- **SHA-256 transcript hash as cache key** — Deterministic, collision-resistant, and stores no PII in the key itself.
-- **Fire-and-forget cache write** — Redis failures must never block the user response; `void setCachedAnalysis(...)` with internal error swallowing.
-- **Optional schema fields** — `coherenceScore`, `vocabularyDiversity`, and `l1Interference` are optional so existing session records remain valid without migration.
-- **Claude-estimated TTR** — Avoids adding a tokenization dependency; heuristic TTR is sufficient for coaching feedback at this stage.
-- **Dynamic import of cache module** — Breaks a circular dependency between `analyze.ts` and `analysisCache.ts` that caused a production build failure.
+- Phase 1 stays client-only — no backend routes or Prisma changes; zero infra cost
+- VAD model served from `/public/vad/` to avoid CDN CSP changes and keep loads same-origin
+- Background-voice detection uses fragmented-segment heuristics (Silero VAD detects speech, not speaker identity)
+- `validating` state blocks upload until gates pass — user sees clear messages instead of failed API calls
+- Hold-to-record uses pointer events with `touch-none` for deliberate mobile capture
 
 ## Still Open
-- Results UI does not yet surface `coherenceScore`, `vocabularyDiversity.repetitionFlags`, or `l1Interference` — data is validated and stored in the analysis payload but not rendered.
-- Cache invalidation on prompt schema change requires bumping the `v1` key prefix manually.
-- L1 interference detection is prompt-only; no cross-check against Azure phoneme tags yet.
+- Manual validation on real devices (iOS Safari pointer/touch, ONNX WASM load time)
+- Phase 2: ECAPA-TDNN enrollment + server-side personal VAD on Modal
+- DrillView still uses basic recorder hook — speaker isolation not yet wired to drills
 
 ## Validation
-```bash
-npx tsc --noEmit — exit 0
-npm run lint — ✔ No ESLint warnings or errors
-npm run test — 316 passed | 4 skipped
-npm run build — ✓ Compiled successfully
+```
+npx tsc --noEmit → exit 0
+npm run lint → ✔ No ESLint warnings or errors
+npm run test → 303 passed | 4 skipped
+npm run build → ✓ Compiled successfully (onnxruntime-web webpack warnings only)
 ```

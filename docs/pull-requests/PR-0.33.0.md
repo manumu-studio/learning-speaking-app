@@ -1,53 +1,58 @@
-# PR-0.30.0-rc.1 — Dashboard Pronunciation Metrics + Pipeline Reliability
-**Branch:** `feat/dashboard-reliability` → `main`
-**Version:** `0.30.0-rc.1`
-**Date:** 2026-05-26
+# PR-0.33.0 — Speaker Isolation (Push-to-Talk, Phase 1)
+**Branch:** `feat/speaker-isolation` → `main`
+**Version:** `0.33.0`
+**Date:** 2026-05-27
 **Status:** ✅ Ready to merge
 ---
 ## Summary
-- Surfaces pronunciation accuracy, prosody, and speaking rate on the main dashboard alongside the existing six speaking metrics
-- Hardens the pronunciation pipeline for production: Azure failures are isolated, oversized uploads are rejected at 8 MB, and the feature skips gracefully when Azure credentials are absent
-- Sets `maxDuration = 180` on the QStash process route and adds Azure Speech SDK domains to CSP
+- Prevents background voices and accidental captures from reaching Whisper/Claude via push-to-talk, VAD pre-flight, and pre-upload validation
+- Recording lifecycle uses a typed state machine with a new `validating` phase before upload is offered
+- Real-time audio level meter warns on clipping or too-quiet input during recording
 
 ## Files Changed
 | File | Action | Notes |
 |------|--------|-------|
-| `src/features/dashboard/dashboard.types.ts` | Modified | `PRONUNCIATION_METRIC_KEYS` constant |
-| `src/features/dashboard/DashboardView/DashboardView.tsx` | Modified | Speaking + pronunciation sections, empty state |
-| `next.config.ts` | Modified | CSP `connect-src` Azure domains |
-| `src/app/api/internal/process/route.ts` | Modified | `maxDuration = 180` |
-| `src/lib/pipeline/executePipeline.ts` | Modified | Azure failure upsert, warn/info logging |
-| `src/app/api/sessions/route.ts` | Modified | 8 MB upload guard (HTTP 413) |
+| `src/features/recording/recordingState.types.ts` | Created | Discriminated union |
+| `src/features/recording/recordingStateMachine.ts` | Created | Pure reducer |
+| `src/features/recording/validateRecording.ts` | Created | Duration/size/MIME gates |
+| `src/features/recording/useSileroVad.ts` | Created | Lazy Silero VAD hook |
+| `src/features/recording/useAudioRecorder.ts` | Modified | State machine integration |
+| `src/features/recording/RecordingPanel/RecordingPanel.tsx` | Modified | VAD + validation wiring |
+| `src/components/ui/AudioLevelMeter/` | Created | AnalyserNode meter |
+| `src/components/ui/RecordButton/` | Modified | Hold-to-record mode |
+| `public/vad/silero_vad_legacy.onnx` | Created | VAD model asset |
+| `package.json` | Modified | VAD dependencies |
 
 ## Architecture Decisions
 | Decision | Why |
 |----------|-----|
-| View-layer metric filtering | Keeps `DashboardData` return shape stable; no API breaking change |
-| Failure report with placeholder scores | Schema requires non-null Float fields; `failureReason` signals partial failure |
-| 8 MB check before DB/R2 | Fail fast before wasting pipeline compute on files Azure will reject |
-| CSP Azure domains now | Documents intent; prevents future browser-side SDK use from being blocked |
+| Client-only Phase 1 | Zero infra cost; covers 60–75% of bystander problem per research |
+| Lazy dynamic import for VAD | 1.4 MB ONNX model must not block initial page render |
+| Model in `/public/vad/` | Same-origin serving avoids CSP changes |
+| Fragmented-segment heuristic for background voices | Silero VAD detects speech presence, not speaker identity |
+| `validating` state before `stopped` | Gates run before upload UI appears |
 
 ## Testing Checklist
 - [x] `npx tsc --noEmit` passes
 - [x] `npm run lint` passes
-- [x] `npm run test` passes (259 tests)
+- [x] `npm run test` passes (303 tests)
 - [x] `npm run build` succeeds
-- [ ] Dashboard shows "Pronunciation & Intonation" section (manual)
-- [ ] Empty state for users with no pronunciation data (manual)
-- [ ] Upload > 8 MB returns 413 (manual)
-- [ ] Pipeline completes with Azure disabled (manual)
-- [ ] Pipeline completes when Azure throws (manual)
+- [ ] Hold-to-record works on mobile (manual)
+- [ ] Press-to-toggle backward compatible (manual)
+- [ ] "No speech detected" shown for silent recording (manual)
+- [ ] Background voice warning with proceed option (manual)
+- [ ] Recordings < 2 s rejected with clear message (manual)
+- [ ] Level meter shows during recording (manual)
 
 ## Deployment Notes
-- No schema migrations required
-- `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` remain optional — pipeline skips pronunciation when absent
-- Vercel function timeout now explicitly set to 180s on `/api/internal/process`
+- New static asset: `public/vad/silero_vad_legacy.onnx` (~1.4 MB) — ensure it deploys with the app
+- No schema migrations or env var changes
+- Webpack may warn on `onnxruntime-web` dynamic requires — expected, build succeeds
 
 ## Validation
 ```
-npx prisma generate → ✔ Generated Prisma Client
 npx tsc --noEmit → exit 0
 npm run lint → ✔ No ESLint warnings or errors
-npm run test → 259 passed | 4 skipped
+npm run test → 303 passed | 4 skipped
 npm run build → ✓ Compiled successfully
 ```
