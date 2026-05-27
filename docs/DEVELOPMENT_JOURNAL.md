@@ -51,6 +51,8 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.30.0-rc.1 | [ENTRY-32](journal/ENTRY-32.md) | 2026-05-26 | Dashboard pronunciation metrics + pipeline reliability |
 | 0.31.0 | [ENTRY-34](journal/ENTRY-34.md) | 2026-05-27 | Whisper hallucination guardrails |
 | 0.32.0 | [ENTRY-35](journal/ENTRY-35.md) | 2026-05-27 | Pronunciation feedback UX overhaul |
+| 0.33.0 | [ENTRY-37](journal/ENTRY-37.md) | 2026-05-27 | Speaker isolation: push-to-talk, VAD pre-flight, validation gates |
+| 0.34.0 | [ENTRY-38](journal/ENTRY-38.md) | 2026-05-27 | AI analysis quality: coherence, vocabulary diversity, L1 detection, Redis caching |
 
 ## Pull Requests
 
@@ -95,3 +97,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.30.0-rc.1 | [PR-0.30.0-rc.1](pull-requests/PR-0.30.0-rc.1.md) | 2026-05-26 | Dashboard pronunciation metrics + pipeline reliability hardening |
 | 0.31.0 | [PR-0.31.0](pull-requests/PR-0.31.0.md) | 2026-05-27 | Whisper hallucination guardrails |
 | 0.32.0 | [PR-0.32.0](pull-requests/PR-0.32.0.md) | 2026-05-27 | Pronunciation feedback UX |
+| 0.33.0 | [PR-0.33.0](pull-requests/PR-0.33.0.md) | 2026-05-27 | Speaker isolation: push-to-talk, VAD pre-flight, validation gates |
+| 0.34.0 | [PR-v0.34.0-ai-analysis-quality](pull-requests/PR-v0.34.0-ai-analysis-quality.md) | 2026-05-27 | AI analysis quality: enriched Claude dimensions + Redis caching |
