@@ -99,3 +99,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.32.0 | [PR-0.32.0](pull-requests/PR-0.32.0.md) | 2026-05-27 | Pronunciation feedback UX |
 | 0.33.0 | [PR-0.33.0](pull-requests/PR-0.33.0.md) | 2026-05-27 | Speaker isolation: push-to-talk, VAD pre-flight, validation gates |
 | 0.34.0 | [PR-v0.34.0-ai-analysis-quality](pull-requests/PR-v0.34.0-ai-analysis-quality.md) | 2026-05-27 | AI analysis quality: enriched Claude dimensions + Redis caching |
+| 0.35.0 | [ENTRY-39](journal/ENTRY-39.md) | 2026-05-27 | Recording UX: waveform, prompts, time limits, preview flow, mobile polish |
+| 0.35.0 | [PR-v0.35.0-recording-ux-flow](pull-requests/PR-v0.35.0-recording-ux-flow.md) | 2026-05-27 | Recording UX & flow — integrated record screen |
