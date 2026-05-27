@@ -55,7 +55,7 @@ export function ProsodyPanel({
           Speaking rate
         </p>
         <p className={`text-sm font-medium ${RATE_STATUS_CLASSES[rateStatus]}`}>
-          {speakingRateWpm} wpm &mdash; {RATE_STATUS_LABELS[rateStatus]}
+          {Math.round(speakingRateWpm)} wpm &mdash; {RATE_STATUS_LABELS[rateStatus]}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Ideal range: 110-140 words per minute
