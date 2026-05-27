@@ -1,4 +1,4 @@
-// Custom hook for managing audio recording via MediaRecorder API and state machine
+// Custom hook for audio recording — state machine, VAD lifecycle, and optional auto-segmentation
 'use client';
 
 import { useReducer, useState, useRef, useCallback, useEffect } from 'react';
@@ -9,6 +9,9 @@ import {
 import { getRecordingStatus } from './recordingState.types';
 import type { UseAudioRecorderOptions, UseAudioRecorderReturn } from './useAudioRecorder.types';
 
+const DEFAULT_MAX_DURATION_SECS = 300;
+const DEFAULT_WARNING_BEFORE_SPLIT_SECS = 30;
+
 export function useAudioRecorder(
   options: UseAudioRecorderOptions = {},
 ): UseAudioRecorderReturn {
@@ -17,13 +20,27 @@ export function useAudioRecorder(
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [segmentIndex, setSegmentIndex] = useState(0);
+  const [isAutoSegmenting, setIsAutoSegmenting] = useState(false);
+  const [secondsUntilSplit, setSecondsUntilSplit] = useState<number | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const segmentBoundaryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isAutoSegmentRef = useRef(false);
+  const segmentIndexRef = useRef(0);
+  const segmentDurationRef = useRef(0);
   const mimeTypeRef = useRef<string>('audio/webm');
   const durationRef = useRef(0);
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const state = getRecordingStatus(machineState);
 
@@ -50,6 +67,135 @@ export function useAudioRecorder(
     setMediaStream(null);
   }, []);
 
+  const clearSegmentTimers = useCallback(() => {
+    if (segmentBoundaryTimerRef.current) {
+      clearTimeout(segmentBoundaryTimerRef.current);
+      segmentBoundaryTimerRef.current = null;
+    }
+    if (warningTimerRef.current) {
+      clearTimeout(warningTimerRef.current);
+      warningTimerRef.current = null;
+    }
+    if (warningIntervalRef.current) {
+      clearInterval(warningIntervalRef.current);
+      warningIntervalRef.current = null;
+    }
+    setSecondsUntilSplit(null);
+  }, []);
+
+  const clearDurationTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const scheduleSegmentTimersRef = useRef<() => void>(() => undefined);
+
+  const attachRecorderHandlers = useCallback(
+    (mediaRecorder: MediaRecorder, mimeType: string) => {
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        const wasAutoSegment = isAutoSegmentRef.current;
+        isAutoSegmentRef.current = false;
+
+        if (wasAutoSegment && streamRef.current) {
+          setIsAutoSegmenting(true);
+          optionsRef.current.onSegmentReady?.(
+            blob,
+            segmentDurationRef.current,
+            segmentIndexRef.current,
+          );
+          segmentIndexRef.current += 1;
+          setSegmentIndex(segmentIndexRef.current);
+          chunksRef.current = [];
+          segmentDurationRef.current = 0;
+          durationRef.current = 0;
+          setDuration(0);
+
+          const newRecorder = new MediaRecorder(streamRef.current, { mimeType });
+          mediaRecorderRef.current = newRecorder;
+          attachRecorderHandlers(newRecorder, mimeType);
+          newRecorder.start(100);
+          setIsAutoSegmenting(false);
+          scheduleSegmentTimersRef.current();
+        } else {
+          clearSegmentTimers();
+          clearDurationTimer();
+          cleanupStream();
+          dispatch({
+            type: 'STOP_RECORDING',
+            payload: {
+              audioBlob: blob,
+              duration: durationRef.current,
+              mimeType: mimeTypeRef.current,
+            },
+          });
+        }
+      };
+
+      mediaRecorder.onerror = () => {
+        setError('Recording error occurred');
+        clearSegmentTimers();
+        clearDurationTimer();
+        cleanupStream();
+        dispatch({ type: 'VALIDATION_FAILED' });
+      };
+    },
+    [cleanupStream, clearDurationTimer, clearSegmentTimers],
+  );
+
+  const scheduleSegmentTimers = useCallback(() => {
+    clearSegmentTimers();
+
+    const configuredMax = optionsRef.current.maxDurationSecs;
+    if (configuredMax === null) return;
+
+    const maxDurationSecs = configuredMax ?? DEFAULT_MAX_DURATION_SECS;
+    const warningBeforeSplitSecs =
+      optionsRef.current.warningBeforeSplitSecs ?? DEFAULT_WARNING_BEFORE_SPLIT_SECS;
+
+    if (warningBeforeSplitSecs > 0 && warningBeforeSplitSecs < maxDurationSecs) {
+      const warningDelayMs = (maxDurationSecs - warningBeforeSplitSecs) * 1000;
+      warningTimerRef.current = setTimeout(() => {
+        let remaining = warningBeforeSplitSecs;
+        setSecondsUntilSplit(remaining);
+        optionsRef.current.onWarning?.(remaining);
+
+        warningIntervalRef.current = setInterval(() => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            if (warningIntervalRef.current) {
+              clearInterval(warningIntervalRef.current);
+              warningIntervalRef.current = null;
+            }
+            setSecondsUntilSplit(null);
+            return;
+          }
+          setSecondsUntilSplit(remaining);
+          optionsRef.current.onWarning?.(remaining);
+        }, 1000);
+      }, warningDelayMs);
+    }
+
+    segmentBoundaryTimerRef.current = setTimeout(() => {
+      clearSegmentTimers();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        segmentDurationRef.current = maxDurationSecs;
+        isAutoSegmentRef.current = true;
+        mediaRecorderRef.current.stop();
+      }
+    }, maxDurationSecs * 1000);
+  }, [clearSegmentTimers]);
+
+  scheduleSegmentTimersRef.current = scheduleSegmentTimers;
+
   const startRecording = useCallback(async () => {
     if (machineState.status !== 'idle') return;
 
@@ -58,6 +204,10 @@ export function useAudioRecorder(
       chunksRef.current = [];
       setDuration(0);
       durationRef.current = 0;
+      segmentIndexRef.current = 0;
+      setSegmentIndex(0);
+      setIsAutoSegmenting(false);
+      clearSegmentTimers();
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -81,32 +231,7 @@ export function useAudioRecorder(
       mimeTypeRef.current = mimeType;
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current });
-        cleanupStream();
-        dispatch({
-          type: 'STOP_RECORDING',
-          payload: {
-            audioBlob: blob,
-            duration: durationRef.current,
-            mimeType: mimeTypeRef.current,
-          },
-        });
-      };
-
-      mediaRecorder.onerror = () => {
-        setError('Recording error occurred');
-        cleanupStream();
-        dispatch({ type: 'VALIDATION_FAILED' });
-      };
-
+      attachRecorderHandlers(mediaRecorder, mimeType);
       mediaRecorder.start(100);
       dispatch({ type: 'START_RECORDING', mimeType });
 
@@ -114,6 +239,8 @@ export function useAudioRecorder(
         durationRef.current += 1;
         setDuration((prev) => prev + 1);
       }, 1000);
+
+      scheduleSegmentTimers();
     } catch (err) {
       cleanupStream();
       if (err instanceof Error) {
@@ -129,22 +256,26 @@ export function useAudioRecorder(
       }
       dispatch({ type: 'VALIDATION_FAILED' });
     }
-  }, [cleanupStream, machineState.status]);
+  }, [
+    attachRecorderHandlers,
+    cleanupStream,
+    clearSegmentTimers,
+    machineState.status,
+    scheduleSegmentTimers,
+  ]);
 
   const stopRecording = useCallback(() => {
     if (machineState.status !== 'recording') return;
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-    }
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, [machineState.status]);
+    clearSegmentTimers();
+    clearDurationTimer();
+    segmentDurationRef.current = durationRef.current;
+    isAutoSegmentRef.current = false;
+    mediaRecorderRef.current?.stop();
+  }, [clearDurationTimer, clearSegmentTimers, machineState.status]);
 
   const completeValidation = useCallback(
-    (vadWarning: { message: string; canProceed: true } | null) => {
-      dispatch({ type: 'VALIDATION_PASSED', vadWarning });
+    (warning: { message: string; canProceed: true } | null) => {
+      dispatch({ type: 'VALIDATION_PASSED', vadWarning: warning });
     },
     [],
   );
@@ -158,22 +289,27 @@ export function useAudioRecorder(
   }, []);
 
   const resetRecording = useCallback(() => {
+    clearSegmentTimers();
+    clearDurationTimer();
     dispatch({ type: 'RESET' });
     setDuration(0);
     durationRef.current = 0;
     setError(null);
     chunksRef.current = [];
+    segmentIndexRef.current = 0;
+    setSegmentIndex(0);
+    setIsAutoSegmenting(false);
+    setSecondsUntilSplit(null);
     cleanupStream();
-  }, [cleanupStream]);
+  }, [cleanupStream, clearDurationTimer, clearSegmentTimers]);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      clearDurationTimer();
+      clearSegmentTimers();
       cleanupStream();
     };
-  }, [cleanupStream]);
+  }, [cleanupStream, clearDurationTimer, clearSegmentTimers]);
 
   return {
     state,
@@ -189,5 +325,8 @@ export function useAudioRecorder(
     completeValidation,
     failValidation,
     resetRecording,
+    segmentIndex,
+    isAutoSegmenting,
+    secondsUntilSplit,
   };
 }
