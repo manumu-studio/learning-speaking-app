@@ -101,3 +101,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.34.0 | [PR-v0.34.0-ai-analysis-quality](pull-requests/PR-v0.34.0-ai-analysis-quality.md) | 2026-05-27 | AI analysis quality: enriched Claude dimensions + Redis caching |
 | 0.35.0 | [ENTRY-39](journal/ENTRY-39.md) | 2026-05-27 | Recording UX: waveform, prompts, time limits, preview flow, mobile polish |
 | 0.35.0 | [PR-v0.35.0-recording-ux-flow](pull-requests/PR-v0.35.0-recording-ux-flow.md) | 2026-05-27 | Recording UX & flow — integrated record screen |
+| 0.36.0 | [ENTRY-40](journal/ENTRY-40.md) | 2026-05-27 | Recording UX improvements: time limits, background toast, silence pause |
+| 0.36.0 | [PR-0.36.0](pull-requests/PR-0.36.0.md) | 2026-05-27 | Extended limits, processing toast, silence auto-pause |

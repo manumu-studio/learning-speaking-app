@@ -1,6 +1,7 @@
 // Component tests for RecordingPanel — idle UI with recorder hook mocked for jsdom
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ProcessingSessionsProvider } from '@/features/session/ProcessingSessionsContext';
 import { RecordingPanel } from './RecordingPanel';
 
 vi.mock('@/features/recording/useAudioRecorder', () => ({
@@ -83,6 +84,20 @@ vi.mock('@/features/recording/useMobileRecording', () => ({
   }),
 }));
 
+vi.mock('@/features/recording/useSilenceDetector', () => ({
+  useSilenceDetector: () => ({
+    isPausedBySilence: false,
+  }),
+}));
+
+function renderPanel() {
+  return render(
+    <ProcessingSessionsProvider>
+      <RecordingPanel />
+    </ProcessingSessionsProvider>,
+  );
+}
+
 describe('RecordingPanel', () => {
   beforeEach(() => {
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -96,18 +111,18 @@ describe('RecordingPanel', () => {
   });
 
   it('renders start recording control when idle', () => {
-    render(<RecordingPanel />);
+    renderPanel();
     expect(screen.getByRole('button', { name: /start recording/i })).toBeInTheDocument();
   });
 
   it('start control has descriptive accessible name', () => {
-    render(<RecordingPanel />);
+    renderPanel();
     const btn = screen.getByRole('button', { name: /start recording/i });
     expect(btn).toHaveAccessibleName();
   });
 
   it('does not show stop recording control while idle', () => {
-    render(<RecordingPanel />);
+    renderPanel();
     expect(screen.queryByRole('button', { name: /stop recording/i })).not.toBeInTheDocument();
   });
 });

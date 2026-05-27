@@ -8,17 +8,17 @@ import type { TimeLimitOption, TimeLimitSelectorProps } from './TimeLimitSelecto
 const STORAGE_KEY = 'lsa-time-limit';
 
 const storedLimitSchema = z.union([
-  z.literal(30),
   z.literal(60),
   z.literal(120),
+  z.literal(300),
   z.null(),
 ]);
 
 const OPTIONS: ReadonlyArray<{ value: TimeLimitOption; label: string }> = [
-  { value: 30, label: '30s' },
   { value: 60, label: '1 min' },
   { value: 120, label: '2 min' },
-  { value: null, label: 'Unlimited' },
+  { value: 300, label: '5 min' },
+  { value: null, label: 'Free' },
 ];
 
 function readStoredLimit(): TimeLimitOption | undefined {

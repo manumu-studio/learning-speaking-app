@@ -6,6 +6,8 @@ export interface UseAudioRecorderOptions {
   maxDurationSecs?: number | null;
   /** User-selected cap; auto-stops recording when duration reaches this value */
   timeLimitSecs?: number | null;
+  /** When true, timer stops incrementing but audio keeps recording */
+  isPaused?: boolean;
   onSegmentReady?: (blob: Blob, segmentDuration: number, segmentIndex: number) => void;
   warningBeforeSplitSecs?: number;
   onWarning?: (secondsRemaining: number) => void;
