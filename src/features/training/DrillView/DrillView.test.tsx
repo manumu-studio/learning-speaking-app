@@ -65,6 +65,7 @@ describe('DrillView', () => {
       segmentIndex: 0,
       isAutoSegmenting: false,
       secondsUntilSplit: null,
+      timeLimitSecs: null,
     });
   });
 

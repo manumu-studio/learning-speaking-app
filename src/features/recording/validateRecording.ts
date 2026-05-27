@@ -6,7 +6,7 @@ import type {
 } from './validateRecording.types';
 
 export const MIN_DURATION_SECONDS = 2;
-export const MAX_DURATION_SECONDS = 120;
+export const MAX_DURATION_SECONDS = 300;
 export const MIN_BLOB_BYTES = 500;
 export const MAX_BLOB_BYTES = 25 * 1024 * 1024;
 

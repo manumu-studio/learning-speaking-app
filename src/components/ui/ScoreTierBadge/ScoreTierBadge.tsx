@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { ScoreTierBadgeProps, ScoreTier } from './ScoreTierBadge.types';
+import { mapAzureScoreToDisplay } from '@/components/ui/PronunciationSection/usePronunciationSection';
 
 const TIER_CONFIG = {
   excellent: {
@@ -25,10 +26,6 @@ function azureScoreToTier(azureScore: number): ScoreTier {
   return 'needs-work';
 }
 
-function azureScoreToDisplay(azureScore: number): number {
-  return Math.round(azureScore / 10);
-}
-
 export function ScoreTierBadge({
   azureScore,
   label,
@@ -36,7 +33,7 @@ export function ScoreTierBadge({
 }: ScoreTierBadgeProps): React.JSX.Element {
   const tier = azureScoreToTier(azureScore);
   const { label: tierLabel, classes } = TIER_CONFIG[tier];
-  const displayScore = azureScoreToDisplay(azureScore);
+  const displayScore = mapAzureScoreToDisplay(azureScore);
 
   return (
     <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
