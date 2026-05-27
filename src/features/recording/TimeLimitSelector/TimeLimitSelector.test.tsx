@@ -12,10 +12,10 @@ describe('TimeLimitSelector', () => {
   it('renders all time limit options', () => {
     render(<TimeLimitSelector selected={null} onChange={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: '30s' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '1 min' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '2 min' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unlimited' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5 min' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Free' })).toBeInTheDocument();
   });
 
   it('calls onChange and persists selection', async () => {
@@ -30,8 +30,8 @@ describe('TimeLimitSelector', () => {
   });
 
   it('marks the selected option as pressed', () => {
-    render(<TimeLimitSelector selected={30} onChange={vi.fn()} />);
-    expect(screen.getByRole('button', { name: '30s' })).toHaveAttribute(
+    render(<TimeLimitSelector selected={60} onChange={vi.fn()} />);
+    expect(screen.getByRole('button', { name: '1 min' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );

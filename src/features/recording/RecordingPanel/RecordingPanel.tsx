@@ -8,6 +8,8 @@ import { useSileroVad } from '@/features/recording/useSileroVad';
 import { useSegmentUploader } from '@/features/recording/useSegmentUploader';
 import { validateRecording } from '@/features/recording/validateRecording';
 import { useUploadSession } from '@/features/session';
+import { useProcessingSessions } from '@/features/session/ProcessingSessionsContext';
+import { useSilenceDetector } from '@/features/recording/useSilenceDetector';
 import { RecordButton } from '@/components/ui/RecordButton';
 import { SessionTimer } from '@/components/ui/SessionTimer';
 import { AudioLevelMeter } from '@/components/ui/AudioLevelMeter';
@@ -51,12 +53,15 @@ export function RecordingPanel({
     pickRandomPrompt('daily'),
   );
   const [timeLimit, setTimeLimit] = useState<TimeLimitOption>(null);
+  const [isPausedBySilence, setIsPausedBySilence] = useState(false);
 
   const {
     todaySessionCount,
     nextRecordingNumber,
     isLoading: isContextLoading,
   } = useRecordingContext();
+
+  const { addSession } = useProcessingSessions();
 
   const { segments, uploadSegment, isUploading: isSegmentUploading } =
     useSegmentUploader({ topic, focus });
@@ -89,9 +94,19 @@ export function RecordingPanel({
     recordingMode,
     maxDurationSecs: 300,
     timeLimitSecs: timeLimit,
+    isPaused: isPausedBySilence,
     onSegmentReady: handleSegmentReady,
     warningBeforeSplitSecs: 30,
   });
+
+  const { isPausedBySilence: detectedSilence } = useSilenceDetector({
+    stream: mediaStream,
+    isRecording: state === 'recording',
+  });
+
+  useEffect(() => {
+    setIsPausedBySilence(detectedSilence);
+  }, [detectedSilence]);
 
   const { startWithMobilePolish, stopWithMobilePolish } = useMobileRecording({
     isRecording: state === 'recording',
@@ -171,23 +186,24 @@ export function RecordingPanel({
     failValidation,
   ]);
 
-  const handleUpload = async () => {
-    if (!audioBlob) return;
-
-    try {
-      const sessionId = await upload(audioBlob, duration, topic, focus);
-      router.push(`/session/${sessionId}`);
-    } catch {
-      // Error displayed via uploadError state from the hook
-    }
-  };
-
   const resetSession = useCallback(() => {
     resetRecording();
     resetVad();
     validationRunRef.current = null;
     setMobileError(null);
   }, [resetRecording, resetVad]);
+
+  const handleUpload = async () => {
+    if (!audioBlob) return;
+
+    try {
+      const sessionId = await upload(audioBlob, duration, topic, focus);
+      addSession(sessionId);
+      resetSession();
+    } catch {
+      // Error displayed via uploadError state from the hook
+    }
+  };
 
   const handleShufflePrompt = useCallback(() => {
     setSelectedPrompt((current) =>
@@ -320,10 +336,21 @@ export function RecordingPanel({
           <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg">{idleHint}</p>
         )}
 
-        {!error && state === 'recording' && (
+        {!error && state === 'recording' && !isPausedBySilence && (
           <p className="text-gray-700 dark:text-gray-200 text-base sm:text-lg font-medium">
             {recordingStatusMessage}
           </p>
+        )}
+
+        {!error && state === 'recording' && isPausedBySilence && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/50">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              Paused — waiting for you to speak
+            </p>
+            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
+              Recording will resume automatically when you start talking
+            </p>
+          </div>
         )}
 
         {!error && state === 'validating' && (
