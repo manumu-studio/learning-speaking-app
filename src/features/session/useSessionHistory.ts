@@ -1,24 +1,32 @@
 'use client';
-// Hook for fetching session history and grouping by day
-import { useEffect, useState } from 'react';
+// Hook for fetching session history with cursor pagination and infinite scroll
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import type { DayGroup, HistorySession, UseSessionHistoryReturn } from './useSessionHistory.types';
+import type {
+  DateFilter,
+  DayGroup,
+  SessionListItem,
+  UseSessionHistoryReturn,
+} from './useSessionHistory.types';
 
-const sessionsApiResponseSchema = z.object({
-  sessions: z.array(z.object({
-    id: z.string(),
-    status: z.string(),
-    durationSecs: z.number().nullable(),
-    language: z.string(),
-    topic: z.string().nullable(),
-    intentLabel: z.string().nullable(),
-    summary: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })),
+const SessionListItemSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  intentLabel: z.string().nullable(),
+  topic: z.string().nullable(),
+  durationSecs: z.number().nullable(),
+  wordCount: z.number().nullable(),
+  createdAt: z.string(),
+  overallScore: z.number().nullable(),
+  pronunciationScore: z.number().nullable(),
+  workoutNumber: z.number(),
+});
+
+const SessionListResponseSchema = z.object({
+  sessions: z.array(SessionListItemSchema),
+  nextCursor: z.string().nullable(),
+  nextCursorId: z.string().nullable(),
   total: z.number(),
-  page: z.number(),
-  limit: z.number(),
 });
 
 function getDayLabel(dateString: string): string {
@@ -42,7 +50,7 @@ function getDateKey(dateString: string): string {
   return new Date(dateString).toISOString().split('T')[0] ?? dateString;
 }
 
-function groupSessionsByDay(sessions: HistorySession[]): DayGroup[] {
+function groupSessionsByDay(sessions: SessionListItem[]): DayGroup[] {
   const map = new Map<string, DayGroup>();
 
   for (const session of sessions) {
@@ -60,55 +68,107 @@ function groupSessionsByDay(sessions: HistorySession[]): DayGroup[] {
     }
   }
 
-  // Sort sessions within each group newest-first
   for (const group of map.values()) {
     group.sessions.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
 
-  // Sort day groups newest-first
   return Array.from(map.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 }
 
 export function useSessionHistory(): UseSessionHistoryReturn {
-  const [dayGroups, setDayGroups] = useState<DayGroup[]>([]);
+  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [cursorId, setCursorId] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const fetchingRef = useRef(false);
+
+  const fetchPage = useCallback(
+    async (opts: { cursor: string | null; cursorId: string | null; reset: boolean }) => {
+      if (fetchingRef.current) return;
+      fetchingRef.current = true;
+
+      const isFetchMore = !opts.reset;
+      if (isFetchMore) setIsFetchingMore(true);
+      else setIsLoading(true);
+
+      try {
+        const params = new URLSearchParams({
+          limit: '10',
+          dateFilter,
+          isOnboarding: 'false',
+        });
+        if (opts.cursor !== null) params.set('cursor', opts.cursor);
+        if (opts.cursorId !== null) params.set('cursorId', opts.cursorId);
+
+        const res = await fetch(`/api/sessions?${params.toString()}`);
+        if (!res.ok) throw new Error(`Failed to load sessions (${res.status})`);
+
+        const data = SessionListResponseSchema.parse(await res.json());
+
+        setSessions((prev) => (opts.reset ? data.sessions : [...prev, ...data.sessions]));
+        setCursor(data.nextCursor);
+        setCursorId(data.nextCursorId);
+        setHasMore(data.nextCursor !== null);
+        setTotal(data.total);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong loading your sessions.');
+      } finally {
+        fetchingRef.current = false;
+        setIsLoading(false);
+        setIsFetchingMore(false);
+      }
+    },
+    [dateFilter],
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    setCursor(null);
+    setCursorId(null);
+    setSessions([]);
+    setHasMore(true);
+    void fetchPage({ cursor: null, cursorId: null, reset: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFilter]);
 
-    async function fetchHistory() {
-      try {
-        const res = await fetch('/api/sessions?limit=50');
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (sentinel === null) return;
 
-        if (!res.ok) {
-          throw new Error(`Failed to load sessions (${res.status})`);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && hasMore && !fetchingRef.current) {
+          void fetchPage({ cursor, cursorId, reset: false });
         }
+      },
+      { threshold: 0.1 },
+    );
 
-        const data = sessionsApiResponseSchema.parse(await res.json());
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [cursor, cursorId, hasMore, fetchPage]);
 
-        if (!cancelled) {
-          setDayGroups(groupSessionsByDay(data.sessions));
-          setTotal(data.total);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Something went wrong loading your sessions.');
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
+  const dayGroups = groupSessionsByDay(sessions);
 
-    void fetchHistory();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { dayGroups, isLoading, error, total };
+  return {
+    sessions,
+    dayGroups,
+    isLoading,
+    isFetchingMore,
+    error,
+    hasMore,
+    total,
+    dateFilter,
+    setDateFilter,
+    sentinelRef,
+  };
 }

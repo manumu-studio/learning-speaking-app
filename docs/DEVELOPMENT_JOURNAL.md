@@ -113,3 +113,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.40.0 | [PR-0.40.0](pull-requests/PR-0.40.0.md) | 2026-05-27 | PillarCards, strengths-first insights, pillar score tests |
 | 0.41.0 | [ENTRY-45](journal/ENTRY-45.md) | 2026-05-27 | Personal records, workout framing, gym-coach copy |
 | 0.41.0 | [PR-0.41.0](pull-requests/PR-0.41.0.md) | 2026-05-27 | PR ribbons, workout weeks, workout numbering |
+| 0.42.0 | [ENTRY-46](journal/ENTRY-46.md) | 2026-05-27 | Onboarding placement test + paginated session history |
+| 0.42.0 | [PR-0.42.0](pull-requests/PR-0.42.0.md) | 2026-05-27 | Onboarding flow, cursor history API, activity feed UI |

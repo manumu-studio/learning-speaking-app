@@ -1,29 +1,41 @@
-// Types for the session history data fetching hook
+// Types for the session history hook — cursor-paginated activity feed
+import type { RefObject } from 'react';
 
-export interface HistorySession {
+export type DateFilter = '7d' | '30d' | 'all';
+
+/** A single session item as returned by GET /api/sessions */
+export interface SessionListItem {
   id: string;
   status: string;
-  durationSecs: number | null;
-  language: string;
-  topic: string | null;
   intentLabel: string | null;
-  summary: string | null;
+  topic: string | null;
+  durationSecs: number | null;
+  wordCount: number | null;
   createdAt: string;
-  updatedAt: string;
+  overallScore: number | null;
+  pronunciationScore: number | null;
+  workoutNumber: number;
 }
 
+/** Sessions grouped by calendar day for rendering */
 export interface DayGroup {
-  /** Display label: "Today", "Yesterday", or formatted date like "Feb 21" */
   dayLabel: string;
-  /** ISO date key for sorting: "2026-02-23" */
   dateKey: string;
-  /** Sessions for this day, sorted by createdAt descending (newest first) */
-  sessions: HistorySession[];
+  sessions: SessionListItem[];
 }
 
 export interface UseSessionHistoryReturn {
+  sessions: SessionListItem[];
   dayGroups: DayGroup[];
   isLoading: boolean;
+  isFetchingMore: boolean;
   error: string | null;
+  hasMore: boolean;
   total: number;
+  dateFilter: DateFilter;
+  setDateFilter: (filter: DateFilter) => void;
+  sentinelRef: RefObject<HTMLDivElement | null>;
 }
+
+/** @deprecated Use SessionListItem instead */
+export type HistorySession = SessionListItem;
