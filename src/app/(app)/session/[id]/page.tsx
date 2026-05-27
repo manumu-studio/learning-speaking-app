@@ -9,6 +9,10 @@ import { Container } from '@/components/ui/Container';
 import { ProcessingStatus } from '@/components/ui/ProcessingStatus';
 import { SessionHeader } from '@/components/ui/SessionHeader';
 import { InsightsList } from '@/components/ui/InsightsList';
+import type { InsightData } from '@/components/ui/InsightsList';
+import { ScoreChip } from '@/components/ui/ScoreChip';
+import { PILLAR_CONFIG, PILLAR_KEYS } from '@/features/dashboard/pillars';
+import type { PillarKey } from '@/features/dashboard/pillars';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
 import { FocusHighlight } from '@/components/ui/FocusHighlight';
 import { TranscriptSection } from '@/components/ui/TranscriptSection';
@@ -82,6 +86,97 @@ function focusPatternForDrill(session: SessionDetail): string {
   const first = session.insights[0];
   if (first?.pattern?.trim()) return first.pattern.trim();
   return 'Clear, structured English delivery';
+}
+
+/** Compute per-pillar average scores from a session's metric snapshots. */
+function computeSessionPillarAverages(
+  metrics: SessionMetricSnapshot[],
+): Record<PillarKey, number> {
+  const result = {} as Record<PillarKey, number>;
+
+  for (const pillarKey of PILLAR_KEYS) {
+    const config = PILLAR_CONFIG[pillarKey];
+    const constituent = metrics.filter((m) =>
+      (config.metricKeys as readonly string[]).includes(m.key),
+    );
+    if (constituent.length === 0) {
+      result[pillarKey] = 0;
+    } else {
+      const sum = constituent.reduce((acc, m) => acc + m.score, 0);
+      result[pillarKey] = sum / constituent.length;
+    }
+  }
+
+  return result;
+}
+
+interface PillarHeroRowProps {
+  metrics: SessionMetricSnapshot[];
+}
+
+function PillarHeroRow({ metrics }: PillarHeroRowProps) {
+  const averages = computeSessionPillarAverages(metrics);
+
+  return (
+    <div
+      className="mt-4 grid grid-cols-3 gap-3"
+      aria-label="Pillar performance summary"
+    >
+      {PILLAR_KEYS.map((pillarKey) => {
+        const config = PILLAR_CONFIG[pillarKey];
+        const score = averages[pillarKey];
+        return (
+          <div
+            key={pillarKey}
+            className="flex flex-col items-center gap-1 rounded-xl border border-slate-100 bg-white p-3 text-center dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {config.label}
+            </span>
+            <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
+              {score > 0 ? score.toFixed(1) : '—'}
+            </span>
+            {score > 0 && <ScoreChip score={score} scale="ten" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Split insights into "went well" and "to sharpen" groups for coaching-first ordering.
+ */
+function splitInsightsBySentiment(
+  insights: InsightData[],
+  metrics: SessionMetricSnapshot[],
+): { wentWell: InsightData[]; toSharpen: InsightData[] } {
+  const scoreByCategory = new Map<string, number>();
+  for (const m of metrics) {
+    scoreByCategory.set(m.key.toLowerCase(), m.score);
+  }
+
+  const wentWell: InsightData[] = [];
+  const toSharpen: InsightData[] = [];
+
+  for (const insight of insights) {
+    const categoryKey = insight.category.toLowerCase().replace(/\s/g, '');
+    const metricScore = scoreByCategory.get(categoryKey) ?? null;
+
+    const isHighSeverity =
+      insight.severity === 'high' || insight.severity === 'medium';
+
+    const isStrongScore = metricScore !== null && metricScore >= 7;
+    const isLowSeverity = insight.severity === null || insight.severity === 'low';
+
+    if (isStrongScore || (isLowSeverity && !isHighSeverity)) {
+      wentWell.push(insight);
+    } else {
+      toSharpen.push(insight);
+    }
+  }
+
+  return { wentWell, toSharpen };
 }
 
 export default function SessionResultsPage({
@@ -242,7 +337,49 @@ export default function SessionResultsPage({
             animationDelay={0}
           />
 
-          <InsightsList insights={session.insights} baseDelay={200} />
+          {session.metrics && session.metrics.length > 0 && (
+            <PillarHeroRow metrics={session.metrics} />
+          )}
+
+          {(() => {
+            const { wentWell, toSharpen } = splitInsightsBySentiment(
+              session.insights,
+              session.metrics ?? [],
+            );
+            const hasBothSections = wentWell.length > 0 && toSharpen.length > 0;
+
+            return (
+              <div className="mt-4 flex flex-col gap-6">
+                {hasBothSections ? (
+                  <>
+                    <section aria-labelledby="went-well-heading">
+                      <h3
+                        id="went-well-heading"
+                        className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                      >
+                        What went well
+                      </h3>
+                      <InsightsList insights={wentWell} baseDelay={200} />
+                    </section>
+                    <section aria-labelledby="to-sharpen-heading">
+                      <h3
+                        id="to-sharpen-heading"
+                        className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                      >
+                        What to sharpen
+                      </h3>
+                      <InsightsList
+                        insights={toSharpen}
+                        baseDelay={200 + wentWell.length * 80}
+                      />
+                    </section>
+                  </>
+                ) : (
+                  <InsightsList insights={session.insights} baseDelay={200} />
+                )}
+              </div>
+            );
+          })()}
 
           {pronunciationReport !== null && (
             <div className="space-y-6">
