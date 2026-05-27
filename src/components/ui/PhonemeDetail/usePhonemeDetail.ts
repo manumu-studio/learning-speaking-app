@@ -2,16 +2,24 @@
 
 import { useMemo } from 'react';
 import type { WordPronunciation } from '@/components/ui/PronunciationSection';
+import { getBridgeRules } from '@/lib/ai/bridgeLookup';
+import type { BridgeFeedback } from '@/lib/ai/bridgeRules.types';
 import { PhonemeResultArraySchema } from './PhonemeDetail.types';
 import type { PhonemeResult } from './PhonemeDetail.types';
 
 export interface ParsedPhonemeData {
   phonemes: PhonemeResult[];
   parseError: boolean;
+  bridgeFeedback: BridgeFeedback[];
 }
 
 export function usePhonemeDetail(word: WordPronunciation): ParsedPhonemeData {
-  return useMemo(() => {
+  const bridgeFeedback = useMemo(
+    () => getBridgeRules(word.l1Tags),
+    [word.l1Tags],
+  );
+
+  const phonemeData = useMemo(() => {
     if (word.phonemes === null || word.phonemes === undefined) {
       return { phonemes: [], parseError: false };
     }
@@ -24,6 +32,8 @@ export function usePhonemeDetail(word: WordPronunciation): ParsedPhonemeData {
 
     return { phonemes: result.data, parseError: false };
   }, [word.phonemes]);
+
+  return { ...phonemeData, bridgeFeedback };
 }
 
 export function phonemeScoreToColorClass(score: number): string {
