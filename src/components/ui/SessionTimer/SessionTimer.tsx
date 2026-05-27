@@ -9,16 +9,24 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function SessionTimer({ seconds, isActive }: SessionTimerProps) {
+export function SessionTimer({ seconds, isActive, limitSecs }: SessionTimerProps) {
+  const remaining =
+    limitSecs !== undefined && isActive ? limitSecs - seconds : null;
+  const showCountdown =
+    remaining !== null && remaining <= 10 && remaining >= 0;
+
+  const displaySeconds = showCountdown ? remaining : seconds;
+  const colorClass = showCountdown
+    ? 'text-amber-500 dark:text-amber-400'
+    : isActive
+      ? 'text-red-500 dark:text-red-400'
+      : 'text-gray-400 dark:text-gray-500';
+
   return (
     <div
-      className={`text-5xl sm:text-6xl font-mono font-bold tracking-widest transition-colors duration-300 ${
-        isActive
-          ? 'text-red-500 dark:text-red-400'
-          : 'text-gray-400 dark:text-gray-500'
-      }`}
+      className={`text-5xl sm:text-6xl font-mono font-bold tracking-widest transition-colors duration-300 ${colorClass}`}
     >
-      {formatTime(seconds)}
+      {formatTime(displaySeconds)}
     </div>
   );
 }
