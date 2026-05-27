@@ -8,9 +8,15 @@ vi.mock('@/features/recording/useAudioRecorder', () => ({
     state: 'idle' as const,
     duration: 0,
     audioBlob: null,
+    mimeType: null,
+    mediaStream: null,
+    vadWarning: null,
     error: null,
+    recordingMode: 'press-to-toggle' as const,
     startRecording: vi.fn().mockResolvedValue(undefined),
     stopRecording: vi.fn(),
+    completeValidation: vi.fn(),
+    failValidation: vi.fn(),
     resetRecording: vi.fn(),
     segmentIndex: 0,
     isAutoSegmenting: false,
@@ -26,6 +32,14 @@ vi.mock('@/features/recording/useSegmentUploader', () => ({
     totalFailed: 0,
     isUploading: false,
     latestSessionId: null,
+  }),
+}));
+
+vi.mock('@/features/recording/useSileroVad', () => ({
+  useSileroVad: () => ({
+    status: 'idle' as const,
+    analyzeBlob: vi.fn().mockResolvedValue({ outcome: 'speech-detected' }),
+    reset: vi.fn(),
   }),
 }));
 
