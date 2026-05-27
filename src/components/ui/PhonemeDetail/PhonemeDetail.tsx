@@ -2,6 +2,8 @@
 'use client';
 
 import React from 'react';
+import { usePhonemeAlphabet } from '@/hooks/usePhonemeAlphabet';
+import { wordToIpa } from '@/lib/pronunciation/sapiToIpa';
 import type { PhonemeDetailProps, L1TagKey } from './PhonemeDetail.types';
 import { L1_TAG_LABELS } from './PhonemeDetail.types';
 import { usePhonemeDetail, phonemeScoreToColorClass } from './usePhonemeDetail';
@@ -11,13 +13,20 @@ export function PhonemeDetail({
   onClose,
 }: PhonemeDetailProps): React.JSX.Element {
   const { phonemes, parseError, bridgeFeedback } = usePhonemeDetail(word);
+  const { alphabet, toggleAlphabet, displayPhoneme } = usePhonemeAlphabet();
+
+  const ipaTranscription = phonemes.length > 0 ? wordToIpa(phonemes) : null;
 
   const knownL1Tags = word.l1Tags.filter(
     (tag): tag is L1TagKey => tag in L1_TAG_LABELS,
   );
 
+  const filteredBreakErrors = word.breakErrorTypes.filter(
+    (err) => err !== 'None',
+  );
+
   const hasProsodicFeedback =
-    word.breakErrorTypes.length > 0 || word.intonationErrorTypes.length > 0;
+    filteredBreakErrors.length > 0 || word.intonationErrorTypes.length > 0;
 
   return (
     <div
@@ -27,16 +36,32 @@ export function PhonemeDetail({
     >
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          &ldquo;{word.word}&rdquo; — accuracy: {word.accuracyScore}%
+          &ldquo;{word.word}&rdquo;
+          {ipaTranscription && alphabet === 'ipa' && (
+            <span className="ml-1 font-mono text-gray-500 dark:text-gray-400">
+              /{ipaTranscription}/
+            </span>
+          )}
+          {' '}&mdash; accuracy: {word.accuracyScore}%
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close phoneme detail"
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors text-lg leading-none"
-        >
-          &times;
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleAlphabet}
+            className="text-xs px-2 py-0.5 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            aria-label={`Switch to ${alphabet === 'ipa' ? 'SAPI' : 'IPA'} phoneme display`}
+          >
+            {alphabet === 'ipa' ? 'IPA' : 'SAPI'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close phoneme detail"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors text-lg leading-none"
+          >
+            &times;
+          </button>
+        </div>
       </div>
 
       {parseError && (
@@ -61,7 +86,7 @@ export function PhonemeDetail({
                 <div key={`${phoneme.phoneme}-${i}`}>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">
-                      /{phoneme.phoneme}/
+                      /{displayPhoneme(phoneme.phoneme)}/
                     </span>
                     <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
@@ -71,7 +96,7 @@ export function PhonemeDetail({
                         aria-valuenow={phoneme.accuracyScore}
                         aria-valuemin={0}
                         aria-valuemax={100}
-                        aria-label={`/${phoneme.phoneme}/ accuracy`}
+                        aria-label={`/${displayPhoneme(phoneme.phoneme)}/ accuracy`}
                       />
                     </div>
                     <span className="text-xs text-gray-500 dark:text-gray-400 w-8 text-right">
@@ -80,8 +105,8 @@ export function PhonemeDetail({
                   </div>
                   {showAlternative && (
                     <p className="ml-10 mt-0.5 text-xs text-red-600 dark:text-red-400">
-                      You said: /{topAlternative.phoneme}/ &nbsp;&rarr;&nbsp; Expected: /
-                      {phoneme.phoneme}/
+                      You said: /{displayPhoneme(topAlternative.phoneme)}/ &nbsp;&rarr;&nbsp; Expected: /
+                      {displayPhoneme(phoneme.phoneme)}/
                     </p>
                   )}
                 </div>
@@ -156,7 +181,7 @@ export function PhonemeDetail({
             Prosody
           </p>
           <ul className="space-y-1">
-            {word.breakErrorTypes.map((err) => (
+            {filteredBreakErrors.map((err) => (
               <li key={`break-${err}`} className="text-xs text-orange-700 dark:text-orange-400">
                 Break error: {err}
               </li>

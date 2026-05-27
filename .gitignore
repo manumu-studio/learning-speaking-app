@@ -49,8 +49,9 @@ yarn-error.log*
 # _docs
 /_docs/
 
-# Session continuity (transient baton pass — not historical)
+# Session continuity (private — not pushed)
 /CONTINUATION_PROMPT_NEXT_SESSION.md
+/continuation-prompts/
 
 # Project map
 /PROJECT_MAP.md
