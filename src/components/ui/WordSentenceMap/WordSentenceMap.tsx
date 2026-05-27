@@ -127,7 +127,7 @@ export function WordSentenceMap({
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-4 border-b-2 border-red-500" />
-          Needs work
+          Sharpen
         </span>
       </div>
     </section>

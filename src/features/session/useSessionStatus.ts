@@ -35,6 +35,7 @@ const sessionDetailSchema = z.object({
     note: z.string().nullable(),
     createdAt: z.string(),
   })).nullable().optional(),
+  workoutNumber: z.number().optional(),
   pronunciationReport: z.object({
     pronScore: z.number(),
     accuracyScore: z.number(),
@@ -81,6 +82,9 @@ const sessionDetailSchema = z.object({
   }
   if (val.pronunciationReport !== undefined) {
     result.pronunciationReport = val.pronunciationReport;
+  }
+  if (val.workoutNumber !== undefined) {
+    result.workoutNumber = val.workoutNumber;
   }
   return result;
 });

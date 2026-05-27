@@ -140,6 +140,6 @@ describe('DrillView', () => {
     );
     render(<DrillView drillId="d1" />);
     expect(screen.getByText('Great clarity.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Try Again' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go Again' })).toBeInTheDocument();
   });
 });

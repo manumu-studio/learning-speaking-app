@@ -25,6 +25,7 @@ const dashboardDataSchema = z.object({
   weeklySessionCount: z.number(),
   totalSessions: z.number(),
   currentStreak: z.number(),
+  workoutWeeks: z.number(),
   currentFocus: z.string().nullable(),
   metrics: z.array(z.object({
     key: z.enum([
@@ -67,6 +68,27 @@ const dashboardDataSchema = z.object({
       speakingRate: z.number(),
     }),
   }),
+  personalRecords: z.array(
+    z.object({
+      metricKey: z.enum([
+        'connectorRepetition',
+        'structuralVariety',
+        'vocabularyPrecision',
+        'verbAccuracy',
+        'argumentClosure',
+        'fillerUsage',
+        'pronunciationAccuracy',
+        'prosodyScore',
+        'speakingRate',
+      ]),
+      metricLabel: z.string(),
+      score: z.number(),
+      timeframe: z.enum(['14-day', '30-day', 'all-time']),
+      previousBest: z.number().nullable(),
+      sessionDate: z.string(),
+    }),
+  ),
+  totalWorkoutCount: z.number(),
 });
 
 const FOCUS_STORAGE_KEY = 'lsa-focus';

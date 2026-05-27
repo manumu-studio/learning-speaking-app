@@ -45,7 +45,7 @@ function analyzeSegments(
   if (segments.length === 0) {
     return {
       outcome: 'no-speech',
-      message: 'No speech detected — try again and speak clearly into the microphone.',
+      message: 'No speech detected — go again and speak clearly into the microphone.',
     };
   }
 
@@ -57,7 +57,7 @@ function analyzeSegments(
   if (totalSpeechMs < VAD_THRESHOLDS.minSpeechMs) {
     return {
       outcome: 'no-speech',
-      message: 'No speech detected — try again and speak clearly into the microphone.',
+      message: 'No speech detected — go again and speak clearly into the microphone.',
     };
   }
 

@@ -36,6 +36,7 @@ export function SessionHeader({
   insightCount,
   createdAt,
   animationDelay,
+  workoutNumber,
 }: SessionHeaderProps) {
   const style = animationDelay !== undefined ? { animationDelay: `${animationDelay}ms` } : undefined;
 
@@ -44,15 +45,20 @@ export function SessionHeader({
       className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-6"
       style={style}
     >
+      {workoutNumber !== undefined && (
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+          Workout #{workoutNumber}
+        </p>
+      )}
       <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed mb-5">
-        {summary ?? 'Session analysis complete.'}
+        {summary ?? 'Workout analysis complete.'}
       </p>
 
       {/* Stats row */}
       <div className="flex items-center gap-6 flex-wrap">
         <StatColumn value={formatDuration(durationSecs)} label="mins" />
         <StatColumn value={wordCount !== null ? String(wordCount) : '--'} label="words" />
-        <StatColumn value={String(insightCount)} label="issues" />
+        <StatColumn value={String(insightCount)} label="focus areas" />
         <StatColumn value={formatDate(createdAt)} label="date" />
       </div>
     </div>
