@@ -3,6 +3,7 @@
 'use client';
 
 import { IdentitySummary } from '../IdentitySummary';
+import { PersonalRecordStrip } from '../PersonalRecordStrip';
 import { MetricCard } from '../MetricCard';
 import { FocusSelector } from '../FocusSelector';
 import { DashboardSkeleton } from '../DashboardSkeleton';
@@ -136,7 +137,7 @@ export function DashboardView({ className }: DashboardViewProps) {
   if (error) {
     return (
       <div className={`rounded-xl bg-white p-8 text-center ${className ?? ''}`}>
-        <p className="text-slate-500">Unable to load dashboard. Please try again later.</p>
+        <p className="text-slate-500">Unable to load dashboard. We&apos;ll fix this — check back soon.</p>
       </div>
     );
   }
@@ -165,7 +166,10 @@ export function DashboardView({ className }: DashboardViewProps) {
         currentFocus={focus?.focusLabel ?? null}
         currentStreak={data.currentStreak}
         totalDrillsCompleted={data.drillStats.totalCompleted}
+        workoutWeeks={data.workoutWeeks}
       />
+
+      <PersonalRecordStrip personalRecords={data.personalRecords ?? []} />
 
       {showMetrics ? (
         <section aria-label="Speaking metrics by pillar" className="mt-6 flex flex-col gap-4">
@@ -196,7 +200,7 @@ export function DashboardView({ className }: DashboardViewProps) {
       ) : (
         <div className="mt-6 rounded-xl border border-slate-100 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
           <p className="text-slate-500 dark:text-slate-400">
-            Record a few more sessions to see your patterns emerge.
+            Record a few more workouts to see your patterns emerge.
           </p>
         </div>
       )}

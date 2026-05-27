@@ -44,7 +44,7 @@ export function validateRecording(input: RecordingValidationInput): ValidationRe
   if (blob.size < MIN_BLOB_BYTES) {
     return failure(
       'BLOB_TOO_SMALL',
-      'Recording file is empty or corrupted — please try again.',
+      'Recording file is empty or corrupted — please go again.',
     );
   }
 
@@ -58,7 +58,7 @@ export function validateRecording(input: RecordingValidationInput): ValidationRe
   if (!isAllowedMimeType(mimeType)) {
     return failure(
       'UNSUPPORTED_FORMAT',
-      'Unsupported audio format — please use a modern browser and try again.',
+      'Unsupported audio format — please use a modern browser and go again.',
     );
   }
 

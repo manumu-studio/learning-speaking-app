@@ -1,6 +1,7 @@
 // Dashboard data aggregation — computes stats, streaks, and metric trends with caching
 import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import type { PersonalRecord } from '@/lib/personalRecords.types';
 import type { DashboardData, DashboardMetric, MetricKey, MetricLevel, TrendDirection } from './dashboard.types';
 
 const METRIC_KEYS: MetricKey[] = [
@@ -109,6 +110,8 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
   );
   const weeklySessionCount = weeklySessions.length;
   const currentStreak = computeStreak(allSessions.map((s) => s.createdAt));
+  const workoutWeeks = computeWorkoutWeeks(allSessions.map((s) => s.createdAt));
+  const personalRecords = await fetchAllTimePersonalRecords(userId);
 
   // Group snapshots by key client-side (single query instead of 6)
   const snapshotsByKey = new Map<MetricKey, Array<{ score: number; level: string }>>();
@@ -177,11 +180,85 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
     weeklySessionCount,
     totalSessions,
     currentStreak,
+    workoutWeeks,
     currentFocus: null,
     metrics,
     recentSessions,
     drillStats,
+    personalRecords,
+    totalWorkoutCount: totalSessions,
   };
+}
+
+/** Count calendar weeks where the user completed at least three workouts. */
+function computeWorkoutWeeks(sessionDates: Date[]): number {
+  const weekCounts = new Map<string, number>();
+
+  for (const date of sessionDates) {
+    const weekKey = getISOWeekKey(date);
+    weekCounts.set(weekKey, (weekCounts.get(weekKey) ?? 0) + 1);
+  }
+
+  let count = 0;
+  for (const sessionCount of weekCounts.values()) {
+    if (sessionCount >= 3) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/** Returns ISO week key like "2026-W21" for grouping. */
+function getISOWeekKey(date: Date): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayOfWeek = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayOfWeek);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNumber = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+}
+
+async function fetchAllTimePersonalRecords(userId: string): Promise<PersonalRecord[]> {
+  const allTimeBestRows = await prisma.metricSnapshot.groupBy({
+    by: ['key'],
+    where: { session: { userId } },
+    _max: { score: true },
+  });
+
+  const allTimePRs: PersonalRecord[] = [];
+
+  for (const row of allTimeBestRows) {
+    const key = row.key;
+    if (!isMetricKey(key)) {
+      continue;
+    }
+
+    const maxScore = row._max.score;
+    if (maxScore === null) {
+      continue;
+    }
+
+    const bestSnapshot = await prisma.metricSnapshot.findFirst({
+      where: { session: { userId }, key, score: maxScore },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    });
+
+    if (!bestSnapshot) {
+      continue;
+    }
+
+    allTimePRs.push({
+      metricKey: key,
+      metricLabel: METRIC_LABELS[key],
+      score: maxScore,
+      timeframe: 'all-time',
+      previousBest: null,
+      sessionDate: bestSnapshot.createdAt.toISOString(),
+    });
+  }
+
+  return allTimePRs;
 }
 
 /** Count consecutive days with sessions, starting from today backward */

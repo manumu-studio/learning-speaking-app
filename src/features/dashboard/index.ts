@@ -1,4 +1,5 @@
 // Dashboard feature barrel export
+export { PersonalRecordStrip } from './PersonalRecordStrip';
 export type {
   MetricKey,
   MetricLevel,

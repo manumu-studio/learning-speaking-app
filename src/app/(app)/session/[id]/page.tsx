@@ -8,6 +8,10 @@ import { InsightExamplesSchema } from '@/lib/schemas/jsonFields';
 import { Container } from '@/components/ui/Container';
 import { ProcessingStatus } from '@/components/ui/ProcessingStatus';
 import { SessionHeader } from '@/components/ui/SessionHeader';
+import {
+  PersonalRecordBanner,
+  usePersonalRecordBanner,
+} from '@/components/ui/PersonalRecordBanner';
 import { InsightsList } from '@/components/ui/InsightsList';
 import type { InsightData } from '@/components/ui/InsightsList';
 import { ScoreChip } from '@/components/ui/ScoreChip';
@@ -187,6 +191,7 @@ export default function SessionResultsPage({
   const { id } = use(params);
   const router = useRouter();
   const { session, isLoading, isProcessing, isDone, isFailed, retry } = useSessionStatus(id);
+  const { personalRecords } = usePersonalRecordBanner({ sessionId: id, isDone });
   const [focusComparison, setFocusComparison] = useState<FocusComparison | null>(null);
   const [pronunciationHistory, setPronunciationHistory] = useState<HistoryItem[]>([]);
 
@@ -243,7 +248,7 @@ export default function SessionResultsPage({
           role="status"
         >
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-500 dark:border-gray-700" />
-          <span className="sr-only">Loading session</span>
+          <span className="sr-only">Loading workout</span>
         </div>
       </Container>
     );
@@ -253,7 +258,7 @@ export default function SessionResultsPage({
     return (
       <Container>
         <h1 className="mb-6 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Processing Your Session
+          Processing Your Workout
         </h1>
         <ProcessingStatus
           status={session.status}
@@ -267,7 +272,7 @@ export default function SessionResultsPage({
     return (
       <Container>
         <h1 className="mb-6 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Session Results
+          Workout Results
         </h1>
         <ProcessingStatus
           status="FAILED"
@@ -334,8 +339,18 @@ export default function SessionResultsPage({
             wordCount={session.transcript?.wordCount ?? null}
             insightCount={session.insights.length}
             createdAt={session.createdAt}
+            {...(session.workoutNumber !== undefined
+              ? { workoutNumber: session.workoutNumber }
+              : {})}
             animationDelay={0}
           />
+
+          {personalRecords.length > 0 && (
+            <PersonalRecordBanner
+              personalRecords={personalRecords}
+              animationDelay={100}
+            />
+          )}
 
           {session.metrics && session.metrics.length > 0 && (
             <PillarHeroRow metrics={session.metrics} />
@@ -461,7 +476,7 @@ export default function SessionResultsPage({
 
   return (
     <Container>
-      <p className="py-20 text-center text-gray-500 dark:text-gray-400">Session not found.</p>
+      <p className="py-20 text-center text-gray-500 dark:text-gray-400">Workout not found.</p>
     </Container>
   );
 }

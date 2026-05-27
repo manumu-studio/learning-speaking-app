@@ -70,7 +70,15 @@ export async function GET(
       return errorResponse('Session not found', 'SESSION_NOT_FOUND', 404);
     }
 
-    return successResponse(speakingSession);
+    const workoutNumber = await prisma.speakingSession.count({
+      where: {
+        userId: user.id,
+        status: 'DONE',
+        createdAt: { lte: speakingSession.createdAt },
+      },
+    });
+
+    return successResponse({ ...speakingSession, workoutNumber });
   } catch (error) {
     log({
       level: 'error',
