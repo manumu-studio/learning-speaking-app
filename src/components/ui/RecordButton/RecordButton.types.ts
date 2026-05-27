@@ -1,8 +1,9 @@
 // RecordButton component prop types
-type RecordingState = 'idle' | 'recording' | 'stopped';
+import type { RecordingMode, RecordingStatus } from '@/features/recording/recordingState.types';
 
 export interface RecordButtonProps {
-  state: RecordingState;
+  state: RecordingStatus;
+  recordingMode?: RecordingMode;
   onStart: () => void;
   onStop: () => void;
   disabled?: boolean;
