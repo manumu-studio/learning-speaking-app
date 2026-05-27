@@ -33,6 +33,7 @@ model User {
   drills         DrillAttempt[]
   consents       UserConsent[]
   patternProfile PatternProfile?
+  onboardedAt    DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   @@map("users")
@@ -66,6 +67,7 @@ model SpeakingSession {
   summary        String?       @db.Text
   intentLabel    String?       @db.Text
   location       String?
+  isOnboarding   Boolean       @default(false)
   transcript          Transcript?
   insights            Insight[]
   metrics             MetricSnapshot[]

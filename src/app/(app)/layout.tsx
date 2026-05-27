@@ -1,5 +1,6 @@
 // Protected layout wrapper — checks auth, syncs user, and renders app chrome
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { SessionProvider } from 'next-auth/react';
 import { auth } from '@/features/auth/auth';
 import { syncUser } from '@/features/auth/syncUser';
@@ -15,11 +16,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     redirect('/');
   }
 
-  await syncUser({
+  const user = await syncUser({
     externalId: session.user.externalId,
     email: session.user.email ?? null,
     displayName: session.user.name ?? null,
   });
+
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') ?? '';
+  const isOnboardingRoute = pathname.startsWith('/onboarding');
+
+  if (user.onboardedAt === null && !isOnboardingRoute) {
+    redirect('/onboarding');
+  }
 
   return (
     <SessionProvider session={session}>
