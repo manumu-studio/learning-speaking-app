@@ -76,13 +76,14 @@ yarn-error.log*
 # cursor-task-reports
 /docs/cursor-task-reports/
 
-# Internal process docs (journals, build packets, PR docs)
-
+# Internal process docs (build packets, API specs, deployment notes)
 /docs/build-packets/
 /docs/build-packet-reports/
 /docs/audits/
-/docs/superpowers
-docs/research
+/docs/superpowers/
+/docs/research/
+/docs/api/
+/docs/DEPLOYMENT.md
 
 # template
 /_template/
