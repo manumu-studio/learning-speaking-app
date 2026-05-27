@@ -16,11 +16,14 @@ function computeWordColor(word: WordPronunciation): WordColor {
 
   if (word.errorType === 'Mispronunciation' || word.errorType === 'Omission') return 'red';
 
+  const allL1NonBlocking =
+    word.l1Tags.length > 0 && word.l1Tags.every((tag) => NON_BLOCKING_L1_TAGS.has(tag));
+
+  if (allL1NonBlocking) return 'yellow';
+
   if (word.accuracyScore < 60) return 'red';
 
-  const hasNonBlockingL1 = word.l1Tags.some((tag) => NON_BLOCKING_L1_TAGS.has(tag));
-
-  if (word.accuracyScore < 80 || hasNonBlockingL1) return 'yellow';
+  if (word.accuracyScore < 80) return 'yellow';
 
   return 'green';
 }

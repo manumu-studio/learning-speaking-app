@@ -16,7 +16,7 @@ import {
   PronunciationSection,
   PronunciationReportSchema,
 } from '@/components/ui/PronunciationSection';
-import { WordSentenceMap } from '@/components/ui/WordSentenceMap';
+import { WordColorMap } from '@/components/ui/WordColorMap';
 import { ProsodyPanel } from '@/components/ui/ProsodyPanel';
 import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
 import { PronunciationProgress, PronunciationHistorySchema } from '@/components/ui/PronunciationProgress';
@@ -261,7 +261,7 @@ export default function SessionResultsPage({
                     }
                   : {})}
               />
-              <WordSentenceMap
+              <WordColorMap
                 words={pronunciationReport.words}
                 animationDelay={wordColorMapDelay}
               />

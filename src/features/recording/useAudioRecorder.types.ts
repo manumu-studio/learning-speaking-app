@@ -4,6 +4,8 @@ import type { RecordingMode, RecordingStatus } from './recordingState.types';
 export interface UseAudioRecorderOptions {
   recordingMode?: RecordingMode;
   maxDurationSecs?: number | null;
+  /** User-selected cap; auto-stops recording when duration reaches this value */
+  timeLimitSecs?: number | null;
   onSegmentReady?: (blob: Blob, segmentDuration: number, segmentIndex: number) => void;
   warningBeforeSplitSecs?: number;
   onWarning?: (secondsRemaining: number) => void;
@@ -26,4 +28,6 @@ export interface UseAudioRecorderReturn {
   segmentIndex: number;
   isAutoSegmenting: boolean;
   secondsUntilSplit: number | null;
+  /** Active time limit for countdown UI; null when unlimited */
+  timeLimitSecs: number | null;
 }

@@ -21,6 +21,7 @@ vi.mock('@/features/recording/useAudioRecorder', () => ({
     segmentIndex: 0,
     isAutoSegmenting: false,
     secondsUntilSplit: null,
+    timeLimitSecs: null,
   }),
 }));
 
@@ -56,6 +57,29 @@ vi.mock('next/navigation', () => ({
     push: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
+  }),
+}));
+
+vi.mock('@/features/recording/RecordingContext', () => ({
+  useRecordingContext: () => ({
+    todaySessionCount: 0,
+    nextRecordingNumber: 1,
+    isLoading: false,
+    error: null,
+  }),
+  RecordingContext: () => null,
+}));
+
+vi.mock('@/features/recording/useMobileRecording', () => ({
+  useMobileRecording: ({
+    startRecording,
+    stopRecording,
+  }: {
+    startRecording: () => Promise<void>;
+    stopRecording: () => void;
+  }) => ({
+    startWithMobilePolish: startRecording,
+    stopWithMobilePolish: stopRecording,
   }),
 }));
 
