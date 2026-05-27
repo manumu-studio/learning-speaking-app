@@ -31,9 +31,18 @@ export const PronunciationReportSchema = z.object({
 export type WordPronunciation = z.infer<typeof WordPronunciationSchema>;
 export type PronunciationReport = z.infer<typeof PronunciationReportSchema>;
 
+/** Data shape for the optional progress chip shown below the tier badges */
+export interface ProgressChipData {
+  metricLabel: string;
+  /** Positive = improvement, negative = decline. Null if no prior data. */
+  deltaPercent: number | null;
+}
+
 export interface PronunciationSectionProps {
   pronunciationReport: PronunciationReport;
   animationDelay: number;
+  /** Optional progress chip data from pronunciation-history API */
+  progressChip?: ProgressChipData;
 }
 
 export interface ScoreGaugeProps {

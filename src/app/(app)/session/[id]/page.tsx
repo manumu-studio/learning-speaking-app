@@ -16,8 +16,12 @@ import {
   PronunciationSection,
   PronunciationReportSchema,
 } from '@/components/ui/PronunciationSection';
-import { WordColorMap } from '@/components/ui/WordColorMap';
+import { WordSentenceMap } from '@/components/ui/WordSentenceMap';
 import { ProsodyPanel } from '@/components/ui/ProsodyPanel';
+import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
+import { PronunciationProgress, PronunciationHistorySchema } from '@/components/ui/PronunciationProgress';
+import type { HistoryItem } from '@/components/ui/PronunciationProgress';
+import { PracticeSuggestion } from '@/components/ui/PracticeSuggestion';
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import type { SessionDetail, SessionMetricSnapshot } from '@/features/session/useSessionStatus.types';
 import { DrillRecommendation } from '@/features/training/DrillRecommendation';
@@ -89,6 +93,7 @@ export default function SessionResultsPage({
   const router = useRouter();
   const { session, isLoading, isProcessing, isDone, isFailed, retry } = useSessionStatus(id);
   const [focusComparison, setFocusComparison] = useState<FocusComparison | null>(null);
+  const [pronunciationHistory, setPronunciationHistory] = useState<HistoryItem[]>([]);
 
   useEffect(() => {
     const focusKey = session?.focusMetricKey;
@@ -118,6 +123,21 @@ export default function SessionResultsPage({
 
     void fetchPreviousScore();
   }, [session, isDone, id]);
+
+  useEffect(() => {
+    if (!isDone || session?.pronunciationReport === null || session?.pronunciationReport === undefined) {
+      return;
+    }
+
+    void fetch(`/api/sessions/${id}/pronunciation-history`)
+      .then(async (res) => {
+        if (!res.ok) return;
+        const json: unknown = await res.json();
+        const parsed = PronunciationHistorySchema.safeParse(json);
+        if (parsed.success) setPronunciationHistory(parsed.data.history);
+      })
+      .catch(() => undefined);
+  }, [id, isDone, session?.pronunciationReport]);
 
   if (isLoading && !session) {
     return (
@@ -229,8 +249,19 @@ export default function SessionResultsPage({
               <PronunciationSection
                 pronunciationReport={pronunciationReport}
                 animationDelay={pronunciationSectionDelay}
+                {...(pronunciationHistory.length >= 2
+                  ? {
+                      progressChip: {
+                        metricLabel: 'Fluency',
+                        deltaPercent: Math.round(
+                          (pronunciationHistory[pronunciationHistory.length - 1]?.fluencyScore ?? 0) -
+                            (pronunciationHistory[pronunciationHistory.length - 2]?.fluencyScore ?? 0)
+                        ),
+                      },
+                    }
+                  : {})}
               />
-              <WordColorMap
+              <WordSentenceMap
                 words={pronunciationReport.words}
                 animationDelay={wordColorMapDelay}
               />
@@ -239,6 +270,19 @@ export default function SessionResultsPage({
                 speakingRateWpm={pronunciationReport.speakingRateWpm}
                 prosodyScore={pronunciationReport.prosodyScore}
                 animationDelay={prosodyPanelDelay}
+              />
+              <PronunciationTipsCard
+                pronunciationReport={pronunciationReport}
+                animationDelay={prosodyPanelDelay + 100}
+              />
+              <PracticeSuggestion
+                pronunciationReport={pronunciationReport}
+                animationDelay={prosodyPanelDelay + 200}
+              />
+              <PronunciationProgress
+                currentSessionId={session.id}
+                history={pronunciationHistory}
+                animationDelay={prosodyPanelDelay + 300}
               />
             </div>
           )}
