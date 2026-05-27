@@ -27,7 +27,41 @@ const SessionFormDataSchema = z.object({
   focusMetricKey: z
     .enum(SPEAKING_METRIC_KEYS)
     .nullable(),
+  isOnboarding: z.union([z.literal('true'), z.literal('false')]).nullable(),
 });
+
+const SessionListQuerySchema = z.object({
+  cursor: z.string().optional(),
+  cursorId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  dateFilter: z.enum(['7d', '30d', 'all']).default('all'),
+  page: z.coerce.number().int().min(1).default(1),
+  isOnboarding: z.enum(['false']).optional(),
+});
+
+function getDateCutoff(filter: 'all' | '7d' | '30d'): Date | null {
+  if (filter === 'all') return null;
+  const days = filter === '7d' ? 7 : 30;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+function extractWordCount(summary: string | null): number | null {
+  if (summary === null) return null;
+  try {
+    const parsed: unknown = JSON.parse(summary);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'wordCount' in parsed &&
+      typeof (parsed as Record<string, unknown>)['wordCount'] === 'number'
+    ) {
+      return (parsed as Record<string, unknown>)['wordCount'] as number;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * POST /api/sessions
@@ -35,7 +69,6 @@ const SessionFormDataSchema = z.object({
  */
 export async function POST(request: Request) {
   try {
-    // Auth check
     const session = await auth();
     if (!session?.user?.externalId) {
       return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
@@ -55,13 +88,13 @@ export async function POST(request: Request) {
       return errorResponse('Recording consent required', 'CONSENT_REQUIRED', 403);
     }
 
-    // Parse and validate multipart form data through Zod
     const formData = await request.formData();
     const rawAudio = formData.get('audio');
     const rawDuration = formData.get('duration');
     const rawTopic = formData.get('topic');
     const rawLanguage = formData.get('language');
     const rawFocus = formData.get('focusMetricKey');
+    const rawIsOnboarding = formData.get('isOnboarding');
 
     const parsed = SessionFormDataSchema.safeParse({
       audio: rawAudio instanceof Blob ? rawAudio : undefined,
@@ -72,6 +105,10 @@ export async function POST(request: Request) {
         typeof rawFocus === 'string' && rawFocus.trim() !== ''
           ? rawFocus.trim()
           : null,
+      isOnboarding:
+        typeof rawIsOnboarding === 'string' && rawIsOnboarding.trim() !== ''
+          ? rawIsOnboarding.trim()
+          : null,
     });
 
     if (!parsed.success) {
@@ -79,7 +116,7 @@ export async function POST(request: Request) {
       return errorResponse(firstError, 'VALIDATION_ERROR', 400);
     }
 
-    const { audio: audioFile, duration: durationStr, topic, language, focusMetricKey } = parsed.data;
+    const { audio: audioFile, duration: durationStr, topic, language, focusMetricKey, isOnboarding } = parsed.data;
 
     if (audioFile.size > MAX_AUDIO_BYTES) {
       return errorResponse(
@@ -89,14 +126,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate audio file
     const validation = validateAudioFile(audioFile);
     if (!validation.valid) {
       const status = validation.error?.includes('size') ? 413 : 400;
       return errorResponse(validation.error ?? 'Invalid file', 'INVALID_FILE', status);
     }
 
-    // Create session record
     const speakingSession = await prisma.speakingSession.create({
       data: {
         userId: user.id,
@@ -105,17 +140,16 @@ export async function POST(request: Request) {
         language: language ?? 'en',
         topic: topic ?? null,
         focusMetricKey,
+        isOnboarding: isOnboarding === 'true',
       },
     });
 
-    // Upload audio to R2
     const extension = audioFile.type.split('/')[1]?.split(';')[0] ?? 'webm';
     const storageKey = generateAudioKey(user.id, speakingSession.id, extension);
     const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
     await uploadAudio(storageKey, audioBuffer, audioFile.type);
 
-    // Update session with audio URL and status
     const updatedSession = await prisma.speakingSession.update({
       where: { id: speakingSession.id },
       data: {
@@ -124,7 +158,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Trigger QStash processing pipeline
     await enqueueProcessing(updatedSession.id);
 
     return successResponse(
@@ -148,7 +181,7 @@ export async function POST(request: Request) {
 
 /**
  * GET /api/sessions
- * List user's sessions with pagination
+ * List user's sessions with cursor-based pagination
  */
 export async function GET(request: Request) {
   try {
@@ -162,38 +195,116 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      return successResponse({ sessions: [], total: 0, page: 1, limit: 10 });
+      return successResponse({
+        sessions: [],
+        nextCursor: null,
+        nextCursorId: null,
+        total: 0,
+      });
     }
 
     const url = new URL(request.url);
-    const page = Math.max(1, Number(url.searchParams.get('page') ?? '1'));
-    const limit = Math.min(50, Math.max(1, Number(url.searchParams.get('limit') ?? '10')));
-    const skip = (page - 1) * limit;
+    const queryResult = SessionListQuerySchema.safeParse(
+      Object.fromEntries(url.searchParams),
+    );
+    if (!queryResult.success) {
+      return errorResponse('Invalid query parameters', 'VALIDATION_ERROR', 400);
+    }
 
-    const [sessions, total] = await Promise.all([
-      prisma.speakingSession.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          status: true,
-          durationSecs: true,
-          language: true,
-          topic: true,
-          intentLabel: true,
-          summary: true,
-          createdAt: true,
-          updatedAt: true,
+    const { cursor, cursorId, limit, dateFilter, isOnboarding: isOnboardingParam } = queryResult.data;
+    const excludeOnboarding = isOnboardingParam === 'false';
+
+    const cutoff = getDateCutoff(dateFilter);
+
+    const baseWhere = {
+      userId: user.id,
+      ...(cutoff !== null ? { createdAt: { gte: cutoff } } : {}),
+      ...(excludeOnboarding ? { isOnboarding: false } : {}),
+    };
+
+    const cursorWhere =
+      cursor !== undefined && cursorId !== undefined
+        ? {
+            OR: [
+              { createdAt: { lt: new Date(cursor) } },
+              {
+                createdAt: new Date(cursor),
+                id: { lt: cursorId },
+              },
+            ],
+          }
+        : {};
+
+    const where = { ...baseWhere, ...cursorWhere };
+
+    const sessions = await prisma.speakingSession.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      select: {
+        id: true,
+        status: true,
+        intentLabel: true,
+        topic: true,
+        durationSecs: true,
+        summary: true,
+        createdAt: true,
+        metrics: {
+          select: { key: true, score: true },
         },
-      }),
-      prisma.speakingSession.count({
-        where: { userId: user.id },
-      }),
-    ]);
+      },
+    });
 
-    return successResponse({ sessions, total, page, limit });
+    const hasMore = sessions.length > limit;
+    const pageItems = hasMore ? sessions.slice(0, limit) : sessions;
+
+    const sessionsWithWorkout = await Promise.all(
+      pageItems.map(async (s) => {
+        const workoutNumber = await prisma.speakingSession.count({
+          where: { userId: user.id, createdAt: { lte: s.createdAt }, isOnboarding: false },
+        });
+        return { ...s, workoutNumber };
+      }),
+    );
+
+    const items = sessionsWithWorkout.map((s) => {
+      const snapshots = s.metrics;
+      const scores = snapshots.map((snap: { score: number }) => snap.score);
+      const overallScore =
+        scores.length > 0
+          ? Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 10) / 10
+          : null;
+      const pronSnapshot = snapshots.find(
+        (snap: { key: string; score: number }) => snap.key === 'pronunciationAccuracy',
+      );
+      const pronunciationScore = pronSnapshot?.score ?? null;
+
+      return {
+        id: s.id,
+        status: s.status,
+        intentLabel: s.intentLabel,
+        topic: s.topic,
+        durationSecs: s.durationSecs,
+        wordCount: extractWordCount(s.summary),
+        createdAt: s.createdAt.toISOString(),
+        overallScore,
+        pronunciationScore,
+        workoutNumber: s.workoutNumber,
+      };
+    });
+
+    const lastItem = items[items.length - 1];
+    const nextCursor = hasMore && lastItem !== undefined ? lastItem.createdAt : null;
+    const nextCursorId = hasMore && lastItem !== undefined ? lastItem.id : null;
+
+    const total = await prisma.speakingSession.count({ where: baseWhere });
+
+    return successResponse({
+      sessions: items,
+      nextCursor,
+      nextCursorId,
+      total,
+    });
   } catch (error) {
     log({
       level: 'error',

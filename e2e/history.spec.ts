@@ -7,7 +7,7 @@ test.describe('History', () => {
     await authenticatedPage.goto('/history');
     await expect(authenticatedPage).toHaveURL(/\/history/);
     await expect(
-      authenticatedPage.getByRole('heading', { name: /session history/i }),
+      authenticatedPage.getByRole('heading', { name: /activity/i }),
     ).toBeVisible();
   });
 

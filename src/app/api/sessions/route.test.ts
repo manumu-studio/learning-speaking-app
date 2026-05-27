@@ -61,6 +61,7 @@ const baseSession = {
   audioUrl: 'sessions/user-1/session-abc/audio.webm',
   intentLabel: null,
   summary: null,
+  isOnboarding: false,
   createdAt: new Date('2026-04-03T00:00:00Z'),
   updatedAt: new Date('2026-04-03T00:00:00Z'),
 };
@@ -135,6 +136,7 @@ describe('POST /api/sessions', () => {
       externalId: 'ext-1',
       email: 'a@b.com',
       displayName: 'Test',
+      onboardedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -161,6 +163,7 @@ describe('POST /api/sessions', () => {
       externalId: 'ext-1',
       email: 'a@b.com',
       displayName: 'Test',
+      onboardedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -198,6 +201,7 @@ describe('POST /api/sessions', () => {
       externalId: 'ext-1',
       email: 'a@b.com',
       displayName: 'Test',
+      onboardedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -228,6 +232,7 @@ describe('POST /api/sessions', () => {
       externalId: 'ext-1',
       email: 'a@b.com',
       displayName: 'Test',
+      onboardedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

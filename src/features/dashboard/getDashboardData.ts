@@ -55,35 +55,41 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
   const [weeklySessions, totalSessions, allSessions, todayFocusSession, allSnapshots, recentSessions, drillTotal, drillWeekly, drillImproved, drillByMetric] = await Promise.all([
     // Weekly stats
     prisma.speakingSession.findMany({
-      where: { userId, createdAt: { gte: weekAgo }, status: 'DONE' },
+      where: { userId, createdAt: { gte: weekAgo }, status: 'DONE', isOnboarding: false },
       select: { durationSecs: true },
     }),
     // Total count
     prisma.speakingSession.count({
-      where: { userId, status: 'DONE' },
+      where: { userId, status: 'DONE', isOnboarding: false },
     }),
     // Streak data
     prisma.speakingSession.findMany({
-      where: { userId, status: 'DONE' },
+      where: { userId, status: 'DONE', isOnboarding: false },
       orderBy: { createdAt: 'desc' },
       take: 100,
       select: { createdAt: true },
     }),
     // Today's focus session
     prisma.speakingSession.findFirst({
-      where: { userId, focusMetricKey: { not: null }, createdAt: { gte: todayStart }, status: 'DONE' },
+      where: {
+        userId,
+        isOnboarding: false,
+        focusMetricKey: { not: null },
+        createdAt: { gte: todayStart },
+        status: 'DONE',
+      },
       orderBy: { createdAt: 'desc' },
       select: { focusMetricKey: true },
     }),
     // All metric snapshots in a single query (consolidated from 6 → 1)
     prisma.metricSnapshot.findMany({
-      where: { session: { userId }, key: { in: [...METRIC_KEYS] } },
+      where: { session: { userId, isOnboarding: false }, key: { in: [...METRIC_KEYS] } },
       orderBy: { createdAt: 'desc' },
       select: { key: true, score: true, level: true },
     }),
     // Recent sessions
     prisma.speakingSession.findMany({
-      where: { userId, status: 'DONE' },
+      where: { userId, status: 'DONE', isOnboarding: false },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { id: true, createdAt: true, intentLabel: true, focusNext: true },
@@ -221,7 +227,7 @@ function getISOWeekKey(date: Date): string {
 async function fetchAllTimePersonalRecords(userId: string): Promise<PersonalRecord[]> {
   const allTimeBestRows = await prisma.metricSnapshot.groupBy({
     by: ['key'],
-    where: { session: { userId } },
+    where: { session: { userId, isOnboarding: false } },
     _max: { score: true },
   });
 
@@ -239,7 +245,7 @@ async function fetchAllTimePersonalRecords(userId: string): Promise<PersonalReco
     }
 
     const bestSnapshot = await prisma.metricSnapshot.findFirst({
-      where: { session: { userId }, key, score: maxScore },
+      where: { session: { userId, isOnboarding: false }, key, score: maxScore },
       orderBy: { createdAt: 'asc' },
       select: { createdAt: true },
     });

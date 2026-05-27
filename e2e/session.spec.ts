@@ -18,7 +18,7 @@ test.describe('Session flow', () => {
   }) => {
     await authenticatedPage.goto('/history');
     await expect(
-      authenticatedPage.getByRole('heading', { name: /session history/i }),
+      authenticatedPage.getByRole('heading', { name: /activity/i }),
     ).toBeVisible();
     const empty = authenticatedPage.getByText(/no sessions yet/i);
     const loading = authenticatedPage.getByRole('status', { name: /loading sessions/i });

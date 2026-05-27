@@ -1,11 +1,7 @@
 // Props for a single session row in the history list
-export interface HistorySessionCardProps {
-  id: string;
-  intentLabel: string | null;
-  topic: string | null;
-  status: string;
-  durationSecs: number | null;
-  createdAt: string;
+import type { SessionListItem } from '@/features/session/useSessionHistory.types';
+
+export interface HistorySessionCardProps extends SessionListItem {
   /** Animation delay in ms for staggered entrance */
   animationDelay?: number;
 }
