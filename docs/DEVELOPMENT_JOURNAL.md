@@ -49,6 +49,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.29.0 | [ENTRY-29](journal/ENTRY-29.md) | 2026-04-04 | V5 audit remediation |
 | 0.30.0-beta.1 | [ENTRY-31](journal/ENTRY-31.md) | 2026-05-26 | Pronunciation results UI on session page |
 | 0.30.0-rc.1 | [ENTRY-32](journal/ENTRY-32.md) | 2026-05-26 | Dashboard pronunciation metrics + pipeline reliability |
+| 0.33.0 | [ENTRY-37](journal/ENTRY-37.md) | 2026-05-27 | Speaker isolation: push-to-talk, VAD pre-flight, validation gates |
 
 ## Pull Requests
 
@@ -91,3 +92,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.30.0-beta.1 | [PR-0.30.0-beta.1](pull-requests/PR-0.30.0-beta.1.md) | 2026-05-26 | Pronunciation results UI: score gauges, word map, prosody panel |
 | 0.30.0-alpha.2 | [PR-0.30.0-alpha.2](pull-requests/PR-0.30.0-alpha.2.md) | 2026-05-26 | Pipeline pronunciation integration: schema, SCORING status, 9 metric keys, persist layer |
 | 0.30.0-rc.1 | [PR-0.30.0-rc.1](pull-requests/PR-0.30.0-rc.1.md) | 2026-05-26 | Dashboard pronunciation metrics + pipeline reliability hardening |
+| 0.33.0 | [PR-0.33.0](pull-requests/PR-0.33.0.md) | 2026-05-27 | Speaker isolation: push-to-talk, VAD pre-flight, validation gates |

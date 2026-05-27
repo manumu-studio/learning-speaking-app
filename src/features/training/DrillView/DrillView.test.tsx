@@ -52,9 +52,15 @@ describe('DrillView', () => {
       state: 'idle',
       duration: 0,
       audioBlob: null,
+      mimeType: null,
+      mediaStream: null,
+      vadWarning: null,
       error: null,
+      recordingMode: 'press-to-toggle',
       startRecording: vi.fn().mockResolvedValue(undefined),
       stopRecording: vi.fn(),
+      completeValidation: vi.fn(),
+      failValidation: vi.fn(),
       resetRecording: vi.fn(),
     });
   });
