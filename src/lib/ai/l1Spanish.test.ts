@@ -105,10 +105,11 @@ describe('tagSpanishL1', () => {
     expect(result?.l1Tags).toContain('vowel_collapse');
   });
 
-  it('tags vowel_collapse when /ʌ/ expected and nBest[0]=/a/', () => {
+  it('tags cup_as_cap (not vowel_collapse) when /ʌ/ expected and nBest[0]=/a/', () => {
     const word = makeWord({ phonemes: [makePhoneme('ʌ', 'a', 55)] });
     const [result] = tagSpanishL1([word]);
-    expect(result?.l1Tags).toContain('vowel_collapse');
+    expect(result?.l1Tags).toContain('cup_as_cap');
+    expect(result?.l1Tags).not.toContain('vowel_collapse');
   });
 
   it('tags syllable_timed when monotoneSyllablePitchDeltaConfidence=0.2', () => {
@@ -183,5 +184,90 @@ describe('tagSpanishL1', () => {
 
   it('handles an empty words array', () => {
     expect(tagSpanishL1([])).toHaveLength(0);
+  });
+});
+
+describe('new L1 detection rules', () => {
+  it('detects h_velar: /h/ with accuracy < 50', () => {
+    const word = makeWord({ phonemes: [makePhoneme('h', 'x', 40)] });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('h_velar');
+  });
+
+  it('does NOT tag h_velar when accuracy >= 50', () => {
+    const word = makeWord({ phonemes: [makePhoneme('h', 'h', 60)] });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags ?? []).not.toContain('h_velar');
+  });
+
+  it('detects unaspirated_ptk: word-initial /p/ with accuracy 40-65', () => {
+    const word = makeWord({
+      phonemes: [
+        makePhoneme('p', 'p', 55),
+        makePhoneme('ɒ', 'ɒ', 90),
+        makePhoneme('t', 't', 90),
+      ],
+    });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('unaspirated_ptk');
+  });
+
+  it('detects clear_l_coda: word-final /l/ with accuracy < 60', () => {
+    const word = makeWord({
+      phonemes: [
+        makePhoneme('f', 'f', 90),
+        makePhoneme('ʊ', 'ʊ', 90),
+        makePhoneme('l', 'l', 45),
+      ],
+    });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('clear_l_coda');
+  });
+
+  it('detects rhotic_trilled: /ɹ/ expected, /r/ in nBest', () => {
+    const word = makeWord({ phonemes: [makePhoneme('ɹ', 'r', 50)] });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('rhotic_trilled');
+  });
+
+  it('detects cluster_simplification: empty nBest with accuracy < 40', () => {
+    const word = makeWord({
+      phonemes: [
+        makePhoneme('k', 'k', 90),
+        makePhoneme('t', '', 20),
+      ],
+    });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('cluster_simplification');
+  });
+
+  it('detects s_epenthesis: first phoneme /s/ with /e/ in nBest', () => {
+    const word = makeWord({
+      phonemes: [
+        makePhoneme('s', 'e', 50),
+        makePhoneme('t', 't', 90),
+      ],
+    });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('s_epenthesis');
+  });
+
+  it('detects monophthongised_diphthong: /aɪ/ expected, /a/ in nBest', () => {
+    const word = makeWord({ phonemes: [makePhoneme('aɪ', 'a', 50)] });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('monophthongised_diphthong');
+  });
+
+  it('detects wrong_stress: unexpectedBreak in prosody', () => {
+    const word = makeWord({
+      phonemes: [makePhoneme('b', 'b', 90)],
+      prosodyFeedback: {
+        breakErrorTypes: ['UnexpectedBreak'],
+        breakLengthMs: 0,
+        intonationErrorTypes: [],
+      },
+    });
+    const [result] = tagSpanishL1([word]);
+    expect(result?.l1Tags).toContain('wrong_stress');
   });
 });

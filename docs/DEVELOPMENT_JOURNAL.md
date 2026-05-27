@@ -103,3 +103,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.35.0 | [PR-v0.35.0-recording-ux-flow](pull-requests/PR-v0.35.0-recording-ux-flow.md) | 2026-05-27 | Recording UX & flow — integrated record screen |
 | 0.36.0 | [ENTRY-40](journal/ENTRY-40.md) | 2026-05-27 | Recording UX improvements: time limits, background toast, silence pause |
 | 0.36.0 | [PR-0.36.0](pull-requests/PR-0.36.0.md) | 2026-05-27 | Extended limits, processing toast, silence auto-pause |
+| 0.37.0 | [ENTRY-41](journal/ENTRY-41.md) | 2026-05-27 | L1 bridge rules: 21-tag tagger, articulatory coaching in PhonemeDetail |
+| 0.37.0 | [PR-0.37.0](pull-requests/PR-0.37.0.md) | 2026-05-27 | L1 pronunciation bridge rules with client-side coaching lookup |

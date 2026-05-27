@@ -2,6 +2,16 @@
 import type { WordResult } from './azurePronunciation.types';
 import type { L1Tag } from './l1Spanish.types';
 
+const DIPHTHONGS = ['aɪ', 'eɪ', 'oʊ', 'aʊ', 'ɔɪ'] as const;
+
+const MONOPHTHONG_MAP: Record<string, readonly string[]> = {
+  aɪ: ['a', 'ɑ'],
+  eɪ: ['e', 'ɛ'],
+  oʊ: ['o', 'ɔ'],
+  aʊ: ['a', 'ɑ'],
+  ɔɪ: ['o', 'ɔ'],
+};
+
 /**
  * Annotates each WordResult with L1 Spanish interference tags derived from
  * NBest phoneme comparisons and prosody metadata.
@@ -55,8 +65,8 @@ function detectTags(word: WordResult): L1Tag[] {
       pushUnique(tags, 'no_schwa_reduction');
     }
 
-    // Rule: /æ/ or /ʌ/ expected, /a/ realized
-    if ((expected === 'æ' || expected === 'ʌ') && topActual === 'a') {
+    // Rule: /æ/ expected, /a/ realized (general vowel collapse — /ʌ/ handled by cup_as_cap)
+    if (expected === 'æ' && topActual === 'a') {
       pushUnique(tags, 'vowel_collapse');
     }
 
@@ -84,6 +94,55 @@ function detectTags(word: WordResult): L1Tag[] {
     if ((expected === 'ʊ' || expected === 'uː') && topActual === 'u' && accuracy < 70) {
       pushUnique(tags, 'u_merge');
     }
+
+    // Rule: /h/ expected, accuracy < 50 — Spanish speakers produce velar /x/ friction
+    if (expected === 'h' && accuracy < 50) {
+      pushUnique(tags, 'h_velar');
+    }
+
+    // Rule: word-initial /p/, /t/, /k/ with accuracy 40-65 — likely unaspirated
+    if (
+      (expected === 'p' || expected === 't' || expected === 'k') &&
+      accuracy >= 40 &&
+      accuracy < 65 &&
+      phoneme === word.phonemes[0]
+    ) {
+      pushUnique(tags, 'unaspirated_ptk');
+    }
+
+    // Rule: /l/ in word-final position with accuracy < 60 — clear /l/ instead of dark /ɫ/
+    const isLastPhoneme = word.phonemes.indexOf(phoneme) === word.phonemes.length - 1;
+    if (expected === 'l' && accuracy < 60 && isLastPhoneme) {
+      pushUnique(tags, 'clear_l_coda');
+    }
+
+    // Rule: English /ɹ/ expected, /r/ in nBest — trilled or tapped Spanish /r/
+    if (expected === 'ɹ' && topActual === 'r') {
+      pushUnique(tags, 'rhotic_trilled');
+    }
+
+    // Rule: phoneme in a cluster position with accuracy < 40 and nBest shows deletion
+    if (accuracy < 40 && topActual === '' && expected !== '') {
+      pushUnique(tags, 'cluster_simplification');
+    }
+
+    // Rule: word starts with /s/ + consonant, extra phoneme detected before /s/
+    if (
+      expected === 's' &&
+      phoneme === word.phonemes[0] &&
+      (topActual === 'e' || topActual === 'ɛ') &&
+      accuracy < 70
+    ) {
+      pushUnique(tags, 's_epenthesis');
+    }
+
+    // Rule: diphthong expected, monophthong in nBest
+    if ((DIPHTHONGS as readonly string[]).includes(expected)) {
+      const flattenedTo = MONOPHTHONG_MAP[expected];
+      if (flattenedTo !== undefined && flattenedTo.includes(topActual)) {
+        pushUnique(tags, 'monophthongised_diphthong');
+      }
+    }
   }
 
   // Rule: syllable-timed rhythm -- prosody pitch delta confidence below threshold
@@ -92,6 +151,16 @@ function detectTags(word: WordResult): L1Tag[] {
   if (pitchDelta !== undefined && pitchDelta < 0.3) {
     pushUnique(tags, 'syllable_timed');
   }
+
+  // Rule: unexpected break pattern suggests stress on wrong syllable
+  const hasUnexpectedBreak = word.prosodyFeedback?.breakErrorTypes?.includes('UnexpectedBreak');
+  if (hasUnexpectedBreak) {
+    pushUnique(tags, 'wrong_stress');
+  }
+
+  // Rule: question_intonation — requires sentence-level data not available per-word
+  // Detection deferred — tag exists in type system but no rule fires yet.
+  // Will be implemented when sentence-level prosody analysis is available.
 
   return tags;
 }
