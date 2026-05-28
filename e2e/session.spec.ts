@@ -9,7 +9,7 @@ test.describe('Session flow', () => {
       authenticatedPage.getByRole('heading', { name: /new speaking session/i }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: /start recording/i }),
+      authenticatedPage.getByRole('button', { name: 'Start recording', exact: true }),
     ).toBeVisible();
   });
 
