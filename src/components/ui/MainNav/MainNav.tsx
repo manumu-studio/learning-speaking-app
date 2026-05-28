@@ -7,8 +7,10 @@ import type { MainNavProps } from './MainNav.types';
 
 const navItems = [
   { href: '/session/new', label: 'New Session' },
+  { href: '/prompts', label: 'Prompts' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/history', label: 'History' },
+  { href: '/trends', label: 'Trends' },
   { href: '/drills', label: 'Training' },
 ] as const;
 

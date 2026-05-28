@@ -28,6 +28,7 @@ const SessionFormDataSchema = z.object({
     .enum(SPEAKING_METRIC_KEYS)
     .nullable(),
   isOnboarding: z.union([z.literal('true'), z.literal('false')]).nullable(),
+  promptUsed: z.string().max(500).nullable(),
 });
 
 const SessionListQuerySchema = z.object({
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
     const rawLanguage = formData.get('language');
     const rawFocus = formData.get('focusMetricKey');
     const rawIsOnboarding = formData.get('isOnboarding');
+    const rawPromptUsed = formData.get('promptUsed');
 
     const parsed = SessionFormDataSchema.safeParse({
       audio: rawAudio instanceof Blob ? rawAudio : undefined,
@@ -109,6 +111,10 @@ export async function POST(request: Request) {
         typeof rawIsOnboarding === 'string' && rawIsOnboarding.trim() !== ''
           ? rawIsOnboarding.trim()
           : null,
+      promptUsed:
+        typeof rawPromptUsed === 'string' && rawPromptUsed.trim() !== ''
+          ? rawPromptUsed.trim()
+          : null,
     });
 
     if (!parsed.success) {
@@ -116,7 +122,7 @@ export async function POST(request: Request) {
       return errorResponse(firstError, 'VALIDATION_ERROR', 400);
     }
 
-    const { audio: audioFile, duration: durationStr, topic, language, focusMetricKey, isOnboarding } = parsed.data;
+    const { audio: audioFile, duration: durationStr, topic, language, focusMetricKey, isOnboarding, promptUsed } = parsed.data;
 
     if (audioFile.size > MAX_AUDIO_BYTES) {
       return errorResponse(
@@ -141,6 +147,7 @@ export async function POST(request: Request) {
         topic: topic ?? null,
         focusMetricKey,
         isOnboarding: isOnboarding === 'true',
+        promptUsed: promptUsed ?? null,
       },
     });
 
