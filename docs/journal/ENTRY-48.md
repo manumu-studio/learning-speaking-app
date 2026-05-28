@@ -2,7 +2,7 @@
 **Date:** 2026-05-28
 **Type:** Feature
 **Branch:** `feat/disclosure-pins-workout`
-**Version:** `0.43.0`
+**Version:** `0.44.0`
 ---
 ## What I Did
 Added a one-time AI disclosure modal before first recording (OpenAI, Anthropic, Azure), backed by a new `AI_DISCLOSURE` consent flag. Built annotated transcript pins on session results that match insight examples to sentences. Added a Today's Workout hero card on the dashboard with a deterministic recommendation engine (welcome, workout, rest, completion states).

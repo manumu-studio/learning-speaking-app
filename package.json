@@ -1,6 +1,6 @@
 {
   "name": "learning-speaking-app",
-  "version": "0.43.0",
+  "version": "0.45.0",
   "private": true,
   "engines": {
     "node": ">=20.0.0"
@@ -31,6 +31,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
     "@aws-sdk/client-s3": "^3.967.0",
+    "@aws-sdk/s3-request-presigner": "^3.967.0",
     "@prisma/client": "^6.19.2",
     "@ricky0123/vad-web": "^0.0.30",
     "@upstash/qstash": "^2.9.0",

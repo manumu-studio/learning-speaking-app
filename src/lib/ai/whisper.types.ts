@@ -19,8 +19,21 @@ export const whisperVerboseResponseSchema = z.object({
 
 export type WhisperSegment = z.infer<typeof whisperSegmentSchema>;
 
+export const whisperWordSchema = z.object({
+  word: z.string(),
+  start: z.number(),
+  end: z.number(),
+});
+
+export type WhisperWord = z.infer<typeof whisperWordSchema>;
+
+export const whisperVerboseWithWordsSchema = whisperVerboseResponseSchema.extend({
+  words: z.array(whisperWordSchema).default([]),
+});
+
 export type WhisperVerboseResult = {
   text: string;
   segments: WhisperSegment[];
   language: string;
+  words?: WhisperWord[];
 };

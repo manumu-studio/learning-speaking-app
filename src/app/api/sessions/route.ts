@@ -13,7 +13,6 @@ import { z } from 'zod';
 
 const MAX_AUDIO_BYTES = 8 * 1024 * 1024; // 8 MB — ~6 minutes of webm/opus at ~20 KB/s
 
-// Zod schema for session creation FormData
 const SessionFormDataSchema = z.object({
   audio: z.custom<Blob>(
     (val) => val instanceof Blob,
@@ -24,13 +23,21 @@ const SessionFormDataSchema = z.object({
   }),
   topic: z.string().nullable(),
   language: z.string().nullable(),
-  focusMetricKey: z
-    .enum(SPEAKING_METRIC_KEYS)
-    .nullable(),
+  focusMetricKey: z.enum(SPEAKING_METRIC_KEYS).nullable(),
   isOnboarding: z.union([z.literal('true'), z.literal('false')]).nullable(),
   promptUsed: z.string().max(500).nullable(),
 });
 
+const ChunkedSessionJsonSchema = z.object({
+  chunked: z.literal(true),
+  topic: z.string().nullable(),
+  language: z.string().nullable().default('en'),
+  focusMetricKey: z.enum(SPEAKING_METRIC_KEYS).nullable(),
+  isOnboarding: z.boolean().default(false),
+  promptUsed: z.string().max(500).nullable(),
+});
+
+// Zod schema for session list query params
 const SessionListQuerySchema = z.object({
   cursor: z.string().optional(),
   cursorId: z.string().optional(),
@@ -87,6 +94,46 @@ export async function POST(request: Request) {
     const consented = await hasConsent(user.id, 'AUDIO_STORAGE');
     if (!consented) {
       return errorResponse('Recording consent required', 'CONSENT_REQUIRED', 403);
+    }
+
+    const contentType = request.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      const jsonBody: unknown = await request.json();
+      const chunkedParsed = ChunkedSessionJsonSchema.safeParse(jsonBody);
+      if (!chunkedParsed.success) {
+        return errorResponse('Invalid JSON body', 'VALIDATION_ERROR', 400);
+      }
+
+      const {
+        topic,
+        language,
+        focusMetricKey,
+        isOnboarding,
+        promptUsed,
+      } = chunkedParsed.data;
+
+      const speakingSession = await prisma.speakingSession.create({
+        data: {
+          userId: user.id,
+          status: SessionStatus.CREATED,
+          language: language ?? 'en',
+          topic: topic ?? null,
+          focusMetricKey,
+          isOnboarding,
+          promptUsed: promptUsed ?? null,
+          isChunked: true,
+        },
+      });
+
+      return successResponse(
+        {
+          id: speakingSession.id,
+          status: speakingSession.status,
+          createdAt: speakingSession.createdAt.toISOString(),
+          isChunked: true,
+        },
+        201,
+      );
     }
 
     const formData = await request.formData();

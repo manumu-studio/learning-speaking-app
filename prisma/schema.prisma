@@ -11,10 +11,19 @@ datasource db {
 enum SessionStatus {
   CREATED
   UPLOADED
+  CHUNKS_PROCESSING
   TRANSCRIBING
   SCORING
   ANALYZING
   DONE
+  FAILED
+}
+
+enum ChunkStatus {
+  UPLOADED
+  TRANSCRIBING
+  SCORING
+  CHUNK_DONE
   FAILED
 }
 
@@ -70,16 +79,49 @@ model SpeakingSession {
   intentLabel    String?       @db.Text
   location       String?
   isOnboarding   Boolean       @default(false)
+  isChunked      Boolean       @default(false)
+  chunkCount     Int?
   transcript          Transcript?
   insights            Insight[]
   metrics             MetricSnapshot[]
   drills              DrillAttempt[]
+  chunks              SessionChunk[]
   pronunciationReport PronunciationReport?
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   @@index([userId, createdAt])
   @@map("speaking_sessions")
+}
+
+model SessionChunk {
+  id                String          @id @default(cuid())
+  sessionId         String
+  session           SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  chunkIndex        Int
+  status            ChunkStatus     @default(UPLOADED)
+  durationSecs      Int
+  overlapSecs       Float           @default(1.5)
+  audioUrl          String?
+  audioDeletedAt    DateTime?
+  transcriptText    String?         @db.Text
+  words             Json?
+  wordCount         Int?
+  pronScore         Float?
+  accuracyScore     Float?
+  fluencyScore      Float?
+  completenessScore Float?
+  prosodyScore      Float?
+  speakingRateWpm   Float?
+  pronWords         Json?
+  pronRawJson       Json?
+  errorMessage      String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([sessionId, chunkIndex])
+  @@index([sessionId, status])
+  @@map("session_chunks")
 }
 
 model Transcript {
