@@ -74,7 +74,8 @@ export async function persistPronunciation(
   const prosodySnapshotScore = Math.round(mapAzureScore(result.prosodyScore));
   const speakingRateSnapshotScore = mapSpeakingRate(speakingRateWpm);
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(
+    async (tx) => {
     const reportFields = {
       pronScore: result.pronScore,
       accuracyScore: result.accuracyScore,
@@ -129,5 +130,7 @@ export async function persistPronunciation(
         update: { score, level },
       });
     }
-  });
+    },
+    { timeout: 30_000 },
+  );
 }
