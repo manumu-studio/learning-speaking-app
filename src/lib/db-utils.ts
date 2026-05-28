@@ -25,7 +25,9 @@ export type UserSessionListItem = Prisma.SpeakingSessionGetPayload<{
   select: typeof userSessionListSelect;
 }>;
 
-const DEFAULT_CONSENTS: Array<'AUDIO_STORAGE' | 'TRANSCRIPT_STORAGE' | 'PATTERN_TRACKING'> = [
+const DEFAULT_CONSENTS: Array<
+  'AUDIO_STORAGE' | 'TRANSCRIPT_STORAGE' | 'PATTERN_TRACKING' | 'AI_DISCLOSURE'
+> = [
   'AUDIO_STORAGE',
   'TRANSCRIPT_STORAGE',
   'PATTERN_TRACKING',
@@ -97,7 +99,7 @@ export async function getUserSessions(
  */
 export async function hasConsent(
   userId: string,
-  flag: 'AUDIO_STORAGE' | 'TRANSCRIPT_STORAGE' | 'PATTERN_TRACKING'
+  flag: 'AUDIO_STORAGE' | 'TRANSCRIPT_STORAGE' | 'PATTERN_TRACKING' | 'AI_DISCLOSURE'
 ): Promise<boolean> {
   const consent = await prisma.userConsent.findUnique({
     where: {
