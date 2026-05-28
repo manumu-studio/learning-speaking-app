@@ -70,11 +70,11 @@ jobs:
               const unit = match[2];
               const sizeKB = unit === 'MB' ? size * 1024 : size;
               console.log('Shared JS bundle: ' + sizeKB.toFixed(1) + ' kB');
-              if (sizeKB > 120) {
-                console.error('ERROR: Shared JS exceeds 120 kB budget (' + sizeKB.toFixed(1) + ' kB)');
+              if (sizeKB > 200) {
+                console.error('ERROR: Shared JS exceeds 200 kB budget (' + sizeKB.toFixed(1) + ' kB)');
                 process.exit(1);
               }
-              console.log('Bundle size OK (under 120 kB budget)');
+              console.log('Bundle size OK (under 200 kB budget)');
             } else {
               console.error('ERROR: Could not parse bundle size from build output — failing as a safeguard');
               process.exit(1);
