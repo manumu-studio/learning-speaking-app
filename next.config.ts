@@ -2,6 +2,7 @@
 import type { NextConfig } from 'next';
 import path from 'path';
 import bundleAnalyzer from '@next/bundle-analyzer';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
@@ -32,7 +33,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self' https://*.upstash.io https://api.anthropic.com https://api.openai.com https://auth.manumustudio.com wss://*.stt.speech.microsoft.com https://*.stt.speech.microsoft.com https://*.cognitiveservices.azure.com",
+              "connect-src 'self' https://*.upstash.io https://api.anthropic.com https://api.openai.com https://auth.manumustudio.com wss://*.stt.speech.microsoft.com https://*.stt.speech.microsoft.com https://*.cognitiveservices.azure.com https://*.ingest.sentry.io",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
@@ -65,4 +66,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withBundleAnalyzer(nextConfig);
+export default withSentryConfig(withBundleAnalyzer(nextConfig), {
+  silent: true,
+  sourcemaps: { disable: true },
+});

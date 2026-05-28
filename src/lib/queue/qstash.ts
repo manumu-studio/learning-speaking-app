@@ -1,7 +1,7 @@
 // QStash client for enqueuing async processing jobs
 import { Client } from '@upstash/qstash';
 import { env } from '@/lib/env';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 // Runtime validation — QStash vars are optional in env.ts but required here
 function requireEnv(value: string | undefined, name: string): string {
@@ -30,18 +30,19 @@ async function publishDevJob(
   path: string,
   body: Record<string, unknown>,
 ): Promise<void> {
-  log({ level: 'info', message: 'Dev mode — calling local worker', metadata: { path, ...body } });
+  logger.info({ path, ...body }, 'Dev mode — calling local worker');
   await fetch(`${env.APP_URL}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).catch((error) => {
-    log({
-      level: 'error',
-      message: 'Dev worker call failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      metadata: body,
-    });
+    logger.error(
+      {
+        err: error instanceof Error ? error : new Error('Unknown error'),
+        ...body,
+      },
+      'Dev worker call failed',
+    );
   });
 }
 

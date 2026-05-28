@@ -1,33 +1,17 @@
-// Structured logging utility — never logs transcript content
-import { env } from '@/lib/env';
+// Structured logger using Pino — JSON in production, pretty-print in development
+import pino from 'pino';
 
-type LogLevel = 'info' | 'warn' | 'error';
+// Reads LOG_LEVEL from process.env directly (not lib/env.ts) to avoid circular import: env → logger → env
+const level =
+  process.env.LOG_LEVEL ??
+  (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
 
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  sessionId?: string | undefined;
-  userId?: string | undefined;
-  duration?: number | undefined;
-  error?: string | undefined;
-  /** WARNING: never pass PII (emails, transcripts, names) in metadata */
-  metadata?: Record<string, unknown> | undefined;
-}
-
-export function log(entry: LogEntry): void {
-  const timestamp = new Date().toISOString();
-  const logData = {
-    ...entry,
-    timestamp,
-    environment: env.NODE_ENV,
-  };
-
-  const method =
-    entry.level === 'error'
-      ? 'error'
-      : entry.level === 'warn'
-        ? 'warn'
-        : 'info';
-
-  console[method](JSON.stringify(logData));
-}
+export const logger = pino({
+  level,
+  ...(process.env.NODE_ENV !== 'production' && {
+    transport: {
+      target: 'pino-pretty',
+      options: { colorize: true },
+    },
+  }),
+});

@@ -2,7 +2,7 @@
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { errorResponse, successResponse } from '@/lib/api';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
 
@@ -47,11 +47,10 @@ export async function GET() {
 
     return successResponse(settings);
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Settings read failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Settings read failed',
+    );
     return errorResponse('Failed to read settings', 'INTERNAL_ERROR', 500);
   }
 }
@@ -110,11 +109,10 @@ export async function PATCH(request: Request) {
 
     return successResponse(updated);
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Settings update failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Settings update failed',
+    );
     return errorResponse('Failed to update settings', 'INTERNAL_ERROR', 500);
   }
 }

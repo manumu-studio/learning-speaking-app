@@ -3,7 +3,7 @@ import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteAudio } from '@/lib/storage/r2';
 import { successResponse, errorResponse } from '@/lib/api';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 
 /**
@@ -93,11 +93,10 @@ export async function GET(
 
     return successResponse({ ...speakingSession, workoutNumber });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Session fetch failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Session fetch failed',
+    );
     return errorResponse('Failed to fetch session', 'INTERNAL_ERROR', 500);
   }
 }
@@ -143,11 +142,10 @@ export async function DELETE(
       try {
         await deleteAudio(speakingSession.audioUrl);
       } catch (r2Error) {
-        log({
-          level: 'warn',
-          message: 'Failed to delete audio from R2',
-          error: r2Error instanceof Error ? r2Error.message : 'Unknown error',
-        });
+        logger.warn(
+          { err: r2Error instanceof Error ? r2Error : new Error('Unknown error') },
+          'Failed to delete audio from R2',
+        );
       }
     }
 
@@ -156,11 +154,10 @@ export async function DELETE(
 
     return successResponse({ ok: true });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Session deletion failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Session deletion failed',
+    );
     return errorResponse('Failed to delete session', 'INTERNAL_ERROR', 500);
   }
 }
