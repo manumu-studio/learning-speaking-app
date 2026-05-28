@@ -11,7 +11,7 @@ vi.mock('@/lib/env', () => ({
 }));
 
 vi.mock('@/lib/logger', () => ({
-  log: vi.fn(),
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 vi.mock('@/lib/prisma', () => ({

@@ -7,7 +7,7 @@ import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
 import { deleteAudio, getAudio } from '@/lib/storage/r2';
 import { enqueueFinalProcessing } from '@/lib/queue/qstash';
 import { env } from '@/lib/env';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
@@ -145,13 +145,14 @@ export async function processChunk(
       pronWords = toJson(taggedWords);
       pronRawJson = toJson(pronunciationResult.rawUtterances);
     } catch (error) {
-      log({
-        level: 'warn',
-        message: 'Chunk pronunciation assessment failed',
-        sessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        metadata: { chunkIndex },
-      });
+      logger.warn(
+        {
+          sessionId,
+          chunkIndex,
+          err: error instanceof Error ? error : new Error('Unknown error'),
+        },
+        'Chunk pronunciation assessment failed',
+      );
     }
   }
 
@@ -177,13 +178,14 @@ export async function processChunk(
       data: { audioDeletedAt: new Date(), audioUrl: null },
     });
   } catch (deleteError) {
-    log({
-      level: 'warn',
-      message: 'Failed to delete chunk audio from R2',
-      sessionId,
-      error: deleteError instanceof Error ? deleteError.message : 'Unknown error',
-      metadata: { chunkIndex },
-    });
+    logger.warn(
+      {
+        sessionId,
+        chunkIndex,
+        err: deleteError instanceof Error ? deleteError : new Error('Unknown error'),
+      },
+      'Failed to delete chunk audio from R2',
+    );
   }
 
   await maybeEnqueueFinalProcessing(sessionId);

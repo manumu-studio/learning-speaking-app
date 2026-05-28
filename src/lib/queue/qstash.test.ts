@@ -10,8 +10,10 @@ vi.mock('@upstash/qstash', () => ({
   Client: MockClient,
 }));
 
+const loggerMock = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+
 vi.mock('@/lib/logger', () => ({
-  log: vi.fn(),
+  logger: loggerMock,
 }));
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -30,7 +32,7 @@ async function importWithEnv(overrides: {
       NODE_ENV: overrides.NODE_ENV,
     },
   }));
-  vi.doMock('@/lib/logger', () => ({ log: vi.fn() }));
+  vi.doMock('@/lib/logger', () => ({ logger: loggerMock }));
   vi.doMock('@upstash/qstash', () => ({ Client: MockClient }));
 
   return import('./qstash');
@@ -101,7 +103,7 @@ describe('enqueueProcessing', () => {
         NODE_ENV: 'production',
       },
     }));
-    vi.doMock('@/lib/logger', () => ({ log: vi.fn() }));
+    vi.doMock('@/lib/logger', () => ({ logger: loggerMock }));
     vi.doMock('@upstash/qstash', () => ({ Client: MockClient }));
 
     const { enqueueProcessing } = await import('./qstash');

@@ -23,6 +23,9 @@ const envSchema = z.object({
   AUTH_ISSUER_URL: z.string().url().default('https://auth.manumustudio.com'),
   APP_URL: z.string().url().default('http://localhost:3000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  SENTRY_DSN: z.string().url().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
 });
 
 export const env = envSchema.parse(process.env);

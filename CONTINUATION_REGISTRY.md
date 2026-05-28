@@ -9,4 +9,5 @@
 | CP-025 | 2026-05-28 | feat/settings-prompts-trends | Audit PACKET-41F-41H-41L — all 19 tasks built, needs audit + commit | DONE | docs/continuation-prompts/CP-025-packet-41fhl-audit.md |
 | CP-026 | 2026-05-28 | feat/disclosure-pins-workout | Merge settings-prompts-trends + disclosure-pins-workout to main | DONE | docs/continuation-prompts/CP-026-merge-and-ship.md |
 | CP-027 | 2026-05-28 | feat/disclosure-pins-workout | Rebase + merge disclosure-pins-workout to main | READY | docs/continuation-prompts/CP-027-merge-disclosure-branch.md |
-| CP-028 | 2026-05-28 | feat/chunked-recording-pipeline | Merge disclosure branch, then start PACKET-41M chunked recording build | READY | docs/continuation-prompts/CP-028-chunked-recording-build.md |
+| CP-028 | 2026-05-28 | feat/chunked-recording-pipeline | Merge disclosure branch, then start PACKET-41M chunked recording build | DONE | docs/continuation-prompts/CP-028-chunked-recording-build.md |
+| CP-029 | 2026-05-28 | feat/chunked-recording-pipeline | Force-push chunked branch, merge disclosure to main, then ship chunked pipeline | READY | docs/continuation-prompts/CP-029-chunked-pipeline-merge.md |

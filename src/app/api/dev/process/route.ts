@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { env } from '@/lib/env';
 import { executePipeline, persistSessionFailedStatus } from '@/lib/pipeline';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 const devProcessBodySchema = z.object({ sessionId: z.string().optional() });
 
@@ -31,12 +31,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, sessionId });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    log({
-      level: 'error',
-      message: 'Dev pipeline failed',
-      sessionId: sessionId ?? undefined,
-      error: message,
-    });
+    logger.error(
+      { sessionId: sessionId ?? undefined, err: new Error(message) },
+      'Dev pipeline failed',
+    );
 
     if (sessionId) {
       await persistSessionFailedStatus(sessionId, message);

@@ -4,7 +4,7 @@ import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';
 import { errorResponse, successResponse } from '@/lib/api';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   _request: Request,
@@ -45,11 +45,10 @@ export async function GET(
       completedAt: drill.completedAt,
     });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Drill fetch failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Drill fetch failed',
+    );
     return errorResponse('Failed to fetch drill', 'INTERNAL_ERROR', 500);
   }
 }

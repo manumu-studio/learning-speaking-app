@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { env } from '@/lib/env';
 import { persistSessionFailedStatus } from '@/lib/pipeline';
 import { processFinal } from '@/lib/pipeline/processFinal';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 const devProcessFinalBodySchema = z.object({
   sessionId: z.string(),
@@ -29,12 +29,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, sessionId });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    log({
-      level: 'error',
-      message: 'Dev final processing failed',
-      sessionId: sessionId ?? undefined,
-      error: message,
-    });
+    logger.error(
+      { sessionId: sessionId ?? undefined, err: new Error(message) },
+      'Dev final processing failed',
+    );
 
     if (sessionId) {
       await persistSessionFailedStatus(sessionId, message);

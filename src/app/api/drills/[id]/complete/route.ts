@@ -9,7 +9,7 @@ import { evaluateDrill } from '@/features/training/evaluateDrill';
 import type { DrillType } from '@/features/training/training.types';
 import { uploadAudio, deleteAudio } from '@/lib/storage/r2';
 import { validateAudioFile, errorResponse, successResponse } from '@/lib/api';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 
 const DRILL_TYPES: readonly DrillType[] = [
@@ -106,11 +106,7 @@ export async function POST(
       try {
         await deleteAudio(storageKey);
       } catch {
-        log({
-          level: 'warn',
-          message: 'Failed to delete drill audio from R2',
-          metadata: { key: storageKey },
-        });
+        logger.warn({ key: storageKey }, 'Failed to delete drill audio from R2');
       }
     }
 
@@ -145,11 +141,10 @@ export async function POST(
       completedAt: updatedDrill.completedAt,
     });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Drill complete failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Drill complete failed',
+    );
     return errorResponse('Failed to complete drill', 'INTERNAL_ERROR', 500);
   }
 }

@@ -6,7 +6,7 @@ import { uploadAudio, generateAudioKey } from '@/lib/storage/r2';
 import { validateAudioFile, successResponse, errorResponse } from '@/lib/api';
 import { SessionStatus } from '@prisma/client';
 import { enqueueProcessing } from '@/lib/queue/qstash';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { SPEAKING_METRIC_KEYS } from '@/lib/metric-keys';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
@@ -224,11 +224,10 @@ export async function POST(request: Request) {
       201
     );
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Session creation failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Session creation failed',
+    );
     return errorResponse('Failed to create session', 'INTERNAL_ERROR', 500);
   }
 }
@@ -360,11 +359,10 @@ export async function GET(request: Request) {
       total,
     });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Session list failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Session list failed',
+    );
     return errorResponse('Failed to fetch sessions', 'INTERNAL_ERROR', 500);
   }
 }
