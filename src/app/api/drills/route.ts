@@ -86,7 +86,7 @@ export async function GET() {
         improvementRate,
         byMetric: Object.fromEntries(metricGroups.map((g) => [g.metricKey, g._count._all])),
       },
-    });
+    }, 200, { 'Cache-Control': 'private, no-store' });
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? error : new Error('Unknown error') },

@@ -7,8 +7,14 @@ export function errorResponse(
   return Response.json({ error: message, code }, { status });
 }
 
-export function successResponse<T>(data: T, status = 200): Response {
-  return Response.json(data, { status });
+export function successResponse<T>(
+  data: T,
+  status = 200,
+  headers?: Record<string, string>,
+): Response {
+  return headers
+    ? Response.json(data, { status, headers })
+    : Response.json(data, { status });
 }
 
 /**

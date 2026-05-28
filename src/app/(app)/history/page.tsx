@@ -1,5 +1,6 @@
 'use client';
-// Session history page — activity feed with filter bar and infinite scroll
+// Session history page — activity feed with Suspense boundary for search param reads
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { HistoryDayGroup } from '@/components/ui/HistoryDayGroup';
@@ -12,7 +13,21 @@ const DATE_FILTERS = [
   { value: '7d', label: 'Last 7 days' },
 ] as const satisfies ReadonlyArray<{ value: DateFilter; label: string }>;
 
-export default function HistoryPage() {
+function HistorySkeleton() {
+  return (
+    <Container>
+      <div className="mb-6 h-8 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="mb-3 h-16 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-900"
+        />
+      ))}
+    </Container>
+  );
+}
+
+function HistoryContent() {
   const {
     dayGroups,
     isLoading,
@@ -121,5 +136,13 @@ export default function HistoryPage() {
         </>
       )}
     </Container>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<HistorySkeleton />}>
+      <HistoryContent />
+    </Suspense>
   );
 }

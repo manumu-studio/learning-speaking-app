@@ -1,2 +1,2 @@
-// HeroCanvas type definitions (component currently takes no props)
+// HeroCanvas component prop types
 export type HeroCanvasProps = Record<string, never>;

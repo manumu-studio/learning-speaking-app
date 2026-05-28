@@ -153,4 +153,19 @@ describe('GET /api/sessions/[id]/focus-comparison', () => {
     expect(response.status).toBe(403);
     expect(body).toMatchObject({ code: 'FORBIDDEN' });
   });
+
+  it('returns Cache-Control header', async () => {
+    mockedIsMetricKey.mockReturnValue(true);
+    mockedAuth.mockResolvedValueOnce(mockAuthSession as never);
+    prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
+    prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSession as never);
+    prismaMock.metricSnapshot.findFirst.mockResolvedValueOnce(mockMetric as never);
+    prismaMock.speakingSession.findFirst.mockResolvedValueOnce(null);
+
+    const response = await GET(makeRequest(METRIC_KEY), makeParams());
+
+    expect(response.headers.get('Cache-Control')).toBe(
+      'private, max-age=60, stale-while-revalidate=120',
+    );
+  });
 });

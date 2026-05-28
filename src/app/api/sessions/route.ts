@@ -253,7 +253,7 @@ export async function GET(request: Request) {
         nextCursor: null,
         nextCursorId: null,
         total: 0,
-      });
+      }, 200, { 'Cache-Control': 'private, no-store' });
     }
 
     const url = new URL(request.url);
@@ -357,7 +357,7 @@ export async function GET(request: Request) {
       nextCursor,
       nextCursorId,
       total,
-    });
+    }, 200, { 'Cache-Control': 'private, no-store' });
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? error : new Error('Unknown error') },
