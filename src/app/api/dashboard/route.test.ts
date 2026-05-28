@@ -102,6 +102,18 @@ describe('GET /api/dashboard', () => {
     expect(getDashboardData).toHaveBeenCalledWith('user-1');
   });
 
+  it('returns Cache-Control header', async () => {
+    vi.mocked(auth).mockResolvedValue(mockSession as never);
+    prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
+    vi.mocked(getDashboardData).mockResolvedValue(mockDashboardData as never);
+
+    const response = await GET();
+
+    expect(response.headers.get('Cache-Control')).toBe(
+      'private, max-age=30, stale-while-revalidate=60',
+    );
+  });
+
   it('propagates unhandled errors from getDashboardData', async () => {
     // Arrange — handler has no try/catch, so errors bubble up
     vi.mocked(auth).mockResolvedValue(mockSession as never);

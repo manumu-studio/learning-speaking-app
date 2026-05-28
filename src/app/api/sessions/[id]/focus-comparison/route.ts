@@ -89,6 +89,8 @@ export async function GET(
     return successResponse({
       currentScore: currentMetric.score,
       previousScore,
+    }, 200, {
+      'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
     });
   } catch {
     return errorResponse('Failed to fetch focus comparison', 'INTERNAL_ERROR', 500);

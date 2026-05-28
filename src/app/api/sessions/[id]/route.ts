@@ -91,7 +91,9 @@ export async function GET(
       },
     });
 
-    return successResponse({ ...speakingSession, workoutNumber });
+    return successResponse({ ...speakingSession, workoutNumber }, 200, {
+      'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+    });
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? error : new Error('Unknown error') },
