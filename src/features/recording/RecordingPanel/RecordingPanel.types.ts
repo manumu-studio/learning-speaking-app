@@ -5,4 +5,5 @@ export interface RecordingPanelProps {
   topic?: string;
   focus?: { focusKey: string; focusLabel: string } | null;
   recordingMode?: RecordingMode;
+  promptUsed?: string | null;
 }

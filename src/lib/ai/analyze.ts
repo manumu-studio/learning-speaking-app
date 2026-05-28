@@ -406,14 +406,23 @@ function buildUserPrompt(
   transcript: string,
   focusMetricKey?: string | null,
   pronunciationSummary?: PronunciationSummary | null,
+  promptUsed?: string | null,
 ): string {
-  const sections = [
+  const sections: string[] = [];
+
+  if (promptUsed != null && promptUsed.trim().length > 0) {
+    sections.push(
+      `PROMPT CONTEXT\nThe user was asked to speak about the following topic:\n"${promptUsed.trim()}"\nUse this context to make your feedback more specific. Reference the prompt where relevant.`,
+    );
+  }
+
+  sections.push(
     COT_INSTRUCTIONS,
     COHERENCE_PROMPT_SECTION.trim(),
     VOCABULARY_DIVERSITY_PROMPT_SECTION.trim(),
     L1_INTERFERENCE_PROMPT_SECTION.trim(),
     PATTERN_ANALYSIS_SECTION,
-  ];
+  );
 
   if (focusMetricKey != null && isSpeakingMetricKey(focusMetricKey)) {
     sections.push(buildFocusInstruction(focusMetricKey).trim());
@@ -433,6 +442,7 @@ export async function analyzeTranscript(
   transcript: string,
   focusMetricKey?: string | null,
   pronunciationSummary?: PronunciationSummary | null,
+  promptUsed?: string | null,
 ): Promise<AnalysisResult> {
   const { hashTranscript, getCachedAnalysis, setCachedAnalysis } = await import(
     '@/lib/ai/analysisCache'
@@ -447,7 +457,7 @@ export async function analyzeTranscript(
 
   const client = getAnthropicClient();
   const systemPrompt = buildSystemPrompt();
-  const userPrompt = buildUserPrompt(transcript, focusMetricKey, pronunciationSummary);
+  const userPrompt = buildUserPrompt(transcript, focusMetricKey, pronunciationSummary, promptUsed);
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
