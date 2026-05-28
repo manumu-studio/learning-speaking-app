@@ -46,7 +46,7 @@ Three user-facing features: a one-time AI disclosure consent modal (Apple Guidel
 - 545 tests passing, 79 test files
 - 24 new tests (12 workout engine + 7 sentence splitter + 5 insight matcher)
 - Quality gates: tsc ✅ | build ✅ | lint ✅ | tests ✅
-- Audit report: `docs/build-packet-reports/PACKET-41I-41J-41K-audit.md` — PASS
+- Code audit: PASS (all compliance checks clean)
 
 ## Testing Checklist
 - [ ] First-time user sees disclosure modal before recording
