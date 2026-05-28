@@ -19,7 +19,7 @@ import { PILLAR_CONFIG, PILLAR_KEYS } from '@/features/dashboard/pillars';
 import type { PillarKey } from '@/features/dashboard/pillars';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
 import { FocusHighlight } from '@/components/ui/FocusHighlight';
-import { TranscriptSection } from '@/components/ui/TranscriptSection';
+import { AnnotatedTranscript } from '@/components/ui/AnnotatedTranscript';
 import {
   PronunciationSection,
   PronunciationReportSchema,
@@ -463,9 +463,11 @@ export default function SessionResultsPage({
           )}
 
           {session.transcript && (
-            <TranscriptSection
+            <AnnotatedTranscript
               text={session.transcript.text}
               wordCount={session.transcript.wordCount}
+              insights={session.insights}
+              metrics={session.metrics ?? []}
               animationDelay={transcriptDelay}
             />
           )}

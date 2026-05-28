@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ConsentFlag" ADD VALUE 'AI_DISCLOSURE';
