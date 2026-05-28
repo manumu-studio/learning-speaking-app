@@ -22,6 +22,7 @@ enum ConsentFlag {
   AUDIO_STORAGE
   TRANSCRIPT_STORAGE
   PATTERN_TRACKING
+  AI_DISCLOSURE
 }
 
 model User {

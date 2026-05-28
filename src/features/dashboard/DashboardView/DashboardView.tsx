@@ -20,6 +20,10 @@ import type {
 } from './DashboardView.types';
 import type { DashboardMetric } from '@/features/dashboard/dashboard.types';
 import { PRONUNCIATION_METRIC_KEYS } from '@/features/dashboard/dashboard.types';
+import { TodaysWorkout, useTodaysWorkout } from '@/features/dashboard/TodaysWorkout/index';
+import type { PromptEntry } from '@/features/dashboard/todaysWorkout';
+
+const PROMPT_LIBRARY: PromptEntry[] = [];
 
 const MIN_SESSIONS_FOR_METRICS = 3;
 
@@ -129,6 +133,10 @@ function PillarCardWithState({
 
 export function DashboardView({ className }: DashboardViewProps) {
   const { data, isLoading, error, focus, setFocus, clearFocus } = useDashboard();
+  const { recommendation, completedMetricKey, workoutNumber } = useTodaysWorkout(
+    data,
+    PROMPT_LIBRARY,
+  );
 
   if (isLoading) {
     return <DashboardSkeleton className={className} />;
@@ -167,6 +175,13 @@ export function DashboardView({ className }: DashboardViewProps) {
         currentStreak={data.currentStreak}
         totalDrillsCompleted={data.drillStats.totalCompleted}
         workoutWeeks={data.workoutWeeks}
+      />
+
+      <TodaysWorkout
+        recommendation={recommendation}
+        completedMetricKey={completedMetricKey}
+        workoutNumber={workoutNumber}
+        className="mt-6"
       />
 
       <PersonalRecordStrip personalRecords={data.personalRecords ?? []} />
