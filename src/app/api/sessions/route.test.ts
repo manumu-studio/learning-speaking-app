@@ -14,7 +14,7 @@ vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/db-utils', () => ({ findOrCreateUser: vi.fn(), hasConsent: vi.fn() }));
 vi.mock('@/lib/storage/r2', () => ({ uploadAudio: vi.fn(), generateAudioKey: vi.fn() }));
 vi.mock('@/lib/queue/qstash', () => ({ enqueueProcessing: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ log: vi.fn() }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock('@/lib/metric-keys', () => ({
   SPEAKING_METRIC_KEYS: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'argumentClosure', 'fillerUsage'] as const,
   isSpeakingMetricKey: vi.fn().mockReturnValue(true),

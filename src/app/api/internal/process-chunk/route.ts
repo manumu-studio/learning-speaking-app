@@ -7,7 +7,7 @@ import {
   persistSessionFailedStatus,
 } from '@/lib/pipeline';
 import { processChunk } from '@/lib/pipeline/processChunk';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 export const maxDuration = 300;
@@ -63,12 +63,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    log({
-      level: 'error',
-      message: 'Chunk processing failed',
-      sessionId: sessionId ?? undefined,
-      error: message,
-    });
+    logger.error(
+      { sessionId: sessionId ?? undefined, err: new Error(message) },
+      'Chunk processing failed',
+    );
 
     if (sessionId && isQstashFinalFailureAttempt(request)) {
       await persistSessionFailedStatus(sessionId, message);

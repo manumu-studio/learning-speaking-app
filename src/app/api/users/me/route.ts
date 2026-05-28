@@ -3,7 +3,7 @@ import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { errorResponse, successResponse } from '@/lib/api';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 const PatchUserMeSchema = z.object({
@@ -54,11 +54,10 @@ export async function PATCH(request: Request) {
       onboardedAt: updated.onboardedAt?.toISOString() ?? null,
     });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'PATCH /api/users/me failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'PATCH /api/users/me failed',
+    );
     return errorResponse('Failed to update user', 'INTERNAL_ERROR', 500);
   }
 }

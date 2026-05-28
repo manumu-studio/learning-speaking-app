@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis';
 import { z } from 'zod';
 import { analysisResultSchema, type AnalysisResult } from '@/lib/ai/analyze';
 import { env } from '@/lib/env';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 const CACHE_VERSION = 'v1';
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -67,11 +67,10 @@ export async function getCachedAnalysis(
 
     return parsed.data.result;
   } catch (error) {
-    log({
-      level: 'warn',
-      message: 'Failed to read analysis cache',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.warn(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Failed to read analysis cache',
+    );
     return null;
   }
 }
@@ -95,10 +94,9 @@ export async function setCachedAnalysis(
       ex: CACHE_TTL_SECONDS,
     });
   } catch (error) {
-    log({
-      level: 'warn',
-      message: 'Failed to write analysis cache',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.warn(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Failed to write analysis cache',
+    );
   }
 }

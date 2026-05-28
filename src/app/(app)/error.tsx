@@ -1,5 +1,8 @@
-'use client';
 // Error boundary for protected routes — catches runtime errors and displays recovery UI
+'use client';
+
+import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
 
 export default function Error({
   error,
@@ -8,6 +11,10 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">

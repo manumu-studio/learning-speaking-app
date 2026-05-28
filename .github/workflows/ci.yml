@@ -88,6 +88,38 @@ jobs:
           AUTH_CLIENT_SECRET: "ci-placeholder"
           APP_URL: "http://localhost:3000"
 
+      - name: Smoke test (health check)
+        env:
+          DATABASE_URL: 'postgresql://test:test@localhost:5432/test'
+          NEXTAUTH_SECRET: 'ci-test-secret-that-is-at-least-32-chars-long-ok'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          AUTH_CLIENT_ID: 'ci-test'
+          AUTH_CLIENT_SECRET: 'ci-test-secret'
+          APP_URL: 'http://localhost:3000'
+          NODE_ENV: 'production'
+        run: |
+          npm start &
+          SERVER_PID=$!
+          sleep 3
+          PASSED=false
+          for i in $(seq 1 20); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "000")
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "503" ]; then
+              echo "Health endpoint responded with HTTP $HTTP_CODE"
+              PASSED=true
+              break
+            fi
+            echo "Attempt $i: HTTP $HTTP_CODE — retrying in 2s..."
+            sleep 2
+          done
+          kill $SERVER_PID 2>/dev/null || true
+          if [ "$PASSED" = "true" ]; then
+            echo "Smoke test passed"
+          else
+            echo "Smoke test failed — server did not respond within 40s"
+            exit 1
+          fi
+
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest

@@ -7,7 +7,7 @@ vi.mock('@/features/auth/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/db-utils', () => ({ findOrCreateUser: vi.fn() }));
 vi.mock('@/features/training/generateDrill', () => ({ generateDrill: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ log: vi.fn() }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock('@/lib/csrf', () => ({
   validateOrigin: vi.fn().mockReturnValue(true),
   csrfForbiddenResponse: vi.fn(),

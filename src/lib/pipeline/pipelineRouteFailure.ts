@@ -2,7 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 /** Mirrors previous internal route logic: mark FAILED only on final QStash retry attempt. */
 export function isQstashFinalFailureAttempt(request: NextRequest): boolean {
@@ -26,11 +26,12 @@ export async function persistSessionFailedStatus(
       },
     });
   } catch (dbError) {
-    log({
-      level: 'error',
-      message: 'Failed to update session status to FAILED',
-      sessionId,
-      error: dbError instanceof Error ? dbError.message : 'Unknown error',
-    });
+    logger.error(
+      {
+        sessionId,
+        err: dbError instanceof Error ? dbError : new Error('Unknown error'),
+      },
+      'Failed to update session status to FAILED',
+    );
   }
 }

@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-vi.mock('@/lib/logger', () => ({ log: vi.fn() }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock('@/lib/prisma', () => ({ prisma: {} }));
 
 import { isQstashFinalFailureAttempt } from './pipelineRouteFailure';

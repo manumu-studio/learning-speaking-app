@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';
 import { errorResponse, successResponse } from '@/lib/api';
 import { generateDrill } from '@/features/training/generateDrill';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
 
@@ -88,11 +88,10 @@ export async function GET() {
       },
     });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Drill list failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Drill list failed',
+    );
     return errorResponse('Failed to load drills', 'INTERNAL_ERROR', 500);
   }
 }
@@ -169,11 +168,10 @@ export async function POST(request: Request) {
       timeLimit: drillPrompt.timeLimit,
     });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'Drill create failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'Drill create failed',
+    );
     return errorResponse('Failed to create drill', 'INTERNAL_ERROR', 500);
   }
 }
