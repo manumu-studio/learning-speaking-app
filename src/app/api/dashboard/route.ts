@@ -1,14 +1,18 @@
 // Dashboard API — returns aggregated performance data for authenticated user
-import { NextResponse } from 'next/server';
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { getDashboardData } from '@/features/dashboard/getDashboardData';
+import { errorResponse, successResponse } from '@/lib/api';
+
+const DASHBOARD_CACHE = {
+  'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+} as const;
 
 export async function GET() {
   const session = await auth();
 
   if (!session?.user?.externalId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
   }
 
   const user = await prisma.user.findUnique({
@@ -17,9 +21,9 @@ export async function GET() {
   });
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
   }
 
   const data = await getDashboardData(user.id);
-  return NextResponse.json(data);
+  return successResponse(data, 200, { ...DASHBOARD_CACHE });
 }

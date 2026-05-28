@@ -1,6 +1,6 @@
 // Public landing page with animated canvas background and scrollable sections
 import { CookieConsent } from '@/components/ui/CookieConsent';
-import { HeroCanvas } from '@/components/ui/HeroCanvas';
+import { HeroCanvasLazy } from '@/components/ui/HeroCanvas';
 import { FeatureShowcase } from '@/components/landing/FeatureShowcase';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { CtaFooter } from '@/components/landing/CtaFooter';
@@ -34,7 +34,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       {/* === Hero Section === */}
       <section aria-label="Hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <HeroCanvas />
+        <HeroCanvasLazy />
 
         <div className="relative z-10 max-w-2xl mx-auto px-4 text-center">
           {/* Logo */}

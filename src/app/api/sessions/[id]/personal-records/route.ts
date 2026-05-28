@@ -57,7 +57,9 @@ export async function GET(
 
     if (speakingSession.status !== 'DONE') {
       const emptyResponse = PersonalRecordsResponseSchema.parse({ personalRecords: [] });
-      return successResponse(emptyResponse);
+      return successResponse(emptyResponse, 200, {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+      });
     }
 
     const personalRecords = await detectPersonalRecords(
@@ -67,7 +69,9 @@ export async function GET(
     );
 
     const response = PersonalRecordsResponseSchema.parse({ personalRecords });
-    return successResponse(response);
+    return successResponse(response, 200, {
+      'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+    });
   } catch {
     return errorResponse('Failed to fetch personal records', 'INTERNAL_ERROR', 500);
   }

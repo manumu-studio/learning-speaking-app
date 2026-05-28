@@ -1,7 +1,7 @@
 // Session results page — displays analysis feedback with staggered entrance animations
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { InsightExamplesSchema } from '@/lib/schemas/jsonFields';
@@ -185,6 +185,28 @@ function splitInsightsBySentiment(
 }
 
 export default function SessionResultsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={<SessionSkeleton />}>
+      <SessionContent params={params} />
+    </Suspense>
+  );
+}
+
+function SessionSkeleton() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+        Loading session…
+      </div>
+    </div>
+  );
+}
+
+function SessionContent({
   params,
 }: {
   params: Promise<{ id: string }>;

@@ -23,14 +23,16 @@ vi.mock('@/lib/csrf', () => ({
   validateOrigin: vi.fn().mockReturnValue(true),
   csrfForbiddenResponse: vi.fn(),
 }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock('@/lib/api', () => ({
   validateAudioFile: vi.fn().mockReturnValue({ valid: true }),
-  successResponse: (data: unknown, status = 200) => Response.json(data, { status }),
+  successResponse: (data: unknown, status = 200, headers?: Record<string, string>) =>
+    headers ? Response.json(data, { status, headers }) : Response.json(data, { status }),
   errorResponse: (message: string, code: string, status: number) =>
     Response.json({ error: message, code }, { status }),
 }));
 
-import { POST } from '@/app/api/sessions/route';
+import { GET, POST } from '@/app/api/sessions/route';
 import { auth } from '@/features/auth/auth';
 import { findOrCreateUser, hasConsent } from '@/lib/db-utils';
 import { uploadAudio, generateAudioKey } from '@/lib/storage/r2';
@@ -246,5 +248,28 @@ describe('POST /api/sessions', () => {
     // Assert
     expect(response.status).toBe(500);
     expect(body.code).toBe('INTERNAL_ERROR');
+  });
+});
+
+describe('GET /api/sessions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns Cache-Control: private, no-store', async () => {
+    mockAuth.mockResolvedValueOnce({
+      user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
+      expires: '',
+    } as never);
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      externalId: 'ext-1',
+    } as never);
+    prismaMock.speakingSession.findMany.mockResolvedValueOnce([]);
+    prismaMock.speakingSession.count.mockResolvedValueOnce(0);
+
+    const response = await GET(new Request('http://localhost/api/sessions'));
+
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
   });
 });
