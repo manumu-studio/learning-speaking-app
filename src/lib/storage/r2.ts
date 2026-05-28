@@ -29,6 +29,7 @@ function getR2Client(): { client: S3Client; bucketName: string } {
     region: 'auto',
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
   });
   _bucketName = bucketName;
 
