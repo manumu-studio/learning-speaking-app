@@ -2,6 +2,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChunkStatus, SessionStatus } from '@prisma/client';
 
+vi.mock('@/lib/env', () => ({
+  env: {
+    NODE_ENV: 'test',
+    AZURE_SPEECH_KEY: 'test-key',
+    AZURE_SPEECH_REGION: 'eastus',
+  },
+}));
+
+vi.mock('@/lib/logger', () => ({
+  log: vi.fn(),
+}));
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     sessionChunk: {
