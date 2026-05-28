@@ -30,6 +30,7 @@ import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
 import { PronunciationProgress, PronunciationHistorySchema } from '@/components/ui/PronunciationProgress';
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
 import { PracticeSuggestion } from '@/components/ui/PracticeSuggestion';
+import { ChunkBreakdown } from '@/components/ui/ChunkBreakdown';
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import type { SessionDetail, SessionMetricSnapshot } from '@/features/session/useSessionStatus.types';
 import { DrillRecommendation } from '@/features/training/DrillRecommendation';
@@ -194,6 +195,7 @@ export default function SessionResultsPage({
   const { personalRecords } = usePersonalRecordBanner({ sessionId: id, isDone });
   const [focusComparison, setFocusComparison] = useState<FocusComparison | null>(null);
   const [pronunciationHistory, setPronunciationHistory] = useState<HistoryItem[]>([]);
+  const [resultsView, setResultsView] = useState<'overall' | 'segments'>('overall');
 
   useEffect(() => {
     const focusKey = session?.focusMetricKey;
@@ -330,6 +332,11 @@ export default function SessionResultsPage({
       router.push(`/drill/${result.data.id}`);
     };
 
+    const hasChunkBreakdown =
+      session.isChunked === true &&
+      session.chunks !== undefined &&
+      session.chunks.length > 0;
+
     return (
       <Container>
         <div className={styles.resultsContainer}>
@@ -344,6 +351,48 @@ export default function SessionResultsPage({
               : {})}
             animationDelay={0}
           />
+
+          {hasChunkBreakdown && (
+            <div
+              className="mt-4 flex justify-center gap-2"
+              role="tablist"
+              aria-label="Results view"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={resultsView === 'overall'}
+                className={`rounded-full px-4 py-2 text-sm font-medium ${
+                  resultsView === 'overall'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                }`}
+                onClick={() => setResultsView('overall')}
+              >
+                Overall
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={resultsView === 'segments'}
+                className={`rounded-full px-4 py-2 text-sm font-medium ${
+                  resultsView === 'segments'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                }`}
+                onClick={() => setResultsView('segments')}
+              >
+                By Segment
+              </button>
+            </div>
+          )}
+
+          {hasChunkBreakdown && resultsView === 'segments' ? (
+            <div className="mt-6">
+              <ChunkBreakdown chunks={session.chunks ?? []} />
+            </div>
+          ) : (
+            <>
 
           {personalRecords.length > 0 && (
             <PersonalRecordBanner
@@ -470,6 +519,8 @@ export default function SessionResultsPage({
               metrics={session.metrics ?? []}
               animationDelay={transcriptDelay}
             />
+          )}
+            </>
           )}
         </div>
       </Container>

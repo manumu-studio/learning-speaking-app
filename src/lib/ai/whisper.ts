@@ -4,6 +4,7 @@ import OpenAI, { toFile } from 'openai';
 import { env } from '@/lib/env';
 import {
   whisperVerboseResponseSchema,
+  whisperVerboseWithWordsSchema,
   type WhisperVerboseResult,
 } from '@/lib/ai/whisper.types';
 
@@ -70,4 +71,35 @@ export async function transcribeAudio(
   return parseVerboseResponse(response);
 }
 
-export type { WhisperSegment, WhisperVerboseResult } from '@/lib/ai/whisper.types';
+function parseVerboseWithWordsResponse(raw: unknown): WhisperVerboseResult {
+  const parsed = whisperVerboseWithWordsSchema.parse(raw);
+  return {
+    text: parsed.text,
+    language: parsed.language,
+    segments: parsed.segments,
+    words: parsed.words,
+  };
+}
+
+/** Transcribe a PCM WAV chunk with word-level timestamps for overlap dedup. */
+export async function transcribeWavChunk(
+  audioBuffer: Buffer,
+  filename: string,
+): Promise<WhisperVerboseResult> {
+  const client = getOpenAIClient();
+  const file = await toFile(audioBuffer, filename, { type: 'audio/wav' });
+
+  const response = await client.audio.transcriptions.create({
+    model: 'whisper-1',
+    file,
+    language: 'en',
+    response_format: 'verbose_json',
+    timestamp_granularities: ['word', 'segment'],
+    temperature: 0,
+    prompt: WHISPER_DOMAIN_PROMPT,
+  });
+
+  return parseVerboseWithWordsResponse(response);
+}
+
+export type { WhisperSegment, WhisperVerboseResult, WhisperWord } from '@/lib/ai/whisper.types';

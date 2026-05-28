@@ -2,6 +2,7 @@
 
 export type ToastSessionStatus =
   | 'UPLOADED'
+  | 'CHUNKS_PROCESSING'
   | 'TRANSCRIBING'
   | 'SCORING'
   | 'ANALYZING'

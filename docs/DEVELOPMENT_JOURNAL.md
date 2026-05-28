@@ -115,3 +115,9 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.41.0 | [PR-0.41.0](pull-requests/PR-0.41.0.md) | 2026-05-27 | PR ribbons, workout weeks, workout numbering |
 | 0.42.0 | [ENTRY-46](journal/ENTRY-46.md) | 2026-05-27 | Onboarding placement test + paginated session history |
 | 0.42.0 | [PR-0.42.0](pull-requests/PR-0.42.0.md) | 2026-05-27 | Onboarding flow, cursor history API, activity feed UI |
+| 0.43.0 | [ENTRY-47](journal/ENTRY-47.md) | 2026-05-28 | Settings page, prompt library, history trends |
+| 0.43.0 | [PR-0.43.0](pull-requests/PR-0.43.0.md) | 2026-05-28 | Settings page, prompt library, history trends |
+| 0.44.0 | [ENTRY-48](journal/ENTRY-48.md) | 2026-05-28 | AI disclosure, transcript pins, today's workout |
+| 0.44.0 | [PR-0.44.0](pull-requests/PR-0.44.0.md) | 2026-05-28 | Consent gate, annotated transcript, workout hero card |
+| 0.45.0 | [ENTRY-49](journal/ENTRY-49.md) | 2026-05-28 | Chunked recording pipeline — unlimited AudioWorklet capture |
+| 0.45.0 | [PR-0.45.0](pull-requests/PR-0.45.0.md) | 2026-05-28 | WAV chunks, parallel processing, fan-in analysis |

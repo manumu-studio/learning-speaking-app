@@ -4,6 +4,7 @@ import { ProcessingStatusProps } from './ProcessingStatus.types';
 
 const STEPS = [
   { key: 'UPLOADED', label: 'Uploaded' },
+  { key: 'CHUNKS_PROCESSING', label: 'Processing audio segments...' },
   { key: 'TRANSCRIBING', label: 'Transcribing your speech...' },
   { key: 'SCORING', label: 'Scoring pronunciation...' },
   { key: 'ANALYZING', label: 'Analyzing patterns...' },
