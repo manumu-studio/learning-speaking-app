@@ -5,8 +5,10 @@ import type { SessionDetail, UseSessionStatusReturn } from '@/features/session/u
 
 const sessionDetailSchema = z.object({
   id: z.string(),
-  status: z.enum(['CREATED', 'UPLOADED', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
+  status: z.enum(['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
   durationSecs: z.number().nullable(),
+  isChunked: z.boolean().optional(),
+  chunkCount: z.number().nullable().optional(),
   topic: z.string().nullable(),
   focusNext: z.string().nullable(),
   summary: z.string().nullable(),
@@ -61,6 +63,17 @@ const sessionDetailSchema = z.object({
   })
     .nullable()
     .optional(),
+  chunks: z.array(z.object({
+    chunkIndex: z.number(),
+    durationSecs: z.number(),
+    transcriptText: z.string().nullable(),
+    wordCount: z.number().nullable(),
+    accuracyScore: z.number().nullable(),
+    fluencyScore: z.number().nullable(),
+    prosodyScore: z.number().nullable(),
+    pronScore: z.number().nullable(),
+    status: z.string(),
+  })).optional(),
 }).transform((val): SessionDetail => {
   const result: SessionDetail = {
     id: val.id,
@@ -86,6 +99,15 @@ const sessionDetailSchema = z.object({
   if (val.workoutNumber !== undefined) {
     result.workoutNumber = val.workoutNumber;
   }
+  if (val.isChunked !== undefined) {
+    result.isChunked = val.isChunked;
+  }
+  if (val.chunkCount !== undefined) {
+    result.chunkCount = val.chunkCount;
+  }
+  if (val.chunks !== undefined) {
+    result.chunks = val.chunks;
+  }
   return result;
 });
 
@@ -94,7 +116,7 @@ const POLL_INTERVAL_SLOW = 10000;
 const FAST_POLL_DURATION = 30000;
 const MAX_POLL_DURATION = 300000;
 
-const PROCESSING_STATUSES = ['UPLOADED', 'TRANSCRIBING', 'SCORING', 'ANALYZING'] as const;
+const PROCESSING_STATUSES = ['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'TRANSCRIBING', 'SCORING', 'ANALYZING'] as const;
 
 export function useSessionStatus(sessionId: string): UseSessionStatusReturn {
   const [session, setSession] = useState<SessionDetail | null>(null);

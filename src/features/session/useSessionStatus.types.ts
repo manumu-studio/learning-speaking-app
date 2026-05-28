@@ -40,8 +40,10 @@ export type PronunciationReportDetail = {
  */
 export interface SessionDetail {
   id: string;
-  status: 'CREATED' | 'UPLOADED' | 'TRANSCRIBING' | 'SCORING' | 'ANALYZING' | 'DONE' | 'FAILED';
+  status: 'CREATED' | 'UPLOADED' | 'CHUNKS_PROCESSING' | 'TRANSCRIBING' | 'SCORING' | 'ANALYZING' | 'DONE' | 'FAILED';
   durationSecs: number | null;
+  isChunked?: boolean;
+  chunkCount?: number | null;
   topic: string | null;
   focusNext: string | null;
   summary: string | null;
@@ -64,6 +66,17 @@ export interface SessionDetail {
   }>;
   metrics?: SessionMetricSnapshot[];
   pronunciationReport?: PronunciationReportDetail | null;
+  chunks?: Array<{
+    chunkIndex: number;
+    durationSecs: number;
+    transcriptText: string | null;
+    wordCount: number | null;
+    accuracyScore: number | null;
+    fluencyScore: number | null;
+    prosodyScore: number | null;
+    pronScore: number | null;
+    status: string;
+  }>;
   workoutNumber?: number;
 }
 
