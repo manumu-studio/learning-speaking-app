@@ -16,7 +16,7 @@ vi.mock('@/lib/db-utils', () => ({ findOrCreateUser: vi.fn() }));
 vi.mock('@/lib/ai/whisper', () => ({ transcribeAudio: vi.fn() }));
 vi.mock('@/features/training/evaluateDrill', () => ({ evaluateDrill: vi.fn() }));
 vi.mock('@/lib/storage/r2', () => ({ uploadAudio: vi.fn(), deleteAudio: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ log: vi.fn() }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock('@/lib/csrf', () => ({
   validateOrigin: vi.fn().mockReturnValue(true),
   csrfForbiddenResponse: vi.fn(),

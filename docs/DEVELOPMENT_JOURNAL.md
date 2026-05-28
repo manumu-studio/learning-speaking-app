@@ -121,3 +121,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.44.0 | [PR-0.44.0](pull-requests/PR-0.44.0.md) | 2026-05-28 | Consent gate, annotated transcript, workout hero card |
 | 0.45.0 | [ENTRY-49](journal/ENTRY-49.md) | 2026-05-28 | Chunked recording pipeline — unlimited AudioWorklet capture |
 | 0.45.0 | [PR-0.45.0](pull-requests/PR-0.45.0.md) | 2026-05-28 | WAV chunks, parallel processing, fan-in analysis |
+| 0.46.0 | [ENTRY-50](journal/ENTRY-50.md) | 2026-05-28 | Observability — Sentry, Pino, health endpoint, CI smoke test |
+| 0.46.0 | [PR-0.46.0](pull-requests/PR-0.46.0.md) | 2026-05-28 | Error tracking, structured logging, /api/health |

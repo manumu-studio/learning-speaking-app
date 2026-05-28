@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { env } from '@/lib/env';
 import { persistSessionFailedStatus } from '@/lib/pipeline';
 import { processChunk } from '@/lib/pipeline/processChunk';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 const devProcessChunkBodySchema = z.object({
   sessionId: z.string(),
@@ -30,12 +30,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, sessionId, chunkIndex: parsed.data.chunkIndex });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    log({
-      level: 'error',
-      message: 'Dev chunk processing failed',
-      sessionId: sessionId ?? undefined,
-      error: message,
-    });
+    logger.error(
+      { sessionId: sessionId ?? undefined, err: new Error(message) },
+      'Dev chunk processing failed',
+    );
 
     if (sessionId) {
       await persistSessionFailedStatus(sessionId, message);

@@ -1,6 +1,9 @@
 // Root error boundary — catch-all for unhandled errors outside route group boundaries
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
+
 export default function RootError({
   error,
   reset,
@@ -8,8 +11,9 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // Log error for debugging (no external monitoring yet)
-  console.error('[RootError]', error);
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white px-4 dark:bg-black">

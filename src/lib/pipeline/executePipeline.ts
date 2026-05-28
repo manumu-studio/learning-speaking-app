@@ -13,7 +13,7 @@ import { toPcm16kMonoWav } from '@/lib/audio/transcode';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { env } from '@/lib/env';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { AZURE_SDK_VERSION } from '@/lib/pipeline/persistPronunciation';
 
 type PipelineMode = 'production' | 'dev';
@@ -86,12 +86,7 @@ export async function executePipeline(
   const id = session.id;
   const audioKey = session.audioUrl;
 
-  log({
-    level: 'info',
-    message: `${mode} pipeline starting`,
-    sessionId: id,
-    userId: session.userId,
-  });
+  logger.info({ sessionId: id, userId: session.userId }, `${mode} pipeline starting`);
 
   // Step 3: Download audio from R2
   const audioBuffer = await getAudio(audioKey);
@@ -113,16 +108,15 @@ export async function executePipeline(
     gated.annotatedText.length > 0 ? gated.annotatedText : whisperResult.text;
   const wordCount = userTranscriptText.trim().split(/\s+/).filter(Boolean).length;
 
-  log({
-    level: 'info',
-    message: 'Transcription complete',
-    sessionId: id,
-    userId: session.userId,
-    metadata: {
+  logger.info(
+    {
+      sessionId: id,
+      userId: session.userId,
       wordCount,
       gating: gated.stats,
     },
-  });
+    'Transcription complete',
+  );
 
   // Step 7: Store transcript — production creates, dev upserts for re-run safety
   if (mode === 'dev') {
@@ -164,13 +158,14 @@ export async function executePipeline(
         const failureMessage =
           azureError instanceof Error ? azureError.message : 'Unknown error';
 
-        log({
-          level: 'warn',
-          message: 'Pronunciation assessment failed — continuing without it',
-          sessionId: id,
-          userId: session.userId,
-          error: failureMessage,
-        });
+        logger.warn(
+          {
+            sessionId: id,
+            userId: session.userId,
+            err: new Error(failureMessage),
+          },
+          'Pronunciation assessment failed — continuing without it',
+        );
 
         await prisma.pronunciationReport.upsert({
           where: { sessionId: id },
@@ -192,12 +187,10 @@ export async function executePipeline(
         });
       }
     } else {
-      log({
-        level: 'info',
-        message: 'Pronunciation assessment skipped: Azure credentials not configured',
-        sessionId: id,
-        userId: session.userId,
-      });
+      logger.info(
+        { sessionId: id, userId: session.userId },
+        'Pronunciation assessment skipped: Azure credentials not configured',
+      );
     }
 
     // Step 10: Mark ANALYZING
@@ -227,42 +220,41 @@ export async function executePipeline(
     );
 
     if (nerFilterResult.filtered.length > 0) {
-      log({
-        level: 'info',
-        message: 'NER filter removed transcription false positives',
-        sessionId: id,
-        userId: session.userId,
-        metadata: {
+      logger.info(
+        {
+          sessionId: id,
+          userId: session.userId,
           filteredCount: nerFilterResult.filtered.length,
           filterReasons: nerFilterResult.filterReasons,
         },
-      });
+        'NER filter removed transcription false positives',
+      );
     }
 
     if (
       analysis.possible_transcription_artefacts != null &&
       analysis.possible_transcription_artefacts.length > 0
     ) {
-      log({
-        level: 'info',
-        message: 'Possible transcription artefacts detected',
-        sessionId: id,
-        userId: session.userId,
-        metadata: {
+      logger.info(
+        {
+          sessionId: id,
+          userId: session.userId,
           artefacts: analysis.possible_transcription_artefacts,
         },
-      });
+        'Possible transcription artefacts detected',
+      );
     }
 
     const insightsForStorage = nerFilterResult.kept;
 
-    log({
-      level: 'info',
-      message: 'Analysis complete',
-      sessionId: id,
-      userId: session.userId,
-      metadata: { insightCount: insightsForStorage.length },
-    });
+    logger.info(
+      {
+        sessionId: id,
+        userId: session.userId,
+        insightCount: insightsForStorage.length,
+      },
+      'Analysis complete',
+    );
 
     // Step 13: Store insights — dev deletes existing first for re-run safety
     if (mode === 'dev') {
@@ -320,13 +312,14 @@ export async function executePipeline(
     });
 
     const processingDuration = Date.now() - startTime;
-    log({
-      level: 'info',
-      message: `${mode} pipeline complete`,
-      sessionId: id,
-      userId: session.userId,
-      duration: processingDuration,
-    });
+    logger.info(
+      {
+        sessionId: id,
+        userId: session.userId,
+        duration: processingDuration,
+      },
+      `${mode} pipeline complete`,
+    );
   } finally {
     // R2 audio deletion always runs — moved here from after Whisper so Azure can use pcmBuffer
     try {
@@ -336,12 +329,13 @@ export async function executePipeline(
         data: { audioDeletedAt: new Date() },
       });
     } catch (deleteError) {
-      log({
-        level: 'warn',
-        message: 'Failed to delete audio from R2 (non-blocking)',
-        sessionId: id,
-        error: deleteError instanceof Error ? deleteError.message : 'Unknown error',
-      });
+      logger.warn(
+        {
+          sessionId: id,
+          err: deleteError instanceof Error ? deleteError : new Error('Unknown error'),
+        },
+        'Failed to delete audio from R2 (non-blocking)',
+      );
     }
   }
 }

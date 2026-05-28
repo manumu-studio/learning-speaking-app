@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { findOrCreateUser, hasConsent } from '@/lib/db-utils';
 import { successResponse, errorResponse } from '@/lib/api';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/consent/ai-disclosure
@@ -29,11 +29,10 @@ export async function GET() {
     const accepted = await hasConsent(user.id, 'AI_DISCLOSURE');
     return successResponse({ accepted });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'AI disclosure consent check failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'AI disclosure consent check failed',
+    );
     return errorResponse('Failed to check AI disclosure consent', 'INTERNAL_ERROR', 500);
   }
 }
@@ -66,11 +65,10 @@ export async function POST(request: Request) {
 
     return successResponse({ accepted: true });
   } catch (error) {
-    log({
-      level: 'error',
-      message: 'AI disclosure consent record failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    logger.error(
+      { err: error instanceof Error ? error : new Error('Unknown error') },
+      'AI disclosure consent record failed',
+    );
     return errorResponse('Failed to record AI disclosure consent', 'INTERNAL_ERROR', 500);
   }
 }

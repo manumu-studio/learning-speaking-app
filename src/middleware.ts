@@ -12,7 +12,7 @@ const CSP_HEADER = [
   "img-src 'self' blob: data:",
   "media-src 'self' blob:",
   "font-src 'self'",
-  `connect-src 'self' ${env.AUTH_ISSUER_URL} https://qstash.upstash.io`,
+  `connect-src 'self' ${env.AUTH_ISSUER_URL} https://qstash.upstash.io https://*.ingest.sentry.io`,
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",
@@ -39,7 +39,9 @@ function nextWithPathname(request: NextRequest): NextResponse {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isRateLimitedApi =
-    pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/');
+    pathname.startsWith('/api/') &&
+    !pathname.startsWith('/api/auth/') &&
+    !pathname.startsWith('/api/health');
 
   if (process.env.E2E_TEST_USER === 'true' && process.env.NODE_ENV !== 'production') {
     return nextWithPathname(request);

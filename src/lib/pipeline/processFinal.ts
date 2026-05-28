@@ -11,7 +11,7 @@ import { concatenateChunkTranscripts } from '@/lib/pipeline/transcriptDedup';
 import type { TranscriptWord } from '@/lib/pipeline/transcriptDedup';
 import type { WordResult } from '@/lib/ai/azurePronunciation.types';
 import { persistPronunciation } from '@/lib/pipeline/persistPronunciation';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 function buildPronunciationSummary(
   result: ReturnType<typeof toPronunciationResult> | null,
@@ -223,11 +223,13 @@ export async function processFinal(sessionId: string): Promise<void> {
 
   await updatePatternProfile(session.userId, nerFilterResult.kept);
 
-  log({
-    level: 'info',
-    message: 'Chunked session fan-in complete',
-    sessionId,
-    userId: session.userId,
-    metadata: { chunkCount: chunks.length, wordCount },
-  });
+  logger.info(
+    {
+      sessionId,
+      userId: session.userId,
+      chunkCount: chunks.length,
+      wordCount,
+    },
+    'Chunked session fan-in complete',
+  );
 }

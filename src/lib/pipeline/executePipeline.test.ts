@@ -23,7 +23,7 @@ vi.mock('@/features/session/updatePatternProfile', () => ({
 }));
 
 vi.mock('@/lib/logger', () => ({
-  log: vi.fn(),
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 // Mock env — prevents Zod from parsing process.env in CI where vars are absent.

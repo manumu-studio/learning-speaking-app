@@ -7,7 +7,7 @@ import {
   isQstashFinalFailureAttempt,
   persistSessionFailedStatus,
 } from '@/lib/pipeline';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 // Tell Vercel Fluid Compute this function may run up to 3 minutes.
@@ -66,12 +66,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    log({
-      level: 'error',
-      message: 'Processing failed',
-      sessionId: sessionId ?? undefined,
-      error: message,
-    });
+    logger.error(
+      { sessionId: sessionId ?? undefined, err: new Error(message) },
+      'Processing failed',
+    );
 
     if (sessionId && isQstashFinalFailureAttempt(request)) {
       await persistSessionFailedStatus(sessionId, message);
