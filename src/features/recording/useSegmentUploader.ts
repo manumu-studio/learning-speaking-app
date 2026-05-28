@@ -25,6 +25,7 @@ export interface SegmentUploadState {
 export interface SegmentUploaderConfig {
   topic?: string | undefined;
   focus?: { focusKey: string; focusLabel: string } | null | undefined;
+  promptUsed?: string | null | undefined;
 }
 
 interface UseSegmentUploaderReturn {
@@ -55,6 +56,10 @@ async function uploadBlob(
     formData.append('topic', config.focus.focusLabel);
   } else if (config.topic) {
     formData.append('topic', config.topic);
+  }
+
+  if (config.promptUsed) {
+    formData.append('promptUsed', config.promptUsed);
   }
 
   const response = await fetch('/api/sessions', {
