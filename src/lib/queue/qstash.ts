@@ -26,23 +26,29 @@ function getQStashClient(): Client {
   return _qstashClient;
 }
 
+async function publishDevJob(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<void> {
+  log({ level: 'info', message: 'Dev mode — calling local worker', metadata: { path, ...body } });
+  await fetch(`${env.APP_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch((error) => {
+    log({
+      level: 'error',
+      message: 'Dev worker call failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      metadata: body,
+    });
+  });
+}
+
 // Enqueue session processing job via QStash
 export async function enqueueProcessing(sessionId: string): Promise<void> {
-  // QStash can't reach localhost — use local dev pipeline instead
   if (env.NODE_ENV === 'development') {
-    log({ level: 'info', message: 'Dev mode — calling local pipeline', sessionId });
-    fetch(`${env.APP_URL}/api/dev/process`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    }).catch((error) => {
-      log({
-        level: 'error',
-        message: 'Dev pipeline call failed',
-        sessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    });
+    await publishDevJob('/api/dev/process', { sessionId });
     return;
   }
 
@@ -50,6 +56,41 @@ export async function enqueueProcessing(sessionId: string): Promise<void> {
   await client.publishJSON({
     url: `${env.APP_URL}/api/internal/process`,
     body: { sessionId },
+    retries: 3,
+  });
+}
+
+export async function enqueueChunkProcessing(
+  sessionId: string,
+  chunkIndex: number,
+): Promise<void> {
+  const body = { sessionId, chunkIndex };
+
+  if (env.NODE_ENV === 'development') {
+    await publishDevJob('/api/dev/process-chunk', body);
+    return;
+  }
+
+  const client = getQStashClient();
+  await client.publishJSON({
+    url: `${env.APP_URL}/api/internal/process-chunk`,
+    body,
+    retries: 3,
+  });
+}
+
+export async function enqueueFinalProcessing(sessionId: string): Promise<void> {
+  const body = { sessionId };
+
+  if (env.NODE_ENV === 'development') {
+    await publishDevJob('/api/dev/process-final', body);
+    return;
+  }
+
+  const client = getQStashClient();
+  await client.publishJSON({
+    url: `${env.APP_URL}/api/internal/process-final`,
+    body,
     retries: 3,
   });
 }

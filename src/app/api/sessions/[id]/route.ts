@@ -45,7 +45,6 @@ export async function GET(
             prosodyScore: true,
             speakingRateWpm: true,
             failureReason: true,
-            // rawJson intentionally excluded — too large for API response
             words: {
               select: {
                 word: true,
@@ -61,6 +60,20 @@ export async function GET(
               },
               orderBy: { wordIndex: 'asc' },
             },
+          },
+        },
+        chunks: {
+          orderBy: { chunkIndex: 'asc' },
+          select: {
+            chunkIndex: true,
+            durationSecs: true,
+            transcriptText: true,
+            wordCount: true,
+            accuracyScore: true,
+            fluencyScore: true,
+            prosodyScore: true,
+            pronScore: true,
+            status: true,
           },
         },
       },

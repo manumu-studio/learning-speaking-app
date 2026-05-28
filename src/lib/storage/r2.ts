@@ -1,5 +1,6 @@
 // Cloudflare R2 storage client for temporary audio files
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '@/lib/env';
 
 // Runtime validation — R2 vars are optional in env.ts but required here
@@ -96,4 +97,33 @@ export function generateAudioKey(
   extension = 'webm'
 ): string {
   return `sessions/${userId}/${sessionId}/audio.${extension}`;
+}
+
+/**
+ * Generate R2 storage key for a chunked session WAV segment
+ */
+export function generateChunkAudioKey(
+  userId: string,
+  sessionId: string,
+  chunkIndex: number,
+): string {
+  return `sessions/${userId}/${sessionId}/chunks/${chunkIndex}.wav`;
+}
+
+/**
+ * Generate a time-limited pre-signed PUT URL for direct browser upload to R2
+ */
+export async function generatePresignedPutUrl(
+  key: string,
+  contentType: string,
+  expiresInSecs = 300,
+): Promise<string> {
+  const { client, bucketName } = getR2Client();
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  return getSignedUrl(client, command, { expiresIn: expiresInSecs });
 }

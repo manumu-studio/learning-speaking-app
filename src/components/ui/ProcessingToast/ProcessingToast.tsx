@@ -13,7 +13,7 @@ const POLL_INTERVAL_MS = 3000;
 const AUTO_DISMISS_MS = 8000;
 
 const sessionStatusSchema = z.object({
-  status: z.enum(['CREATED', 'UPLOADED', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
+  status: z.enum(['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
   errorMessage: z.string().nullable().optional(),
 });
 
@@ -27,6 +27,7 @@ function toToastStatus(status: ApiSessionStatus): ToastSessionStatus {
 function getPillLabel(status: ToastSessionStatus): string {
   switch (status) {
     case 'UPLOADED':
+    case 'CHUNKS_PROCESSING':
     case 'TRANSCRIBING':
       return 'Transcribing...';
     case 'SCORING':
