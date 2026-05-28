@@ -7,12 +7,13 @@ import { env } from '@/lib/env';
 // CSP with auth URL from environment
 const CSP_HEADER = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
+  "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "media-src 'self' blob:",
   "font-src 'self'",
-  `connect-src 'self' ${env.AUTH_ISSUER_URL} https://qstash.upstash.io https://*.ingest.sentry.io`,
+  `connect-src 'self' ${env.AUTH_ISSUER_URL} https://qstash.upstash.io https://*.ingest.sentry.io https://*.r2.cloudflarestorage.com`,
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",
