@@ -5,6 +5,8 @@ import { SessionStatus } from '@prisma/client';
 
 vi.mock('@/features/auth/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
+vi.mock('@/lib/storage/r2', () => ({ deleteAudio: vi.fn(), uploadAudio: vi.fn(), generateAudioKey: vi.fn() }));
+vi.mock('@/lib/csrf', () => ({ validateOrigin: vi.fn().mockReturnValue(true), csrfForbiddenResponse: vi.fn() }));
 vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
 import { auth } from '@/features/auth/auth';
