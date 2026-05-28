@@ -56,6 +56,7 @@ export async function executePipeline(
       status: true,
       audioUrl: true,
       focusMetricKey: true,
+      promptUsed: true,
     },
   });
 
@@ -217,6 +218,7 @@ export async function executePipeline(
       analysisTranscriptText,
       session.focusMetricKey,
       pronunciationSummary,
+      session.promptUsed ?? null,
     );
 
     const nerFilterResult = filterTranscriptionArtefacts(

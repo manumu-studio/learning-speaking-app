@@ -43,6 +43,7 @@ export function RecordingPanel({
   topic,
   focus,
   recordingMode = 'press-to-toggle',
+  promptUsed = null,
 }: RecordingPanelProps) {
   const router = useRouter();
   const validationRunRef = useRef<string | null>(null);
@@ -64,7 +65,7 @@ export function RecordingPanel({
   const { addSession } = useProcessingSessions();
 
   const { segments, uploadSegment, isUploading: isSegmentUploading } =
-    useSegmentUploader({ topic, focus });
+    useSegmentUploader({ topic, focus, promptUsed });
   const { upload, isUploading: isFinalUploading, error: uploadError } = useUploadSession();
 
   const handleSegmentReady = useCallback(
