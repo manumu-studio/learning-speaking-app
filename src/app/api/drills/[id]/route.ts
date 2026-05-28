@@ -43,6 +43,8 @@ export async function GET(
       improved: drill.improved,
       createdAt: drill.createdAt,
       completedAt: drill.completedAt,
+    }, 200, {
+      'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
     });
   } catch (error) {
     logger.error(

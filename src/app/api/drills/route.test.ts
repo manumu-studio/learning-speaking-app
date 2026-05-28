@@ -13,7 +13,7 @@ vi.mock('@/lib/csrf', () => ({
   csrfForbiddenResponse: vi.fn(),
 }));
 
-import { POST } from '@/app/api/drills/route';
+import { POST, GET } from '@/app/api/drills/route';
 import { auth } from '@/features/auth/auth';
 import { findOrCreateUser } from '@/lib/db-utils';
 import { generateDrill } from '@/features/training/generateDrill';
@@ -176,5 +176,25 @@ describe('POST /api/drills', () => {
     expect(response.status).toBe(400);
     expect(json.code).toBe('INVALID_JSON');
     expect(mockGenerateDrill).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /api/drills', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns Cache-Control: private, no-store', async () => {
+    mockAuth.mockResolvedValueOnce(mockAuthSession as never);
+    mockFindOrCreateUser.mockResolvedValueOnce(mockUser as never);
+    prismaMock.drillAttempt.findMany.mockResolvedValueOnce([]);
+    prismaMock.drillAttempt.count.mockResolvedValueOnce(0);
+    prismaMock.drillAttempt.count.mockResolvedValueOnce(0);
+    prismaMock.drillAttempt.count.mockResolvedValueOnce(0);
+    vi.mocked(prismaMock.drillAttempt.groupBy).mockResolvedValueOnce([] as never);
+
+    const response = await GET();
+
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
   });
 });

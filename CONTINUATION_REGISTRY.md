@@ -11,3 +11,5 @@
 | CP-027 | 2026-05-28 | feat/disclosure-pins-workout | Rebase + merge disclosure-pins-workout to main | READY | docs/continuation-prompts/CP-027-merge-disclosure-branch.md |
 | CP-028 | 2026-05-28 | feat/chunked-recording-pipeline | Merge disclosure branch, then start PACKET-41M chunked recording build | DONE | docs/continuation-prompts/CP-028-chunked-recording-build.md |
 | CP-029 | 2026-05-28 | feat/chunked-recording-pipeline | Force-push chunked branch, merge disclosure to main, then ship chunked pipeline | READY | docs/continuation-prompts/CP-029-chunked-pipeline-merge.md |
+| CP-030 | 2026-05-28 | feat/observability-foundation | PACKET-42 audited + fixed — commit and push | READY | docs/continuation-prompts/CP-030-packet42-observability-commit.md |
+| CP-031 | 2026-05-28 | feat/performance-code-splitting | PACKET-43 built — needs full audit | READY | docs/continuation-prompts/CP-031-packet43-audit.md |

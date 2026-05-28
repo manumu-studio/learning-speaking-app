@@ -123,3 +123,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.45.0 | [PR-0.45.0](pull-requests/PR-0.45.0.md) | 2026-05-28 | WAV chunks, parallel processing, fan-in analysis |
 | 0.46.0 | [ENTRY-50](journal/ENTRY-50.md) | 2026-05-28 | Observability — Sentry, Pino, health endpoint, CI smoke test |
 | 0.46.0 | [PR-0.46.0](pull-requests/PR-0.46.0.md) | 2026-05-28 | Error tracking, structured logging, /api/health |
+| 0.47.0 | [ENTRY-51](journal/ENTRY-51.md) | 2026-05-28 | Performance — lazy canvas, Suspense, Cache-Control headers |
+| 0.47.0 | [PR-0.47.0](pull-requests/PR-0.47.0.md) | 2026-05-28 | Code splitting, route skeletons, API caching |

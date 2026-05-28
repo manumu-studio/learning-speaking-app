@@ -186,7 +186,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const validated = TrendsResponseSchema.parse(payload);
-    return NextResponse.json(validated);
+    return NextResponse.json(validated, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+      },
+    });
   } catch (err: unknown) {
     const message =
       err instanceof z.ZodError
