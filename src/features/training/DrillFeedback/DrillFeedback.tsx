@@ -25,7 +25,9 @@ export function DrillFeedback({
         )}
       </div>
 
-      <p className="mb-6 text-lg leading-relaxed text-zinc-100">{feedback}</p>
+      <div aria-live="polite" role="status" aria-atomic="true">
+        <p className="mb-6 text-lg leading-relaxed text-zinc-100">{feedback}</p>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <button

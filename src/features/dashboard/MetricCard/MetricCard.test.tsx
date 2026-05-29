@@ -1,4 +1,5 @@
 // Component tests for MetricCard — rendering, sparkline, accessibility, and selection
+import { axe } from '@/__mocks__/rtl-setup';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
@@ -47,5 +48,10 @@ describe('MetricCard', () => {
   it('shows Last trained today badge when lastTrainedToday is true', () => {
     render(<MetricCard {...baseProps} lastTrainedToday />);
     expect(screen.getByText(/last trained: today/i)).toBeInTheDocument();
+  });
+
+  it('has no axe accessibility violations', async () => {
+    const { container } = render(<MetricCard {...baseProps} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

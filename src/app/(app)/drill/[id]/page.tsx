@@ -17,10 +17,10 @@ function DrillSkeleton() {
 export default async function DrillPage({ params }: DrillPageProps) {
   const { id } = await params;
   return (
-    <main className="min-h-screen bg-zinc-900 py-8">
+    <div className="min-h-screen bg-zinc-900 py-8">
       <Suspense fallback={<DrillSkeleton />}>
         <DrillView drillId={id} />
       </Suspense>
-    </main>
+    </div>
   );
 }

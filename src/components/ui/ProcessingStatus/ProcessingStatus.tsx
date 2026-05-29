@@ -14,7 +14,11 @@ const STEPS = [
 export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingStatusProps) {
   if (status === 'FAILED') {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+      <div
+        role="alert"
+        aria-live="assertive"
+        className="rounded-lg border border-red-200 bg-red-50 p-6"
+      >
         <h3 className="text-lg font-semibold text-red-900">Processing Failed</h3>
         <p className="mt-2 text-sm text-red-700">
           {errorMessage ?? 'An error occurred during processing.'}

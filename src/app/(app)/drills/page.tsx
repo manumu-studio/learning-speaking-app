@@ -18,10 +18,10 @@ function DrillsSkeleton() {
 
 export default function DrillsPage() {
   return (
-    <main className="min-h-screen bg-zinc-900 py-8">
+    <div className="min-h-screen bg-zinc-900 py-8">
       <Suspense fallback={<DrillsSkeleton />}>
         <DrillHistoryView />
       </Suspense>
-    </main>
+    </div>
   );
 }
