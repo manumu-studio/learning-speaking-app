@@ -1,4 +1,5 @@
 // Component tests for DrillView — loading, errors, prompt, processing, feedback
+import { axe } from '@/__mocks__/rtl-setup';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UseDrillReturn } from './useDrill';
@@ -141,5 +142,18 @@ describe('DrillView', () => {
     render(<DrillView drillId="d1" />);
     expect(screen.getByText('Great clarity.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Go Again' })).toBeInTheDocument();
+  });
+
+  it('has no axe accessibility violations', async () => {
+    mockUseDrill.mockReturnValue(
+      drillReturn({
+        isLoading: false,
+        drill: baseDrill,
+        state: 'prompt',
+        error: null,
+      }),
+    );
+    const { container } = render(<DrillView drillId="d1" />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

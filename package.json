@@ -1,6 +1,6 @@
 {
   "name": "learning-speaking-app",
-  "version": "0.47.0",
+  "version": "0.48.0",
   "private": true,
   "engines": {
     "node": ">=20.0.0"
@@ -68,6 +68,7 @@
     "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "devDependencies": {
+    "@axe-core/react": "^4.11.3",
     "@next/bundle-analyzer": "^16.2.2",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.0",
@@ -99,6 +100,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
+    "vitest-axe": "^0.1.0",
     "vitest-mock-extended": "^3.1.1"
   },
   "lint-staged": {

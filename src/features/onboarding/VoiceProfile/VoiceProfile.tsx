@@ -50,14 +50,14 @@ export function VoiceProfile({ sessionId }: VoiceProfileProps) {
       );
     }
 
-    try {
-      await fetch('/api/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ onboardedAt: new Date().toISOString() }),
-      });
-    } catch {
-      // Non-fatal — redirect anyway
+    const response = await fetch('/api/users/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ onboardedAt: new Date().toISOString() }),
+    });
+
+    if (!response.ok) {
+      return;
     }
 
     router.push('/dashboard');

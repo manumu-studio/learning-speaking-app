@@ -47,3 +47,28 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Accessible focus ring — visible keyboard navigation indicator (WCAG 2.1 AA) */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :focus-visible {
+    outline-color: #ffffff;
+  }
+}

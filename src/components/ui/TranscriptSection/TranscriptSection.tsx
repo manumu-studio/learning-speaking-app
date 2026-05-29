@@ -13,12 +13,7 @@ export function TranscriptSection({ text, wordCount, animationDelay }: Transcrip
       style={outerStyle}
     >
       {/* Header — always visible */}
-      <div
-        className="p-5 flex items-center justify-between cursor-pointer"
-        onClick={toggle}
-        role="button"
-        aria-expanded={isExpanded}
-      >
+      <div className="p-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span aria-hidden="true">📝</span>
           <span className="font-semibold text-gray-900 text-sm">Transcript</span>
@@ -32,6 +27,8 @@ export function TranscriptSection({ text, wordCount, animationDelay }: Transcrip
           type="button"
           className="text-sm text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
           onClick={toggle}
+          aria-expanded={isExpanded}
+          aria-controls="transcript-body"
           aria-label={isExpanded ? 'Hide transcript' : 'Show transcript'}
         >
           {isExpanded ? 'Hide' : 'Show'}
@@ -40,6 +37,7 @@ export function TranscriptSection({ text, wordCount, animationDelay }: Transcrip
 
       {/* Collapsible transcript body */}
       <div
+        id="transcript-body"
         className="overflow-hidden transition-all duration-300 ease-in-out"
         style={{ maxHeight: isExpanded ? '500px' : '0' }}
       >
