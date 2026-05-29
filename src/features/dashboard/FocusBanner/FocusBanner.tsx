@@ -13,6 +13,7 @@ export function FocusBanner({ focusLabel, className }: FocusBannerProps) {
         ${className ?? ''}
       `.trim()}
       role="status"
+      aria-live="polite"
       aria-label={`Today's focus: ${focusLabel}`}
     >
       <span className="text-blue-500" aria-hidden="true">

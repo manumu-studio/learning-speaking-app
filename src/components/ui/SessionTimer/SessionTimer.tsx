@@ -24,6 +24,9 @@ export function SessionTimer({ seconds, isActive, limitSecs }: SessionTimerProps
 
   return (
     <div
+      role="timer"
+      aria-live="off"
+      aria-label="Session timer"
       className={`text-5xl sm:text-6xl font-mono font-bold tracking-widest transition-colors duration-300 ${colorClass}`}
     >
       {formatTime(displaySeconds)}

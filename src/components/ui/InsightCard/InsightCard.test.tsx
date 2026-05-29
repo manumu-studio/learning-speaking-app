@@ -1,4 +1,5 @@
 // Component tests for InsightCard — badges, body copy, examples, suggestion
+import { axe } from '@/__mocks__/rtl-setup';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { InsightCard } from './InsightCard';
@@ -31,5 +32,10 @@ describe('InsightCard', () => {
     expect(screen.getByText(/I have car/)).toBeInTheDocument();
     expect(screen.getByText(/Use a\/an before/)).toBeInTheDocument();
     expect(screen.getByText(/Appeared ~3 times/)).toBeInTheDocument();
+  });
+
+  it('has no axe accessibility violations', async () => {
+    const { container } = render(<InsightCard {...baseProps} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

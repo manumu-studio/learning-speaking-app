@@ -1,4 +1,5 @@
 // Component tests for TopBar — nav, user display, sign out control
+import { axe } from '@/__mocks__/rtl-setup';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -54,5 +55,10 @@ describe('TopBar', () => {
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
     expect(hrefValue).toBe('/api/auth/federated-signout');
+  });
+
+  it('has no axe accessibility violations', async () => {
+    const { container } = render(<TopBar userName="Alex" userEmail="alex@example.com" />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

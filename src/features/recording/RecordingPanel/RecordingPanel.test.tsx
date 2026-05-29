@@ -1,4 +1,5 @@
 // Component tests for RecordingPanel — idle UI with recorder hook mocked for jsdom
+import { axe } from '@/__mocks__/rtl-setup';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProcessingSessionsProvider } from '@/features/session/ProcessingSessionsContext';
@@ -124,5 +125,10 @@ describe('RecordingPanel', () => {
   it('does not show stop recording control while idle', () => {
     renderPanel();
     expect(screen.queryByRole('button', { name: /stop recording/i })).not.toBeInTheDocument();
+  });
+
+  it('has no axe accessibility violations', async () => {
+    const { container } = renderPanel();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

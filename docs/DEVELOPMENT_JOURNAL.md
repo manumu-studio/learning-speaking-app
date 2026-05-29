@@ -125,3 +125,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.46.0 | [PR-0.46.0](pull-requests/PR-0.46.0.md) | 2026-05-28 | Error tracking, structured logging, /api/health |
 | 0.47.0 | [ENTRY-51](journal/ENTRY-51.md) | 2026-05-28 | Performance — lazy canvas, Suspense, Cache-Control headers |
 | 0.47.0 | [PR-0.47.0](pull-requests/PR-0.47.0.md) | 2026-05-28 | Code splitting, route skeletons, API caching |
+| 0.48.0 | [ENTRY-52](journal/ENTRY-52.md) | 2026-05-28 | Accessibility — skip nav, focus rings, aria-live, axe CI |
+| 0.48.0 | [PR-0.48.0](pull-requests/PR-0.48.0.md) | 2026-05-28 | Accessibility hardening |
