@@ -9,10 +9,10 @@ export default function OnboardingPage({
   searchParams: Promise<{ session?: string }>;
 }) {
   return (
-    <main className="mx-auto max-w-lg px-4 py-12">
+    <div className="mx-auto max-w-lg px-4 py-12">
       <Suspense fallback={<LoadingSpinner />}>
         <OnboardingFlow searchParams={searchParams} />
       </Suspense>
-    </main>
+    </div>
   );
 }

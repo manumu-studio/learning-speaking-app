@@ -1,6 +1,8 @@
 // Root layout — wraps the entire application with global styles and theme provider
 import type { Metadata } from 'next';
 import './globals.css';
+import { DevAxeInitSlot } from '@/components/DevAxeInit';
+import { SkipNavigation } from '@/components/ui/SkipNavigation';
 import { ThemeProvider } from '@/components/ui/ThemeProvider';
 
 export const metadata: Metadata = {
@@ -25,12 +27,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded-md focus:shadow-lg dark:focus:bg-zinc-900 dark:focus:text-white"
-        >
-          Skip to main content
-        </a>
+        <SkipNavigation />
+        {process.env.NODE_ENV === 'development' && <DevAxeInitSlot />}
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}
         </ThemeProvider>

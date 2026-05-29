@@ -51,8 +51,10 @@ yarn-error.log*
 
 # Session continuity (private — not pushed)
 /CONTINUATION_PROMPT_NEXT_SESSION.md
+/CONTINUATION_REGISTRY.md
 /continuation-prompts/
 /docs/continuation-prompts/
+FETCH_HEAD
 
 # Project map
 /PROJECT_MAP.md
