@@ -77,6 +77,7 @@ export async function enqueueChunkProcessing(
     url: `${env.APP_URL}/api/internal/process-chunk`,
     body,
     retries: 3,
+    failureCallback: `${env.APP_URL}/api/internal/chunk-failed`,
   });
 }
 
@@ -93,5 +94,6 @@ export async function enqueueFinalProcessing(sessionId: string): Promise<void> {
     url: `${env.APP_URL}/api/internal/process-final`,
     body,
     retries: 3,
+    deduplicationId: `final-${sessionId}`,
   });
 }
