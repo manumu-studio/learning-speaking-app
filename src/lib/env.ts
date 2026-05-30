@@ -27,6 +27,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
   CRON_SECRET: z.string().min(1).optional(),
+  PRAAT_SERVICE_URL: z.string().url().optional(),
+  PRAAT_API_KEY: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

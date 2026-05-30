@@ -5,8 +5,8 @@ import { transcribeWavChunk } from '@/lib/ai/whisper';
 import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
 import { deleteAudio, getAudio } from '@/lib/storage/r2';
-import { enqueueFinalProcessing } from '@/lib/queue/qstash';
 import { extractChunkFeatures } from '@/lib/pipeline/extractFeatures';
+import { enqueueFinalProcessing } from '@/lib/queue/qstash';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
@@ -79,7 +79,8 @@ export async function processChunk(
     throw new Error(`Chunk not found: ${sessionId}/${chunkIndex}`);
   }
 
-  if (!chunk.audioUrl) {
+  const audioKey = chunk.audioUrl;
+  if (!audioKey) {
     throw new Error(`Chunk missing audio URL: ${sessionId}/${chunkIndex}`);
   }
 
@@ -100,7 +101,7 @@ export async function processChunk(
     });
   }
 
-  const audioBuffer = await getAudio(chunk.audioUrl);
+  const audioBuffer = await getAudio(audioKey);
   const whisperResult = await transcribeWavChunk(
     audioBuffer,
     `session-${sessionId}-chunk-${chunkIndex}.wav`,
@@ -188,7 +189,13 @@ export async function processChunk(
   });
 
   try {
-    await extractChunkFeatures(audioBuffer, sessionId, chunkIndex, chunk.durationSecs);
+    await extractChunkFeatures(
+      sessionId,
+      chunkIndex,
+      audioKey,
+      chunk.durationSecs,
+      chunk.overlapSecs,
+    );
   } catch (featureError) {
     logger.warn(
       {
@@ -196,12 +203,12 @@ export async function processChunk(
         chunkIndex,
         err: featureError instanceof Error ? featureError : new Error('Unknown error'),
       },
-      'Chunk feature extraction failed',
+      'Chunk feature extraction failed — continuing pipeline',
     );
   }
 
   try {
-    await deleteAudio(chunk.audioUrl);
+    await deleteAudio(audioKey);
     await prisma.sessionChunk.update({
       where: { id: chunk.id },
       data: { audioDeletedAt: new Date(), audioUrl: null },
