@@ -24,6 +24,10 @@ vi.mock('@/lib/prisma', () => ({
     speakingSession: {
       findUnique: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    chunkFeature: {
+      upsert: vi.fn(),
     },
   },
 }));
@@ -49,18 +53,69 @@ vi.mock('@/lib/queue/qstash', () => ({
   enqueueFinalProcessing: vi.fn(),
 }));
 
+vi.mock('@/lib/pipeline/extractFeatures', () => ({
+  extractChunkFeatures: vi.fn(),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { transcribeWavChunk } from '@/lib/ai/whisper';
 import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import { enqueueFinalProcessing } from '@/lib/queue/qstash';
-import { processChunk } from '@/lib/pipeline/processChunk';
+import { extractChunkFeatures } from '@/lib/pipeline/extractFeatures';
+import { maybeEnqueueFinalProcessing, processChunk } from '@/lib/pipeline/processChunk';
+
+describe('maybeEnqueueFinalProcessing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
+      chunkCount: 2,
+      isChunked: true,
+      status: SessionStatus.CHUNKS_PROCESSING,
+    } as never);
+    vi.mocked(prisma.sessionChunk.count).mockResolvedValue(2);
+    vi.mocked(prisma.speakingSession.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.speakingSession.updateMany).mockResolvedValue({ count: 1 });
+  });
+
+  it('claims fan-in atomically and enqueues final processing once', async () => {
+    await maybeEnqueueFinalProcessing('session-1');
+
+    expect(prisma.speakingSession.updateMany).toHaveBeenCalledWith({
+      where: { id: 'session-1', status: SessionStatus.AWAITING_FINAL },
+      data: { status: SessionStatus.PROCESSING_FINAL },
+    });
+    expect(enqueueFinalProcessing).toHaveBeenCalledWith('session-1');
+  });
+
+  it('does not enqueue when another worker already claimed fan-in', async () => {
+    vi.mocked(prisma.speakingSession.updateMany).mockResolvedValue({ count: 0 });
+
+    await maybeEnqueueFinalProcessing('session-1');
+
+    expect(enqueueFinalProcessing).not.toHaveBeenCalled();
+  });
+
+  it('simulates concurrent claims — only one worker enqueues', async () => {
+    vi.mocked(prisma.speakingSession.updateMany)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+
+    await Promise.all([
+      maybeEnqueueFinalProcessing('session-1'),
+      maybeEnqueueFinalProcessing('session-1'),
+    ]);
+
+    expect(enqueueFinalProcessing).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('processChunk', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getAudio).mockResolvedValue(Buffer.from('wav'));
     vi.mocked(deleteAudio).mockResolvedValue(undefined);
+    vi.mocked(extractChunkFeatures).mockResolvedValue(undefined);
     vi.mocked(transcribeWavChunk).mockResolvedValue({
       text: 'hello world',
       language: 'en',
@@ -77,6 +132,7 @@ describe('processChunk', () => {
       rawUtterances: [],
     });
     vi.mocked(prisma.sessionChunk.count).mockResolvedValue(1);
+    vi.mocked(prisma.speakingSession.updateMany).mockResolvedValue({ count: 1 });
   });
 
   it('marks a chunk done after transcription and scoring', async () => {
@@ -87,6 +143,7 @@ describe('processChunk', () => {
       status: ChunkStatus.UPLOADED,
       audioUrl: 'sessions/user/session/chunks/0.wav',
       overlapSecs: 0,
+      durationSecs: 60,
       session: {
         id: 'session-1',
         userId: 'user-1',
@@ -98,6 +155,7 @@ describe('processChunk', () => {
     await processChunk('session-1', 0);
 
     expect(transcribeWavChunk).toHaveBeenCalled();
+    expect(extractChunkFeatures).toHaveBeenCalled();
     expect(deleteAudio).toHaveBeenCalled();
     expect(prisma.sessionChunk.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -115,6 +173,7 @@ describe('processChunk', () => {
       status: ChunkStatus.UPLOADED,
       audioUrl: 'sessions/user/session/chunks/0.wav',
       overlapSecs: 0,
+      durationSecs: 60,
       session: {
         id: 'session-1',
         userId: 'user-1',
@@ -150,6 +209,7 @@ describe('processChunk', () => {
       status: ChunkStatus.UPLOADED,
       audioUrl: null,
       overlapSecs: 0,
+      durationSecs: 60,
       session: {
         id: 'session-1',
         userId: 'user-1',
@@ -169,6 +229,7 @@ describe('processChunk', () => {
       status: ChunkStatus.CHUNK_DONE,
       audioUrl: 'sessions/user/session/chunks/0.wav',
       overlapSecs: 0,
+      durationSecs: 60,
       session: {
         id: 'session-1',
         userId: 'user-1',

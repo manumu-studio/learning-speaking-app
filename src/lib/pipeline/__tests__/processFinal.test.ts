@@ -69,11 +69,12 @@ describe('processFinal', () => {
     vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
       id: 'session-1',
       userId: 'user-1',
-      status: SessionStatus.CHUNKS_PROCESSING,
+      status: SessionStatus.PROCESSING_FINAL,
       chunkCount: 1,
       isChunked: true,
       focusMetricKey: null,
       promptUsed: null,
+      processedAt: null,
     } as never);
 
     vi.mocked(prisma.sessionChunk.findMany).mockResolvedValue([
@@ -118,9 +119,69 @@ describe('processFinal', () => {
     expect(prisma.speakingSession.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'session-1' },
-        data: expect.objectContaining({ status: SessionStatus.DONE }),
+        data: expect.objectContaining({
+          status: SessionStatus.DONE,
+          processedAt: expect.any(Date),
+        }),
       }),
     );
+  });
+
+  it('returns early without duplicate writes when session is already done', async () => {
+    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
+      id: 'session-1',
+      userId: 'user-1',
+      status: SessionStatus.DONE,
+      chunkCount: 1,
+      isChunked: true,
+      focusMetricKey: null,
+      promptUsed: null,
+      processedAt: new Date('2026-01-01T00:00:00.000Z'),
+    } as never);
+
+    await processFinal('session-1');
+
+    expect(prisma.transcript.upsert).not.toHaveBeenCalled();
+    expect(prisma.insight.createMany).not.toHaveBeenCalled();
+    expect(analyzeTranscript).not.toHaveBeenCalled();
+  });
+
+  it('is idempotent on re-drive — second call does not duplicate analysis', async () => {
+    vi.mocked(analyzeTranscript).mockResolvedValue({
+      focusNext: 'Keep going',
+      summary: JSON.stringify({ wordCount: 2 }),
+      intentLabel: 'Practice',
+      insights: [{
+        category: 'grammar',
+        pattern: 'articles',
+        detail: 'Missing article',
+        frequency: 1,
+        severity: 'low',
+        examples: ['example'],
+        suggestion: 'Add the',
+      }],
+      metrics: [],
+      possible_transcription_artefacts: [],
+    });
+
+    await processFinal('session-1');
+
+    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
+      id: 'session-1',
+      userId: 'user-1',
+      status: SessionStatus.DONE,
+      chunkCount: 1,
+      isChunked: true,
+      focusMetricKey: null,
+      promptUsed: null,
+      processedAt: new Date('2026-01-01T00:00:00.000Z'),
+    } as never);
+
+    await processFinal('session-1');
+
+    expect(analyzeTranscript).toHaveBeenCalledTimes(1);
+    expect(prisma.insight.createMany).toHaveBeenCalledTimes(1);
+    expect(prisma.speakingSession.update).toHaveBeenCalledTimes(1);
   });
 
   it('throws when session is not found', async () => {

@@ -128,3 +128,19 @@ export async function generatePresignedPutUrl(
 
   return getSignedUrl(client, command, { expiresIn: expiresInSecs });
 }
+
+/**
+ * Generate a time-limited pre-signed GET URL for Praat service audio download
+ */
+export async function generatePresignedGetUrl(
+  key: string,
+  expiresInSecs = 300,
+): Promise<string> {
+  const { client, bucketName } = getR2Client();
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+  });
+
+  return getSignedUrl(client, command, { expiresIn: expiresInSecs });
+}

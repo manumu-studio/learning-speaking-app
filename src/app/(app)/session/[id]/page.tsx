@@ -31,6 +31,7 @@ import { PronunciationProgress, PronunciationHistorySchema } from '@/components/
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
 import { PracticeSuggestion } from '@/components/ui/PracticeSuggestion';
 import { ChunkBreakdown } from '@/components/ui/ChunkBreakdown';
+import { PitchContour, usePitchContour } from '@/components/ui/PitchContour';
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import type { SessionDetail, SessionMetricSnapshot } from '@/features/session/useSessionStatus.types';
 import { DrillRecommendation } from '@/features/training/DrillRecommendation';
@@ -218,6 +219,7 @@ function SessionContent({
   const [focusComparison, setFocusComparison] = useState<FocusComparison | null>(null);
   const [pronunciationHistory, setPronunciationHistory] = useState<HistoryItem[]>([]);
   const [resultsView, setResultsView] = useState<'overall' | 'segments'>('overall');
+  const pitchState = usePitchContour(isDone ? id : '');
 
   useEffect(() => {
     const focusKey = session?.focusMetricKey;
@@ -484,6 +486,12 @@ function SessionContent({
                     }
                   : {})}
               />
+              {pitchState.status === 'ready' && (
+                <PitchContour
+                  contour={pitchState.contour}
+                  animationDelay={pronunciationSectionDelay + 50}
+                />
+              )}
               <WordColorMap
                 words={pronunciationReport.words}
                 animationDelay={wordColorMapDelay}

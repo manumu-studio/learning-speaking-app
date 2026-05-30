@@ -98,6 +98,7 @@ export async function processFinal(sessionId: string): Promise<void> {
       isChunked: true,
       focusMetricKey: true,
       promptUsed: true,
+      processedAt: true,
     },
   });
 
@@ -107,6 +108,17 @@ export async function processFinal(sessionId: string): Promise<void> {
 
   if (!session.isChunked) {
     throw new Error(`Session is not chunked: ${sessionId}`);
+  }
+
+  if (session.status === SessionStatus.DONE && session.processedAt != null) {
+    return;
+  }
+
+  if (session.status === SessionStatus.AWAITING_FINAL) {
+    await prisma.speakingSession.update({
+      where: { id: sessionId },
+      data: { status: SessionStatus.PROCESSING_FINAL },
+    });
   }
 
   const chunks = await prisma.sessionChunk.findMany({
@@ -177,18 +189,20 @@ export async function processFinal(sessionId: string): Promise<void> {
   );
 
   await prisma.insight.deleteMany({ where: { sessionId } });
-  await prisma.insight.createMany({
-    data: nerFilterResult.kept.map((insight) => ({
-      sessionId,
-      category: insight.category,
-      pattern: insight.pattern,
-      detail: insight.detail,
-      frequency: insight.frequency ?? null,
-      severity: insight.severity ?? null,
-      examples: insight.examples ?? Prisma.JsonNull,
-      suggestion: insight.suggestion ?? null,
-    })),
-  });
+  if (nerFilterResult.kept.length > 0) {
+    await prisma.insight.createMany({
+      data: nerFilterResult.kept.map((insight) => ({
+        sessionId,
+        category: insight.category,
+        pattern: insight.pattern,
+        detail: insight.detail,
+        frequency: insight.frequency ?? null,
+        severity: insight.severity ?? null,
+        examples: insight.examples ?? Prisma.JsonNull,
+        suggestion: insight.suggestion ?? null,
+      })),
+    });
+  }
 
   if (analysis.metrics.length > 0) {
     await prisma.metricSnapshot.deleteMany({ where: { sessionId } });
@@ -218,6 +232,7 @@ export async function processFinal(sessionId: string): Promise<void> {
       focusNext: analysis.focusNext,
       summary: analysis.summary,
       intentLabel: analysis.intentLabel,
+      processedAt: new Date(),
     },
   });
 
