@@ -5,7 +5,7 @@ import { findOrCreateUser } from '@/lib/db-utils';
 import { errorResponse, successResponse } from '@/lib/api';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { ChunkStatus, SessionStatus } from '@prisma/client';
-import { enqueueFinalProcessing } from '@/lib/queue/qstash';
+import { maybeEnqueueFinalProcessing } from '@/lib/pipeline/processChunk';
 import { z } from 'zod';
 
 const completeBodySchema = z.object({
@@ -63,7 +63,7 @@ export async function POST(
     });
 
     if (doneCount === chunkCount) {
-      await enqueueFinalProcessing(sessionId);
+      await maybeEnqueueFinalProcessing(sessionId);
     }
 
     return successResponse({
