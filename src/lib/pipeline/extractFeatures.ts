@@ -1,14 +1,41 @@
-// Stub chunk feature extraction — placeholder F0/intensity data until parselmouth in PACKET-44B
+// Persists per-chunk F0/intensity features via the Praat microservice at chunk processing time
 import { prisma } from '@/lib/prisma';
+import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
+import { extractContour } from '@/lib/praat';
+import { computeChunkTimeRange } from '@/lib/pipeline/chunkTiming';
+import { generatePresignedGetUrl } from '@/lib/storage/r2';
 
 export async function extractChunkFeatures(
-  _audioBuffer: Buffer,
   sessionId: string,
   chunkIndex: number,
+  audioKey: string,
   durationSecs: number,
+  overlapSecs: number,
 ): Promise<void> {
-  const endMs = Math.round(durationSecs * 1000);
+  if (env.PRAAT_SERVICE_URL === undefined || env.PRAAT_API_KEY === undefined) {
+    return;
+  }
+
+  const sessionChunks = await prisma.sessionChunk.findMany({
+    where: { sessionId },
+    orderBy: { chunkIndex: 'asc' },
+    select: { durationSecs: true, overlapSecs: true },
+  });
+
+  const timingInputs =
+    sessionChunks.length > 0
+      ? sessionChunks
+      : [{ durationSecs, overlapSecs }];
+
+  const { startMs, endMs } = computeChunkTimeRange(chunkIndex, timingInputs);
+  const presignedUrl = await generatePresignedGetUrl(audioKey);
+  const contour = await extractContour(presignedUrl, durationSecs);
+
+  if (contour === null) {
+    logger.warn({ sessionId, chunkIndex }, 'Skipping ChunkFeature persist — no contour data');
+    return;
+  }
 
   await prisma.chunkFeature.upsert({
     where: {
@@ -17,21 +44,20 @@ export async function extractChunkFeatures(
     create: {
       sessionId,
       chunkIndex,
-      startMs: 0,
+      startMs,
       endMs,
-      frameMs: 10,
-      f0Hz: [],
-      intensityDb: [],
-      voiced: [],
+      frameMs: contour.frameMs,
+      f0Hz: contour.f0Hz,
+      intensityDb: contour.intensityDb,
+      voiced: contour.voiced,
     },
     update: {
-      startMs: 0,
+      startMs,
       endMs,
-      f0Hz: [],
-      intensityDb: [],
-      voiced: [],
+      frameMs: contour.frameMs,
+      f0Hz: contour.f0Hz,
+      intensityDb: contour.intensityDb,
+      voiced: contour.voiced,
     },
   });
-
-  logger.debug({ sessionId, chunkIndex, endMs }, 'Chunk features stub persisted');
 }
