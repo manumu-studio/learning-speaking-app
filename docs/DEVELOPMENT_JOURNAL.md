@@ -127,3 +127,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.47.0 | [PR-0.47.0](pull-requests/PR-0.47.0.md) | 2026-05-28 | Code splitting, route skeletons, API caching |
 | 0.48.0 | [ENTRY-52](journal/ENTRY-52.md) | 2026-05-28 | Accessibility — skip nav, focus rings, aria-live, axe CI |
 | 0.48.0 | [PR-0.48.0](pull-requests/PR-0.48.0.md) | 2026-05-28 | Accessibility hardening |
+| 0.47.1 | [ENTRY-53](journal/ENTRY-53.md) | 2026-05-30 | Pipeline hardening — fan-in guard, sweeper, chunk failure callback |
+| 0.47.1 | [PR-0.47.1](pull-requests/PR-0.47.1.md) | 2026-05-30 | Chunked pipeline reliability + ChunkFeature stub |
+| 0.49.0 | [ENTRY-54](journal/ENTRY-54.md) | 2026-05-30 | Pitch contour — parselmouth service, ChunkFeature, SVG viz |
+| 0.49.0 | [PR-0.49.0](pull-requests/PR-0.49.0.md) | 2026-05-30 | Pitch contour visualization |

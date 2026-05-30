@@ -5,6 +5,7 @@ import { transcribeWavChunk } from '@/lib/ai/whisper';
 import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
 import { deleteAudio, getAudio } from '@/lib/storage/r2';
+import { extractChunkFeatures } from '@/lib/pipeline/extractFeatures';
 import { enqueueFinalProcessing } from '@/lib/queue/qstash';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
@@ -13,7 +14,7 @@ function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
 }
 
-async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
+export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
   const session = await prisma.speakingSession.findUnique({
     where: { id: sessionId },
     select: { chunkCount: true, isChunked: true, status: true },
@@ -31,10 +32,25 @@ async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
     return;
   }
 
-  await prisma.speakingSession.update({
-    where: { id: sessionId },
-    data: { status: SessionStatus.ANALYZING },
+  if (
+    session.status !== SessionStatus.AWAITING_FINAL &&
+    session.status !== SessionStatus.PROCESSING_FINAL &&
+    session.status !== SessionStatus.DONE
+  ) {
+    await prisma.speakingSession.update({
+      where: { id: sessionId },
+      data: { status: SessionStatus.AWAITING_FINAL },
+    });
+  }
+
+  const result = await prisma.speakingSession.updateMany({
+    where: { id: sessionId, status: SessionStatus.AWAITING_FINAL },
+    data: { status: SessionStatus.PROCESSING_FINAL },
   });
+
+  if (result.count === 0) {
+    return;
+  }
 
   await enqueueFinalProcessing(sessionId);
 }
@@ -63,7 +79,8 @@ export async function processChunk(
     throw new Error(`Chunk not found: ${sessionId}/${chunkIndex}`);
   }
 
-  if (!chunk.audioUrl) {
+  const audioKey = chunk.audioUrl;
+  if (!audioKey) {
     throw new Error(`Chunk missing audio URL: ${sessionId}/${chunkIndex}`);
   }
 
@@ -84,7 +101,7 @@ export async function processChunk(
     });
   }
 
-  const audioBuffer = await getAudio(chunk.audioUrl);
+  const audioBuffer = await getAudio(audioKey);
   const whisperResult = await transcribeWavChunk(
     audioBuffer,
     `session-${sessionId}-chunk-${chunkIndex}.wav`,
@@ -172,7 +189,26 @@ export async function processChunk(
   });
 
   try {
-    await deleteAudio(chunk.audioUrl);
+    await extractChunkFeatures(
+      sessionId,
+      chunkIndex,
+      audioKey,
+      chunk.durationSecs,
+      chunk.overlapSecs,
+    );
+  } catch (featureError) {
+    logger.warn(
+      {
+        sessionId,
+        chunkIndex,
+        err: featureError instanceof Error ? featureError : new Error('Unknown error'),
+      },
+      'Chunk feature extraction failed — continuing pipeline',
+    );
+  }
+
+  try {
+    await deleteAudio(audioKey);
     await prisma.sessionChunk.update({
       where: { id: chunk.id },
       data: { audioDeletedAt: new Date(), audioUrl: null },

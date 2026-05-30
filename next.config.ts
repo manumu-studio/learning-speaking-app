@@ -11,7 +11,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   transpilePackages: ['swagger-ui-react'],
-  serverExternalPackages: ['ffmpeg-static'],
+  serverExternalPackages: ['ffmpeg-static', 'pino', 'pino-pretty'],
 
   outputFileTracingIncludes: {
     '/api/internal/process/**': [

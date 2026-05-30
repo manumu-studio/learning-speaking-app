@@ -11,8 +11,25 @@ const STEPS = [
   { key: 'DONE', label: 'Done!' },
 ] as const;
 
-export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingStatusProps) {
+type DisplayStepKey = (typeof STEPS)[number]['key'];
+
+function resolveDisplayStatus(status: ProcessingStatusProps['status']): DisplayStepKey | 'FAILED' | 'CREATED' {
+  if (status === 'AWAITING_FINAL' || status === 'PROCESSING_FINAL') {
+    return 'ANALYZING';
+  }
+  if (status === 'CREATED') {
+    return 'CREATED';
+  }
   if (status === 'FAILED') {
+    return 'FAILED';
+  }
+  return status;
+}
+
+export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingStatusProps) {
+  const displayStatus = resolveDisplayStatus(status);
+
+  if (displayStatus === 'FAILED') {
     return (
       <div
         role="alert"
@@ -35,7 +52,7 @@ export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingSt
     );
   }
 
-  const currentIndex = STEPS.findIndex((s) => s.key === status);
+  const currentIndex = STEPS.findIndex((s) => s.key === displayStatus);
 
   return (
     <div className="rounded-lg border border-blue-200 bg-blue-50 p-6" aria-live="polite" role="status">
