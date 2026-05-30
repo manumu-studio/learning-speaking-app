@@ -12,6 +12,8 @@ enum SessionStatus {
   CREATED
   UPLOADED
   CHUNKS_PROCESSING
+  AWAITING_FINAL
+  PROCESSING_FINAL
   TRANSCRIBING
   SCORING
   ANALYZING
@@ -81,11 +83,13 @@ model SpeakingSession {
   isOnboarding   Boolean       @default(false)
   isChunked      Boolean       @default(false)
   chunkCount     Int?
+  processedAt    DateTime?
   transcript          Transcript?
   insights            Insight[]
   metrics             MetricSnapshot[]
   drills              DrillAttempt[]
   chunks              SessionChunk[]
+  chunkFeatures       ChunkFeature[]
   pronunciationReport PronunciationReport?
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
@@ -122,6 +126,23 @@ model SessionChunk {
   @@unique([sessionId, chunkIndex])
   @@index([sessionId, status])
   @@map("session_chunks")
+}
+
+model ChunkFeature {
+  id          String          @id @default(cuid())
+  sessionId   String
+  chunkIndex  Int
+  startMs     Int
+  endMs       Int
+  frameMs     Int             @default(10)
+  f0Hz        Float[]
+  intensityDb Float[]
+  voiced      Boolean[]
+  createdAt   DateTime        @default(now())
+  session     SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, chunkIndex])
+  @@map("chunk_features")
 }
 
 model Transcript {

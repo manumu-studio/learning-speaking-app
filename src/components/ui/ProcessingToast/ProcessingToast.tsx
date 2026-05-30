@@ -13,7 +13,7 @@ const POLL_INTERVAL_MS = 3000;
 const AUTO_DISMISS_MS = 8000;
 
 const sessionStatusSchema = z.object({
-  status: z.enum(['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
+  status: z.enum(['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'AWAITING_FINAL', 'PROCESSING_FINAL', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
   errorMessage: z.string().nullable().optional(),
 });
 
@@ -21,6 +21,7 @@ type ApiSessionStatus = ProcessingStatusProps['status'];
 
 function toToastStatus(status: ApiSessionStatus): ToastSessionStatus {
   if (status === 'CREATED') return 'UPLOADED';
+  if (status === 'AWAITING_FINAL' || status === 'PROCESSING_FINAL') return 'ANALYZING';
   return status;
 }
 

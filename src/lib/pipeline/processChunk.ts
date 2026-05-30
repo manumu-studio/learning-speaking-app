@@ -6,6 +6,7 @@ import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
 import { deleteAudio, getAudio } from '@/lib/storage/r2';
 import { enqueueFinalProcessing } from '@/lib/queue/qstash';
+import { extractChunkFeatures } from '@/lib/pipeline/extractFeatures';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
@@ -13,7 +14,7 @@ function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
 }
 
-async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
+export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
   const session = await prisma.speakingSession.findUnique({
     where: { id: sessionId },
     select: { chunkCount: true, isChunked: true, status: true },
@@ -31,10 +32,25 @@ async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
     return;
   }
 
-  await prisma.speakingSession.update({
-    where: { id: sessionId },
-    data: { status: SessionStatus.ANALYZING },
+  if (
+    session.status !== SessionStatus.AWAITING_FINAL &&
+    session.status !== SessionStatus.PROCESSING_FINAL &&
+    session.status !== SessionStatus.DONE
+  ) {
+    await prisma.speakingSession.update({
+      where: { id: sessionId },
+      data: { status: SessionStatus.AWAITING_FINAL },
+    });
+  }
+
+  const result = await prisma.speakingSession.updateMany({
+    where: { id: sessionId, status: SessionStatus.AWAITING_FINAL },
+    data: { status: SessionStatus.PROCESSING_FINAL },
   });
+
+  if (result.count === 0) {
+    return;
+  }
 
   await enqueueFinalProcessing(sessionId);
 }
@@ -170,6 +186,19 @@ export async function processChunk(
       pronRawJson,
     },
   });
+
+  try {
+    await extractChunkFeatures(audioBuffer, sessionId, chunkIndex, chunk.durationSecs);
+  } catch (featureError) {
+    logger.warn(
+      {
+        sessionId,
+        chunkIndex,
+        err: featureError instanceof Error ? featureError : new Error('Unknown error'),
+      },
+      'Chunk feature extraction failed',
+    );
+  }
 
   try {
     await deleteAudio(chunk.audioUrl);
