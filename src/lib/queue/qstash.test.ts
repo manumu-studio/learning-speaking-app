@@ -168,6 +168,7 @@ describe('enqueueChunkProcessing', () => {
       url: 'http://localhost:3000/api/internal/process-chunk',
       body: { sessionId: 'session-c2', chunkIndex: 5 },
       retries: 3,
+      failureCallback: 'http://localhost:3000/api/internal/chunk-failed',
     });
   });
 
@@ -228,6 +229,7 @@ describe('enqueueFinalProcessing', () => {
       url: 'http://localhost:3000/api/internal/process-final',
       body: { sessionId: 'session-f2' },
       retries: 3,
+      deduplicationId: 'final-session-f2',
     });
   });
 

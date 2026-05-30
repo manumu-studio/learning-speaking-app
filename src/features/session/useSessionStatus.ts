@@ -5,7 +5,7 @@ import type { SessionDetail, UseSessionStatusReturn } from '@/features/session/u
 
 const sessionDetailSchema = z.object({
   id: z.string(),
-  status: z.enum(['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
+  status: z.enum(['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'AWAITING_FINAL', 'PROCESSING_FINAL', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
   durationSecs: z.number().nullable(),
   isChunked: z.boolean().optional(),
   chunkCount: z.number().nullable().optional(),
@@ -116,7 +116,7 @@ const POLL_INTERVAL_SLOW = 10000;
 const FAST_POLL_DURATION = 30000;
 const MAX_POLL_DURATION = 300000;
 
-const PROCESSING_STATUSES = ['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'TRANSCRIBING', 'SCORING', 'ANALYZING'] as const;
+const PROCESSING_STATUSES = ['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'AWAITING_FINAL', 'PROCESSING_FINAL', 'TRANSCRIBING', 'SCORING', 'ANALYZING'] as const;
 
 export function useSessionStatus(sessionId: string): UseSessionStatusReturn {
   const [session, setSession] = useState<SessionDetail | null>(null);
