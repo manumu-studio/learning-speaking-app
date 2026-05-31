@@ -34,7 +34,7 @@ export function WordColorMap({
         Word Map
       </h3>
 
-      <div className="flex flex-wrap gap-x-1.5 gap-y-2">
+      <div className="flex flex-wrap gap-x-2.5 gap-y-3">
         {coloredWords.map(({ word, color, index }) => {
           const isExpanded = expandedIndex === index;
           const isOmission = word.errorType === 'Omission';
@@ -45,7 +45,7 @@ export function WordColorMap({
                 type="button"
                 onClick={() => toggleWord(index)}
                 aria-expanded={isExpanded}
-                aria-label={`${word.word}: accuracy ${word.accuracyScore}%. Click to ${isExpanded ? 'collapse' : 'expand'} phoneme detail.`}
+                aria-label={`${word.display ?? word.word}: accuracy ${word.accuracyScore}%. Click to ${isExpanded ? 'collapse' : 'expand'} phoneme detail.`}
                 className={[
                   'text-base font-medium px-1 py-0.5 rounded transition-colors',
                   'hover:bg-gray-100 dark:hover:bg-gray-800',
@@ -59,10 +59,10 @@ export function WordColorMap({
               >
                 {isOmission ? (
                   <span className="line-through text-gray-400 dark:text-gray-500">
-                    [{word.word}]
+                    [{word.display ?? word.word}]
                   </span>
                 ) : (
-                  word.word
+                  word.display ?? word.word
                 )}
               </button>
 

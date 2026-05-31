@@ -157,6 +157,11 @@ export function useSessionHistory(): UseSessionHistoryReturn {
     return () => observer.disconnect();
   }, [cursor, cursorId, hasMore, fetchPage]);
 
+  const removeSession = useCallback((sessionId: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    setTotal((prev) => Math.max(0, prev - 1));
+  }, []);
+
   const dayGroups = groupSessionsByDay(sessions);
 
   return {
@@ -170,5 +175,6 @@ export function useSessionHistory(): UseSessionHistoryReturn {
     dateFilter,
     setDateFilter,
     sentinelRef,
+    removeSession,
   };
 }

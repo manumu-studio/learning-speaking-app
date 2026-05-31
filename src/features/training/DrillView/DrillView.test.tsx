@@ -59,6 +59,8 @@ describe('DrillView', () => {
       warnings: [],
       startRecording: vi.fn().mockResolvedValue(undefined),
       stopRecording: vi.fn().mockResolvedValue(undefined),
+      pauseRecording: vi.fn(),
+      resumeRecording: vi.fn(),
       resetRecording: vi.fn(),
     });
   });

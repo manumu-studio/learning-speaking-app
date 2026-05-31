@@ -6,7 +6,7 @@ test.describe('Session flow', () => {
   test('new session page loads with recording UI', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/session/new');
     await expect(
-      authenticatedPage.getByRole('heading', { name: /new speaking session/i }),
+      authenticatedPage.getByRole('button', { name: /expand prompt/i }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Start recording', exact: true }),
@@ -34,6 +34,50 @@ test.describe('Session flow', () => {
     await expect(authenticatedPage).toHaveURL(/\/history/);
     await authenticatedPage.getByRole('link', { name: 'New Session' }).click();
     await expect(authenticatedPage).toHaveURL(/\/session\/new/);
+  });
+
+  test('compact prompt pill expands to full card with category tabs', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto('/session/new');
+
+    // Compact pill visible by default
+    const expandButton = authenticatedPage.getByRole('button', {
+      name: 'Expand prompt card',
+      exact: true,
+    });
+    await expect(expandButton).toBeVisible({ timeout: 10_000 });
+
+    // No "New Speaking Session" heading (compact mode)
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /new speaking session/i }),
+    ).toHaveCount(0);
+
+    // "Free speak" button visible in compact mode
+    const freeSpeakButton = authenticatedPage.getByRole('button', {
+      name: 'Free speak',
+      exact: true,
+    });
+    await expect(freeSpeakButton).toBeVisible();
+
+    // Click pill to expand
+    await expandButton.click();
+
+    // Expanded card shows shuffle button
+    await expect(
+      authenticatedPage.getByRole('button', { name: /shuffle/i }),
+    ).toBeVisible();
+
+    // Category tabs appear after clicking "change topic"
+    await authenticatedPage.getByText('change topic').click();
+    await expect(
+      authenticatedPage.getByRole('tablist', { name: /prompt category/i }),
+    ).toBeVisible();
+
+    // "Free speak" button still visible in expanded mode
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Free speak', exact: true }).first(),
+    ).toBeVisible();
   });
 });
 
