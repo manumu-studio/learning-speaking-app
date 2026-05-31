@@ -101,7 +101,7 @@ export function PronunciationSection({
       <div className="flex items-center gap-2 mt-6">
         <span className="text-sm text-gray-600 dark:text-gray-400">Speaking rate:</span>
         <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${wpmColorClass}`}>
-          {speakingRateWpm} words/min
+          {Math.round(speakingRateWpm)} words/min
         </span>
         {wpmStatus === 'ideal' && (
           <span className="text-xs text-gray-500 dark:text-gray-400">(ideal range)</span>
