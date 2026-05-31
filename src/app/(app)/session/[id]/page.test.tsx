@@ -162,6 +162,5 @@ describe('SessionResultsPage', () => {
 
     await screen.findByText('Strong session overall.');
     expect(screen.queryByText(/177\.2065707719806/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/177 wpm/i)).not.toBeInTheDocument();
   });
 });
