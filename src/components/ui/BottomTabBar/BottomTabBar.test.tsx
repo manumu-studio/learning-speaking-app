@@ -30,7 +30,7 @@ describe('BottomTabBar', () => {
     render(<BottomTabBar onMorePress={vi.fn()} />);
 
     const dashboardLink = screen.getByText('Dashboard').closest('a');
-    expect(dashboardLink?.className).toContain('text-blue-600');
+    expect(dashboardLink?.className).toContain('text-sky-600');
   });
 
   it('has correct nav links', () => {

@@ -33,6 +33,16 @@ body {
   }
 }
 
+/* Page transition — subtle slide on tab navigation */
+@keyframes page-enter {
+  from { transform: translateY(6px); }
+  to { transform: translateY(0); }
+}
+
+.animate-page-enter {
+  animation: page-enter 0.2s ease-out;
+}
+
 /* Smooth pulsing glow for recording state */
 @keyframes recording-pulse {
   0%, 100% {

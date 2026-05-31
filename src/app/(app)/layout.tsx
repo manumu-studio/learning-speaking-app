@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <ErrorBoundary>
         <AppProviders>
           <OnboardingGuard onboardedAt={onboardedAtIso}>
-            <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200">
+            <div className="min-h-screen bg-slate-50 dark:bg-black transition-colors duration-200">
               <TopBar
                 userName={session.user.name ?? null}
                 userEmail={session.user.email ?? null}
