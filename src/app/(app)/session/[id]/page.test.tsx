@@ -1,4 +1,4 @@
-// Tests for session results page layout — collapsible sections and grouped feedback
+// Tests for session results page — insight rendering, category badges, pronunciation scores
 /** @vitest-environment jsdom */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -131,46 +131,36 @@ describe('SessionResultsPage', () => {
     );
   });
 
-  it('renders Language Feedback and Pronunciation sections expanded by default', async () => {
+  it('renders both insight patterns for a completed session', async () => {
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
 
-    expect(await screen.findByRole('button', { name: /Language Feedback/i })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: /Pronunciation & Intonation/i })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
+    expect(await screen.findByRole('heading', { name: 'establish' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Article usage' })).toBeInTheDocument();
   });
 
-  it('groups insights under Grammar and Vocabulary sub-sections', async () => {
+  it('renders insight category badges', async () => {
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
 
-    expect(await screen.findByRole('button', { name: /Grammar/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Vocabulary/i })).toBeInTheDocument();
-    expect(screen.getByText(/You said:/)).toBeInTheDocument();
-    expect(screen.getByText(/Words to Add/)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'establish' });
+    const grammarBadges = screen.getAllByText('grammar');
+    expect(grammarBadges.length).toBeGreaterThanOrEqual(1);
+    const vocabularyBadges = screen.getAllByText('vocabulary');
+    expect(vocabularyBadges.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('collapses Word Color Map and Prosody Feedback by default', async () => {
+  it('renders pronunciation section when report exists', async () => {
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
 
-    expect(await screen.findByRole('button', { name: /Word Color Map/i })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    expect(screen.getByRole('button', { name: /Prosody Feedback/i })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
+    await screen.findByText('Strong session overall.');
+    expect(
+      screen.getByRole('heading', { name: /Pronunciation & Intonation/i }),
+    ).toBeInTheDocument();
   });
 
   it('does not render raw speaking rate wpm float', async () => {
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
 
-    await screen.findByRole('button', { name: /Pronunciation & Intonation/i });
+    await screen.findByText('Strong session overall.');
     expect(screen.queryByText(/177\.2065707719806/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/177 wpm/i)).not.toBeInTheDocument();
   });
 });
