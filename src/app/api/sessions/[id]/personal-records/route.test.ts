@@ -20,7 +20,8 @@ describe('GET /api/sessions/[id]/personal-records', () => {
   });
 
   it('GET returns Cache-Control header', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    // auth is called twice per request (wrapper + handler)
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce({
       id: 'session-1',

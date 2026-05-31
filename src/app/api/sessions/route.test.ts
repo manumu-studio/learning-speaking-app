@@ -14,7 +14,7 @@ vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/db-utils', () => ({ findOrCreateUser: vi.fn(), hasConsent: vi.fn() }));
 vi.mock('@/lib/storage/r2', () => ({ uploadAudio: vi.fn(), generateAudioKey: vi.fn() }));
 vi.mock('@/lib/queue/qstash', () => ({ enqueueProcessing: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn().mockReturnThis() } }));
 vi.mock('@/lib/metric-keys', () => ({
   SPEAKING_METRIC_KEYS: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'argumentClosure', 'fillerUsage'] as const,
   isSpeakingMetricKey: vi.fn().mockReturnValue(true),
@@ -23,7 +23,7 @@ vi.mock('@/lib/csrf', () => ({
   validateOrigin: vi.fn().mockReturnValue(true),
   csrfForbiddenResponse: vi.fn(),
 }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn().mockReturnThis() } }));
 vi.mock('@/lib/api', () => ({
   validateAudioFile: vi.fn().mockReturnValue({ valid: true }),
   successResponse: (data: unknown, status = 200, headers?: Record<string, string>) =>
@@ -94,7 +94,7 @@ describe('POST /api/sessions', () => {
   // ─── Test 1: unauthenticated ─────────────────────────────────────────────
   it('returns 401 when the request is unauthenticated', async () => {
     // Arrange
-    mockAuth.mockResolvedValueOnce(null as never);
+    mockAuth.mockResolvedValue(null as never);
 
     // Act
     const response = await POST(createSessionRequest());
@@ -108,7 +108,7 @@ describe('POST /api/sessions', () => {
   // ─── Test 2: CSRF rejection ──────────────────────────────────────────────
   it('returns 403 when CSRF origin validation fails', async () => {
     // Arrange
-    mockAuth.mockResolvedValueOnce({
+    mockAuth.mockResolvedValue({
       user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
       expires: '',
     } as never);
@@ -129,7 +129,7 @@ describe('POST /api/sessions', () => {
   // ─── Test 3: no recording consent ────────────────────────────────────────
   it('returns 403 CONSENT_REQUIRED when user has not granted audio consent', async () => {
     // Arrange
-    mockAuth.mockResolvedValueOnce({
+    mockAuth.mockResolvedValue({
       user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
       expires: '',
     } as never);
@@ -156,7 +156,7 @@ describe('POST /api/sessions', () => {
   // ─── Test 4: valid request returns 201 ───────────────────────────────────
   it('creates a session and returns 201 with session ID when all inputs are valid', async () => {
     // Arrange
-    mockAuth.mockResolvedValueOnce({
+    mockAuth.mockResolvedValue({
       user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
       expires: '',
     } as never);
@@ -194,7 +194,7 @@ describe('POST /api/sessions', () => {
   // ─── Test 5: missing audio file returns 400 ──────────────────────────────
   it('returns 400 MISSING_AUDIO when no audio file is provided in FormData', async () => {
     // Arrange
-    mockAuth.mockResolvedValueOnce({
+    mockAuth.mockResolvedValue({
       user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
       expires: '',
     } as never);
@@ -223,9 +223,9 @@ describe('POST /api/sessions', () => {
   });
 
   // ─── Test 6: database error returns 500 ──────────────────────────────────
-  it('returns 500 INTERNAL_ERROR when the database throws during session creation', async () => {
+  it('returns 500 when the database throws during session creation', async () => {
     // Arrange
-    mockAuth.mockResolvedValueOnce({
+    mockAuth.mockResolvedValue({
       user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
       expires: '',
     } as never);
@@ -243,11 +243,9 @@ describe('POST /api/sessions', () => {
 
     // Act
     const response = await POST(createSessionRequest(createValidFormData()));
-    const body = await response.json() as { error: string; code: string };
 
-    // Assert
+    // Assert — unhandled errors are caught by withObservability and return a generic 500
     expect(response.status).toBe(500);
-    expect(body.code).toBe('INTERNAL_ERROR');
   });
 });
 
@@ -257,7 +255,7 @@ describe('GET /api/sessions', () => {
   });
 
   it('returns Cache-Control: private, no-store', async () => {
-    mockAuth.mockResolvedValueOnce({
+    mockAuth.mockResolvedValue({
       user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
       expires: '',
     } as never);

@@ -57,6 +57,15 @@ vi.mock('@/lib/pipeline/extractFeatures', () => ({
   extractChunkFeatures: vi.fn(),
 }));
 
+vi.mock('@/lib/observability', () => ({
+  logPipelineStage: vi.fn(),
+  withObservability: vi.fn(),
+  getRequestId: vi.fn(),
+  withRequestId: vi.fn(),
+  currentRequestId: vi.fn(),
+  setSentryRequestContext: vi.fn(),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { transcribeWavChunk } from '@/lib/ai/whisper';

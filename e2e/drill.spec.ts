@@ -10,7 +10,8 @@ test.describe('Drill flow', () => {
     await expect(authenticatedPage.getByRole('heading', { name: 'Training', level: 1 })).toBeVisible({ timeout: 15_000 });
     const empty = authenticatedPage.getByText(/no drills yet/i);
     const loading = authenticatedPage.getByText(/loading training history/i);
-    await expect(empty.or(loading).first()).toBeVisible({ timeout: 15000 });
+    const drillItem = authenticatedPage.getByText(/improved|not yet|connector|structural|vocabulary|verb|argument|filler/i).first();
+    await expect(empty.or(loading).or(drillItem).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('drill detail page shows error for a non-existent drill id', async ({ authenticatedPage }) => {

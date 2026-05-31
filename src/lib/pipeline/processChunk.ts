@@ -9,6 +9,7 @@ import { extractChunkFeatures } from '@/lib/pipeline/extractFeatures';
 import { enqueueFinalProcessing } from '@/lib/queue/qstash';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
+import { logPipelineStage } from '@/lib/observability';
 
 function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
@@ -59,6 +60,7 @@ export async function processChunk(
   sessionId: string,
   chunkIndex: number,
 ): Promise<void> {
+  const chunkStart = Date.now();
   const chunk = await prisma.sessionChunk.findUnique({
     where: {
       sessionId_chunkIndex: { sessionId, chunkIndex },
@@ -223,6 +225,8 @@ export async function processChunk(
       'Failed to delete chunk audio from R2',
     );
   }
+
+  logPipelineStage({ sessionId, stage: 'processChunk', durationMs: Date.now() - chunkStart, success: true, metadata: { chunkIndex } });
 
   await maybeEnqueueFinalProcessing(sessionId);
 }

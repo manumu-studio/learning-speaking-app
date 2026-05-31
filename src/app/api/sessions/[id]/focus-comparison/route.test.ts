@@ -80,7 +80,7 @@ describe('GET /api/sessions/[id]/focus-comparison', () => {
   it('returns 404 when session does not belong to the user', async () => {
     // Arrange
     mockedIsMetricKey.mockReturnValue(true);
-    mockedAuth.mockResolvedValueOnce(mockAuthSession as never);
+    mockedAuth.mockResolvedValue(mockAuthSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(null);
 
@@ -96,7 +96,7 @@ describe('GET /api/sessions/[id]/focus-comparison', () => {
   it('returns currentScore and previousScore when a prior focus session exists', async () => {
     // Arrange
     mockedIsMetricKey.mockReturnValue(true);
-    mockedAuth.mockResolvedValueOnce(mockAuthSession as never);
+    mockedAuth.mockResolvedValue(mockAuthSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     // First findFirst → current session
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSession as never);
@@ -119,7 +119,7 @@ describe('GET /api/sessions/[id]/focus-comparison', () => {
   it('returns previousScore as null when no prior focus session exists', async () => {
     // Arrange
     mockedIsMetricKey.mockReturnValue(true);
-    mockedAuth.mockResolvedValueOnce(mockAuthSession as never);
+    mockedAuth.mockResolvedValue(mockAuthSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSession as never);
     prismaMock.metricSnapshot.findFirst.mockResolvedValueOnce(mockMetric as never);
@@ -138,7 +138,7 @@ describe('GET /api/sessions/[id]/focus-comparison', () => {
   it('returns 403 when session focusMetricKey does not match the requested metricKey', async () => {
     // Arrange
     mockedIsMetricKey.mockReturnValue(true);
-    mockedAuth.mockResolvedValueOnce(mockAuthSession as never);
+    mockedAuth.mockResolvedValue(mockAuthSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce({
       ...mockSession,
@@ -156,7 +156,7 @@ describe('GET /api/sessions/[id]/focus-comparison', () => {
 
   it('returns Cache-Control header', async () => {
     mockedIsMetricKey.mockReturnValue(true);
-    mockedAuth.mockResolvedValueOnce(mockAuthSession as never);
+    mockedAuth.mockResolvedValue(mockAuthSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSession as never);
     prismaMock.metricSnapshot.findFirst.mockResolvedValueOnce(mockMetric as never);

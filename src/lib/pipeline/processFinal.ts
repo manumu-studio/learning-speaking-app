@@ -18,6 +18,7 @@ import type { ChunkPronunciationMergeInput } from '@/lib/pipeline/mergePronuncia
 import { synthesizeAnalysis } from '@/lib/ai/synthesize';
 import type { ChunkInsightInput } from '@/lib/ai/synthesize';
 import { logger } from '@/lib/logger';
+import { logPipelineStage } from '@/lib/observability';
 
 function buildPronunciationSummary(
   result: ReturnType<typeof toPronunciationResult> | null,
@@ -94,6 +95,7 @@ function parsePronWords(value: Prisma.JsonValue | null): WordResult[] | null {
 }
 
 export async function processFinal(sessionId: string): Promise<void> {
+  const finalStart = Date.now();
   const session = await prisma.speakingSession.findUnique({
     where: { id: sessionId },
     select: {
@@ -248,6 +250,8 @@ export async function processFinal(sessionId: string): Promise<void> {
 
   await updatePatternProfile(session.userId, nerFilterResult.kept);
 
+  logPipelineStage({ sessionId, stage: 'processFinal', durationMs: Date.now() - finalStart, success: true, metadata: { chunkCount: chunks.length, wordCount } });
+
   logger.info(
     {
       sessionId,
@@ -264,6 +268,7 @@ function isJsonArray(value: Prisma.JsonValue | null): value is Prisma.JsonArray 
 }
 
 export async function processParallelFinal(sessionId: string): Promise<void> {
+  const parallelFinalStart = Date.now();
   const session = await prisma.speakingSession.findUnique({
     where: { id: sessionId },
     select: {
@@ -409,7 +414,11 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
   }
 
   if (synthesis.metrics.length > 0) {
-    await prisma.metricSnapshot.deleteMany({ where: { sessionId } });
+    // Delete only synthesis-scored metrics — preserve pronunciation metrics created by persistPronunciation
+    const synthesisKeys = synthesis.metrics.map((m) => m.key);
+    await prisma.metricSnapshot.deleteMany({
+      where: { sessionId, key: { in: synthesisKeys } },
+    });
     await prisma.metricSnapshot.createMany({
       data: synthesis.metrics.map((metric) => ({
         sessionId,
@@ -442,6 +451,8 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
   });
 
   await updatePatternProfile(session.userId, nerFilterResult.kept);
+
+  logPipelineStage({ sessionId, stage: 'processParallelFinal', durationMs: Date.now() - parallelFinalStart, success: true, metadata: { chunkCount: doneChunks.length, wordCount } });
 
   logger.info(
     {

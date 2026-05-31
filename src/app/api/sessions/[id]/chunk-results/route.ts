@@ -4,12 +4,15 @@ import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';
 import { errorResponse } from '@/lib/api';
+import { withObservability } from '@/lib/observability';
+import type pino from 'pino';
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+async function getHandler(
+  _req: Request,
+  { logger: _logger }: { logger: pino.Logger; requestId: string },
+  routeCtx: { params: Promise<{ id: string }> },
 ) {
-  const { id: sessionId } = await params;
+  const { id: sessionId } = await routeCtx.params;
 
   const session = await auth();
   if (!session?.user?.externalId) {
@@ -74,3 +77,9 @@ export async function GET(
 
   return NextResponse.json({ chunks: simplified });
 }
+
+export const GET = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
+  withObservability(
+    (r, obsCtx) => getHandler(r, obsCtx, routeCtx),
+    { route: 'sessions/[id]/chunk-results' },
+  )(req);
