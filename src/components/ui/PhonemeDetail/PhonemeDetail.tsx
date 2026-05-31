@@ -18,6 +18,12 @@ export function PhonemeDetail({
 
   const ipaTranscription = phonemes.length > 0 ? wordToIpa(phonemes) : null;
 
+  const detectedPhonemes = phonemes.length > 0
+    ? phonemes.map((p) => ({ phoneme: p.nBest?.[0]?.phoneme ?? p.phoneme }))
+    : [];
+  const detectedIpa = detectedPhonemes.length > 0 ? wordToIpa(detectedPhonemes) : null;
+  const showDetected = detectedIpa !== null && detectedIpa !== ipaTranscription;
+
   const knownL1Tags = word.l1Tags.filter(
     (tag): tag is L1TagKey => tag in L1_TAG_LABELS,
   );
@@ -44,6 +50,11 @@ export function PhonemeDetail({
             </span>
           )}
           {' '}&mdash; accuracy: {word.accuracyScore}%
+          {showDetected && alphabet === 'ipa' && (
+            <span className="ml-2 font-mono text-amber-600 dark:text-amber-400">
+              You said: /{detectedIpa}/
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-2">
           <button
