@@ -24,4 +24,5 @@ export interface SpeakingMetricCardItemProps {
 export interface PronunciationMetricCardItemProps {
   metric: DashboardMetric;
   drillCount: number;
+  pitchPreview?: number[] | undefined;
 }

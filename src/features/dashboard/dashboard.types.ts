@@ -74,4 +74,6 @@ export type DashboardData = {
   drillStats: DrillStatsData;
   personalRecords: PersonalRecord[];
   totalWorkoutCount: number;
+  /** Downsampled F0 preview from the most recent session with pitch data */
+  recentProsodyPitchPreview: number[];
 };

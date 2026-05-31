@@ -1,6 +1,5 @@
-'use client';
 // Displays current processing step with animated visual indicator
-import { ProcessingStatusProps } from './ProcessingStatus.types';
+import type { ProcessingStatusProps } from './ProcessingStatus.types';
 
 const STEPS = [
   { key: 'UPLOADED', label: 'Uploaded' },
@@ -26,8 +25,17 @@ function resolveDisplayStatus(status: ProcessingStatusProps['status']): DisplayS
   return status;
 }
 
-export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingStatusProps) {
+export function ProcessingStatus({ status, errorMessage, onRetry, partialData }: ProcessingStatusProps) {
   const displayStatus = resolveDisplayStatus(status);
+
+  const progressiveSteps = partialData
+    ? [
+        { key: 'transcript', label: 'Transcript', ready: partialData.hasTranscript },
+        { key: 'pronunciation', label: 'Pronunciation scores', ready: partialData.hasPronunciation },
+        { key: 'insights', label: 'Coaching insights', ready: partialData.hasInsights },
+        { key: 'pitch', label: 'Pitch contour', ready: partialData.hasPitchContour },
+      ]
+    : [];
 
   if (displayStatus === 'FAILED') {
     return (
@@ -86,6 +94,33 @@ export function ProcessingStatus({ status, errorMessage, onRetry }: ProcessingSt
           );
         })}
       </div>
+
+      {progressiveSteps.length > 0 && (
+        <div className="mt-5 border-t border-blue-200 pt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-800">
+            Results arriving
+          </p>
+          <ul className="space-y-2">
+            {progressiveSteps.map((step) => (
+              <li key={step.key} className="flex items-center gap-2 text-sm">
+                <span
+                  className={
+                    step.ready
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-gray-400 dark:text-gray-500'
+                  }
+                  aria-hidden
+                >
+                  {step.ready ? '✓' : '…'}
+                </span>
+                <span className={step.ready ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500'}>
+                  {step.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
