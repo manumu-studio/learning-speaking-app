@@ -49,11 +49,12 @@ model User {
   externalId     String           @unique
   email          String?
   displayName    String?
-  sessions       SpeakingSession[]
-  drills         DrillAttempt[]
-  consents       UserConsent[]
-  patternProfile PatternProfile?
-  settings       UserSettings?
+  sessions         SpeakingSession[]
+  drills           DrillAttempt[]
+  consents         UserConsent[]
+  vocabSuggestions VocabSuggestion[]
+  patternProfile   PatternProfile?
+  settings         UserSettings?
   onboardedAt    DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -101,6 +102,8 @@ model SpeakingSession {
   chunkResults        ChunkResult[]
   chunkFeatures       ChunkFeature[]
   pronunciationReport PronunciationReport?
+  suggestedVocab      VocabSuggestion[] @relation("suggestedVocab")
+  usedVocab           VocabSuggestion[] @relation("usedVocab")
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -303,4 +306,23 @@ model WordPronunciation {
   @@index([reportId, wordIndex])
   @@index([reportId, errorType])
   @@map("word_pronunciations")
+}
+
+model VocabSuggestion {
+  id                   String           @id @default(cuid())
+  userId               String
+  word                 String
+  meaning              String           @db.Text
+  exampleSentence      String           @db.Text
+  suggestedInSessionId String
+  firstUsedInSessionId String?
+  firstUsedAt          DateTime?
+  createdAt            DateTime         @default(now())
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suggestedInSession   SpeakingSession  @relation("suggestedVocab", fields: [suggestedInSessionId], references: [id], onDelete: Cascade)
+  firstUsedInSession   SpeakingSession? @relation("usedVocab", fields: [firstUsedInSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, word])
+  @@index([userId, firstUsedInSessionId])
+  @@map("vocab_suggestions")
 }

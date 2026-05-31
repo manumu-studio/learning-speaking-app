@@ -33,6 +33,10 @@ import { ProsodyPanel } from '@/components/ui/ProsodyPanel';
 import { ProsodyFeedback } from '@/components/ui/ProsodyFeedback';
 import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
 import { PronunciationProgress, PronunciationHistorySchema } from '@/components/ui/PronunciationProgress';
+import { PhonemePatterns } from '@/components/ui/PhonemePatterns';
+import { aggregatePhonemes } from '@/lib/pronunciation/aggregatePhonemes';
+import { VocabProgress } from '@/components/ui/VocabProgress';
+import type { VocabItem } from '@/components/ui/VocabProgress';
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
 import { PracticeSuggestion } from '@/components/ui/PracticeSuggestion';
 import { ChunkBreakdown } from '@/components/ui/ChunkBreakdown';
@@ -259,6 +263,7 @@ function SessionContent({
   const { personalRecords } = usePersonalRecordBanner({ sessionId: id, isDone });
   const [focusComparison, setFocusComparison] = useState<FocusComparison | null>(null);
   const [pronunciationHistory, setPronunciationHistory] = useState<HistoryItem[]>([]);
+  const [vocabItems, setVocabItems] = useState<VocabItem[]>([]);
   const [resultsView, setResultsView] = useState<'overall' | 'segments'>('overall');
   const pitchState = usePitchContour(
     session !== null && session.status !== 'FAILED' ? id : '',
@@ -307,6 +312,17 @@ function SessionContent({
       })
       .catch(() => undefined);
   }, [id, isDone, session?.pronunciationReport]);
+
+  useEffect(() => {
+    if (!isDone) return;
+    void fetch('/api/users/me/vocabulary')
+      .then(async (res) => {
+        if (!res.ok) return;
+        const json: unknown = await res.json();
+        if (Array.isArray(json)) setVocabItems(json as VocabItem[]);
+      })
+      .catch(() => undefined);
+  }, [isDone]);
 
   if (isLoading && !session) {
     return (
@@ -561,6 +577,7 @@ function SessionContent({
                     baseDelay={340}
                   />
                   <VocabSuggestions suggestions={vocabSuggestions} animationDelay={400} />
+                  <VocabProgress items={vocabItems} animationDelay={450} />
                   {focusComparison && (
                     <FocusHighlight
                       metricLabel={focusComparison.metricLabel}
@@ -609,6 +626,10 @@ function SessionContent({
                         },
                       }
                     : {})}
+                />
+                <PhonemePatterns
+                  phonemes={aggregatePhonemes(pronunciationReport.words)}
+                  animationDelay={pronunciationSectionDelay + 50}
                 />
                 <CollapsibleSection title="Word Color Map" defaultOpen={false}>
                   <WordColorMap
