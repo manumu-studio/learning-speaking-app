@@ -21,6 +21,9 @@ vi.mock('@/lib/prisma', () => ({
     sessionChunk: {
       findMany: vi.fn(),
     },
+    chunkResult: {
+      findMany: vi.fn(),
+    },
     transcript: {
       upsert: vi.fn(),
     },
@@ -35,9 +38,13 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/lib/ai/analyze', () => ({
-  analyzeTranscript: vi.fn(),
-}));
+vi.mock('@/lib/ai/analyze', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ai/analyze')>();
+  return {
+    ...actual,
+    analyzeTranscript: vi.fn(),
+  };
+});
 
 vi.mock('@/lib/ai/nerFilter', () => ({
   filterTranscriptionArtefacts: vi.fn((insights: unknown[]) => ({
@@ -55,13 +62,18 @@ vi.mock('@/lib/pipeline/persistPronunciation', () => ({
   persistPronunciation: vi.fn(),
 }));
 
+vi.mock('@/lib/ai/synthesize', () => ({
+  synthesizeAnalysis: vi.fn(),
+}));
+
 vi.mock('@/features/session/updatePatternProfile', () => ({
   updatePatternProfile: vi.fn(),
 }));
 
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';
-import { processFinal } from '@/lib/pipeline/processFinal';
+import { synthesizeAnalysis } from '@/lib/ai/synthesize';
+import { processFinal, processParallelFinal } from '@/lib/pipeline/processFinal';
 
 describe('processFinal', () => {
   beforeEach(() => {
@@ -211,5 +223,155 @@ describe('processFinal', () => {
     ] as never);
 
     await expect(processFinal('session-1')).rejects.toThrow('Not all chunks are processed yet');
+  });
+});
+
+describe('processParallelFinal', () => {
+  const makeChunkResult = (chunkIndex: number, overrides: Record<string, unknown> = {}) => ({
+    id: `cr-${chunkIndex}`,
+    sessionId: 'sess-1',
+    chunkIndex,
+    status: 'DONE',
+    durationSecs: 125,
+    overlapSecs: chunkIndex === 0 ? 0 : 5,
+    transcriptText: `chunk ${chunkIndex} transcript text here`,
+    wordCount: 5,
+    words: null,
+    pronunciationReport: {
+      pronScore: 80,
+      accuracyScore: 80,
+      fluencyScore: 75,
+      completenessScore: 85,
+      prosodyScore: 70,
+      words: [],
+    },
+    insights: [{ category: 'grammar', pattern: 'Test', detail: 'detail', frequency: 1 }],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
+      id: 'sess-1',
+      userId: 'user-1',
+      status: SessionStatus.AWAITING_FINAL,
+      focusMetricKey: null,
+      promptUsed: null,
+      processedAt: null,
+    } as never);
+
+    vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
+      makeChunkResult(0),
+      makeChunkResult(1),
+    ] as never);
+
+    vi.mocked(synthesizeAnalysis).mockResolvedValue({
+      insights: [{ category: 'grammar' as const, pattern: 'Merged', detail: 'merged detail', frequency: 2, severity: 'medium' as const, examples: [] }],
+      metrics: [{ key: 'connectorRepetition', level: 'medium', score: 6, note: 'OK' }],
+      focusNext: 'Work on connectors',
+      summary: 'Good session overall',
+      intentLabel: 'Practice session',
+    });
+  });
+
+  it('stitches transcripts and marks session DONE with all chunks', async () => {
+    await processParallelFinal('sess-1');
+
+    expect(prisma.transcript.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sessionId: 'sess-1' },
+        create: expect.objectContaining({
+          sessionId: 'sess-1',
+          text: expect.any(String),
+        }),
+      }),
+    );
+
+    expect(prisma.speakingSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'sess-1' },
+        data: expect.objectContaining({
+          status: SessionStatus.DONE,
+          processedAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it('returns early when session is already DONE with processedAt', async () => {
+    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
+      id: 'sess-1',
+      userId: 'user-1',
+      status: SessionStatus.DONE,
+      focusMetricKey: null,
+      promptUsed: null,
+      processedAt: new Date(),
+    } as never);
+
+    await processParallelFinal('sess-1');
+
+    expect(prisma.chunkResult.findMany).not.toHaveBeenCalled();
+    expect(synthesizeAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('marks session FAILED when all chunks failed', async () => {
+    vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
+      makeChunkResult(0, { status: 'FAILED', transcriptText: null, pronunciationReport: null, insights: null }),
+      makeChunkResult(1, { status: 'FAILED', transcriptText: null, pronunciationReport: null, insights: null }),
+    ] as never);
+
+    await processParallelFinal('sess-1');
+
+    expect(prisma.speakingSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: SessionStatus.FAILED,
+          errorMessage: 'All chunks failed processing',
+        }),
+      }),
+    );
+    expect(synthesizeAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('sets partialResults true when some chunks failed', async () => {
+    vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
+      makeChunkResult(0),
+      makeChunkResult(1, { status: 'FAILED', transcriptText: null, pronunciationReport: null, insights: null }),
+    ] as never);
+
+    await processParallelFinal('sess-1');
+
+    expect(prisma.speakingSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: SessionStatus.DONE,
+          partialResults: true,
+        }),
+      }),
+    );
+  });
+
+  it('throws when session not found', async () => {
+    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue(null);
+
+    await expect(processParallelFinal('sess-1')).rejects.toThrow('Session not found');
+  });
+
+  it('calls synthesizeAnalysis with stitched transcript and chunk insights', async () => {
+    await processParallelFinal('sess-1');
+
+    expect(synthesizeAnalysis).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stitchedTranscript: expect.any(String),
+        chunks: expect.arrayContaining([
+          expect.objectContaining({ chunkIndex: 0 }),
+          expect.objectContaining({ chunkIndex: 1 }),
+        ]),
+        focusMetricKey: null,
+      }),
+    );
   });
 });
