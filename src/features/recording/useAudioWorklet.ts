@@ -1,4 +1,4 @@
-// Orchestrates AudioWorklet PCM capture, chunk worker, and browser compatibility fallbacks
+// Orchestrates AudioWorklet PCM capture, 120s chunks with 5s overlap, and browser fallbacks
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,7 +19,7 @@ import type {
 } from './useAudioWorklet.types';
 
 const DEFAULT_CHUNK_DURATION_SECS = 120;
-const DEFAULT_OVERLAP_SECS = 1.5;
+const DEFAULT_OVERLAP_SECS = 5;
 const DEFAULT_SAMPLE_RATE = 16_000;
 
 export function useAudioWorklet(

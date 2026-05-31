@@ -97,3 +97,24 @@ export async function enqueueFinalProcessing(sessionId: string): Promise<void> {
     deduplicationId: `final-${sessionId}`,
   });
 }
+
+// Enqueue independent per-chunk pipeline job via QStash
+export async function enqueueChunkIndependent(payload: {
+  sessionId: string;
+  chunkIndex: number;
+  storageKey: string;
+  durationSecs: number;
+  overlapSecs: number;
+}): Promise<void> {
+  if (env.NODE_ENV === 'development') {
+    await publishDevJob('/api/dev/process-chunk-independent', payload);
+    return;
+  }
+
+  const client = getQStashClient();
+  await client.publishJSON({
+    url: `${env.APP_URL}/api/internal/process-chunk-independent`,
+    body: payload,
+    retries: 3,
+  });
+}

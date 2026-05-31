@@ -19,7 +19,7 @@ function resolveDisplayStatus(status: ProcessingStatusProps['status']): DisplayS
   if (status === 'CREATED') {
     return 'CREATED';
   }
-  if (status === 'FAILED') {
+  if (status === 'FAILED' || status === 'CANCELLED') {
     return 'FAILED';
   }
   return status;

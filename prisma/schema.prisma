@@ -19,6 +19,7 @@ enum SessionStatus {
   ANALYZING
   DONE
   FAILED
+  CANCELLED
 }
 
 enum ChunkStatus {
@@ -26,6 +27,13 @@ enum ChunkStatus {
   TRANSCRIBING
   SCORING
   CHUNK_DONE
+  FAILED
+}
+
+enum ChunkResultStatus {
+  PENDING
+  PROCESSING
+  DONE
   FAILED
 }
 
@@ -82,6 +90,7 @@ model SpeakingSession {
   location       String?
   isOnboarding   Boolean       @default(false)
   isChunked      Boolean       @default(false)
+  partialResults Boolean       @default(false)
   chunkCount     Int?
   processedAt    DateTime?
   transcript          Transcript?
@@ -89,6 +98,7 @@ model SpeakingSession {
   metrics             MetricSnapshot[]
   drills              DrillAttempt[]
   chunks              SessionChunk[]
+  chunkResults        ChunkResult[]
   chunkFeatures       ChunkFeature[]
   pronunciationReport PronunciationReport?
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -126,6 +136,27 @@ model SessionChunk {
   @@unique([sessionId, chunkIndex])
   @@index([sessionId, status])
   @@map("session_chunks")
+}
+
+model ChunkResult {
+  id                  String            @id @default(cuid())
+  sessionId           String
+  session             SpeakingSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  chunkIndex          Int
+  status              ChunkResultStatus @default(PENDING)
+  durationSecs        Float
+  overlapSecs         Float             @default(0)
+  transcriptText      String?           @db.Text
+  wordCount           Int?
+  words               Json?
+  pronunciationReport Json?
+  insights            Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([sessionId, chunkIndex])
+  @@index([sessionId])
+  @@map("chunk_results")
 }
 
 model ChunkFeature {
