@@ -48,6 +48,7 @@ export async function GET(
             words: {
               select: {
                 word: true,
+                display: true,
                 accuracyScore: true,
                 errorType: true,
                 offsetMs: true,
@@ -139,10 +140,25 @@ export async function DELETE(
       return errorResponse('Session not found', 'SESSION_NOT_FOUND', 404);
     }
 
-    // Delete audio from R2 if exists and not already deleted
+    // Best-effort R2 cleanup: session-level audio + per-chunk audio
+    const chunks = await prisma.sessionChunk.findMany({
+      where: { sessionId: id },
+      select: { audioUrl: true },
+    });
+
+    const audioKeys: string[] = [];
     if (speakingSession.audioUrl && !speakingSession.audioDeletedAt) {
+      audioKeys.push(speakingSession.audioUrl);
+    }
+    for (const chunk of chunks) {
+      if (chunk.audioUrl) {
+        audioKeys.push(chunk.audioUrl);
+      }
+    }
+
+    for (const key of audioKeys) {
       try {
-        await deleteAudio(speakingSession.audioUrl);
+        await deleteAudio(key);
       } catch (r2Error) {
         logger.warn(
           { err: r2Error instanceof Error ? r2Error : new Error('Unknown error') },
@@ -151,10 +167,10 @@ export async function DELETE(
       }
     }
 
-    // Delete session (cascades to transcript and insights via Prisma onDelete: Cascade)
+    // Delete session (cascades to related records via Prisma onDelete: Cascade)
     await prisma.speakingSession.delete({ where: { id } });
 
-    return successResponse({ ok: true });
+    return new Response(null, { status: 204 });
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? error : new Error('Unknown error') },

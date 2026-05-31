@@ -5,6 +5,7 @@ import { z } from 'zod';
 // Zod schema for a single word in the pronunciation report
 export const WordPronunciationSchema = z.object({
   word: z.string(),
+  display: z.string().nullable().optional(),
   accuracyScore: z.number(),
   errorType: z.string(),
   offsetMs: z.number(),

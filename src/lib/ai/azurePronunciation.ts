@@ -20,6 +20,7 @@ function toWordErrorType(raw: string | undefined): WordErrorType {
 
 interface SdkWordDetail {
   Word: string;
+  Display?: string;
   Offset?: number;
   Duration?: number;
   Phonemes?: Array<{
@@ -122,6 +123,7 @@ export async function assessPronunciation(
 
         const wordResult: WordResult = {
           word: word.Word,
+          ...(word.Display !== undefined ? { display: word.Display } : {}),
           accuracyScore: word.PronunciationAssessment?.AccuracyScore ?? 0,
           errorType: toWordErrorType(word.PronunciationAssessment?.ErrorType),
           offsetMs: (word.Offset ?? 0) / 10_000, // 100ns ticks to ms

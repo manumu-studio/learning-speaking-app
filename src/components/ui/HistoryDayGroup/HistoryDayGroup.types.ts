@@ -5,4 +5,5 @@ export interface HistoryDayGroupProps {
   dayLabel: string;
   sessions: SessionListItem[];
   baseDelay?: number;
+  onDeleteSession?: (id: string) => void;
 }

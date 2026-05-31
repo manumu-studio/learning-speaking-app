@@ -103,6 +103,7 @@ export async function persistPronunciation(
         reportId: report.id,
         wordIndex: index,
         word: w.word,
+        display: w.display ?? null,
         accuracyScore: w.accuracyScore,
         errorType: w.errorType,
         offsetMs: Math.round(w.offsetMs),

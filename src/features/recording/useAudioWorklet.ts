@@ -244,9 +244,36 @@ export function useAudioWorklet(
     state,
   ]);
 
-  const stopRecording = useCallback(async () => {
+  const pauseRecording = useCallback(() => {
     if (state !== 'recording') {
       return;
+    }
+
+    void audioContextRef.current?.suspend();
+    clearTimer();
+    setState('paused');
+  }, [clearTimer, state]);
+
+  const resumeRecording = useCallback(() => {
+    if (state !== 'paused') {
+      return;
+    }
+
+    void audioContextRef.current?.resume();
+    timerRef.current = setInterval(() => {
+      durationRef.current += 1;
+      setDuration(durationRef.current);
+    }, 1000);
+    setState('recording');
+  }, [state]);
+
+  const stopRecording = useCallback(async () => {
+    if (state !== 'recording' && state !== 'paused') {
+      return;
+    }
+
+    if (state === 'paused') {
+      await audioContextRef.current?.resume();
     }
 
     setState('stopping');
@@ -283,6 +310,8 @@ export function useAudioWorklet(
     warnings,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
     resetRecording,
   };
 }

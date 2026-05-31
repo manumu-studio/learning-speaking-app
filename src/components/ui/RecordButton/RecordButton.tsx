@@ -13,13 +13,14 @@ export function RecordButton({
   const isHoldMode = recordingMode === 'hold-to-record';
   const isIdle = state === 'idle';
   const isRecording = state === 'recording';
+  const isPaused = state === 'paused';
   const isValidating = state === 'validating';
   const isStopped = state === 'stopped';
   const isInactive = isValidating || isStopped;
 
   const handleClick = () => {
     if (isHoldMode || disabled || isInactive) return;
-    if (isIdle) {
+    if (isIdle || isPaused) {
       onStart();
     } else if (isRecording) {
       onStop();
@@ -36,29 +37,33 @@ export function RecordButton({
     if (isRecording) onStop();
   };
 
-  const label = isValidating
-    ? 'Checking recording'
-    : isIdle
-      ? isHoldMode
-        ? 'Hold to record'
-        : 'Start recording'
-      : isRecording
+  const label = isPaused
+    ? 'Resume recording'
+    : isValidating
+      ? 'Checking recording'
+      : isIdle
         ? isHoldMode
-          ? 'Release to stop recording'
-          : 'Stop recording'
-        : 'Session complete';
+          ? 'Hold to record'
+          : 'Start recording'
+        : isRecording
+          ? isHoldMode
+            ? 'Release to stop recording'
+            : 'Stop recording'
+          : 'Session complete';
 
-  const buttonText = isValidating
-    ? 'Checking...'
-    : isIdle
-      ? isHoldMode
-        ? 'Hold to Record'
-        : 'Start Session'
-      : isRecording
+  const buttonText = isPaused
+    ? 'Resume'
+    : isValidating
+      ? 'Checking...'
+      : isIdle
         ? isHoldMode
-          ? 'Recording...'
-          : 'Stop'
-        : 'Complete';
+          ? 'Hold to Record'
+          : 'Start Session'
+        : isRecording
+          ? isHoldMode
+            ? 'Recording...'
+            : 'Stop'
+          : 'Complete';
 
   return (
     <div className="relative">
@@ -66,7 +71,9 @@ export function RecordButton({
         <div
           className={`absolute inset-0 rounded-full blur-xl transition-opacity duration-500 ${
             isIdle ? 'bg-emerald-500/30' : ''
-          } ${isRecording ? 'bg-red-500/40 animate-pulse' : ''}`}
+          } ${isRecording ? 'bg-red-500/40 animate-pulse' : ''} ${
+            isPaused ? 'bg-emerald-500/20' : ''
+          }`}
           style={{ transform: 'scale(1.15)' }}
         />
       )}
@@ -92,6 +99,9 @@ export function RecordButton({
           ${isRecording
             ? 'bg-linear-to-br from-red-400 to-red-600 focus:ring-red-500 shadow-lg shadow-red-500/30 animate-[recording-pulse_2s_ease-in-out_infinite]'
             : ''}
+          ${isPaused
+            ? 'bg-linear-to-br from-emerald-300/60 to-emerald-500/60 focus:ring-emerald-500 shadow-md shadow-emerald-500/15 hover:from-emerald-300/70 hover:to-emerald-500/70'
+            : ''}
           ${isValidating
             ? 'bg-linear-to-br from-blue-400 to-blue-600 focus:ring-blue-500 shadow-lg shadow-blue-500/25 cursor-wait'
             : ''}
@@ -108,6 +118,11 @@ export function RecordButton({
           {isRecording && (
             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-12 h-12 sm:w-16 sm:h-16 drop-shadow-sm">
               <rect x="6" y="6" width="12" height="12" rx="3" />
+            </svg>
+          )}
+          {isPaused && (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-12 h-12 sm:w-16 sm:h-16 drop-shadow-sm">
+              <path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36a1 1 0 00-1.5.86z" />
             </svg>
           )}
           {isValidating && (

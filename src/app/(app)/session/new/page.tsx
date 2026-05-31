@@ -64,9 +64,6 @@ export default function NewSessionPage() {
     <>
       {state.status === 'pending' && <AiDisclosureModal onAccept={acceptDisclosure} />}
       <Container>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-8 text-center">
-          New Speaking Session
-        </h1>
         {selectedPrompt !== null && (
           <PromptBanner
             promptText={selectedPrompt.text}

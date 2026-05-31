@@ -1,9 +1,10 @@
 'use client';
 // Session history page — activity feed with Suspense boundary for search param reads
-import { Suspense } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { HistoryDayGroup } from '@/components/ui/HistoryDayGroup';
+import { DeleteSessionModal } from '@/components/ui/DeleteSessionModal';
 import { useSessionHistory } from '@/features/session/useSessionHistory';
 import type { DateFilter } from '@/features/session/useSessionHistory.types';
 
@@ -38,7 +39,27 @@ function HistoryContent() {
     dateFilter,
     setDateFilter,
     sentinelRef,
+    removeSession,
   } = useSessionHistory();
+
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [showDeleteToast, setShowDeleteToast] = useState(false);
+
+  const handleDeleteRequest = useCallback((sessionId: string) => {
+    setDeleteTargetId(sessionId);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (deleteTargetId === null) return;
+    removeSession(deleteTargetId);
+    setDeleteTargetId(null);
+    setShowDeleteToast(true);
+    setTimeout(() => setShowDeleteToast(false), 3000);
+  }, [deleteTargetId, removeSession]);
+
+  const handleDeleteClose = useCallback(() => {
+    setDeleteTargetId(null);
+  }, []);
 
   return (
     <Container>
@@ -113,6 +134,7 @@ function HistoryContent() {
               dayLabel={group.dayLabel}
               sessions={group.sessions}
               baseDelay={groupIndex * 100}
+              onDeleteSession={handleDeleteRequest}
             />
           ))}
 
@@ -134,6 +156,21 @@ function HistoryContent() {
             </p>
           )}
         </>
+      )}
+
+      {deleteTargetId !== null && (
+        <DeleteSessionModal
+          isOpen
+          sessionId={deleteTargetId}
+          onClose={handleDeleteClose}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
+
+      {showDeleteToast && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 animate-fade-in-out rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-lg dark:bg-gray-100 dark:text-gray-900">
+          Session deleted
+        </div>
       )}
     </Container>
   );

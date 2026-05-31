@@ -13,14 +13,19 @@ import type { RecordingPanelProps } from './RecordingPanel.types';
 
 const TIER_1_MAX_SECS = 45;
 const TIER_2_MAX_SECS = 120;
+const CHUNK_DURATION_SECS = 120;
+const PAUSE_LOCKOUT_SECS = 10;
 
 type CancelTier = 'silent' | 'prompt' | 'modal';
 
 function mapRecordingState(
-  state: 'idle' | 'recording' | 'stopping' | 'stopped' | 'error',
+  state: 'idle' | 'recording' | 'paused' | 'stopping' | 'stopped' | 'error',
 ): RecordingStatus {
   if (state === 'recording' || state === 'stopping') {
     return 'recording';
+  }
+  if (state === 'paused') {
+    return 'paused';
   }
   if (state === 'stopped') {
     return 'stopped';
@@ -82,6 +87,8 @@ export function useRecordingPanel({
     warnings,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
     resetRecording,
   } = useAudioWorklet({ onChunkReady: handleChunkReady });
 
@@ -89,9 +96,14 @@ export function useRecordingPanel({
   const cancelTier = getCancelTier(duration);
   const hasCompletedChunks = chunks.some((chunk) => chunk.status === 'completed');
 
-  const { isPausedBySilence } = useSilenceDetector({
+  const handleAutoStop = useCallback(() => {
+    void stopRecording();
+  }, [stopRecording]);
+
+  const { isPausedBySilence, silenceWarningActive, secondsUntilAutoStop } = useSilenceDetector({
     stream: mediaStream,
     isRecording: recordState === 'recording',
+    onAutoStop: handleAutoStop,
   });
 
   const { startWithMobilePolish, stopWithMobilePolish } = useMobileRecording({
@@ -126,7 +138,7 @@ export function useRecordingPanel({
   const handleDiscardSession = useCallback(async () => {
     abortAllUploads();
 
-    if (recordState === 'recording') {
+    if (recordState === 'recording' || recordState === 'paused') {
       await stopRecording();
     }
 
@@ -159,7 +171,7 @@ export function useRecordingPanel({
   ]);
 
   const handleFinishEarly = useCallback(async () => {
-    if (recordState === 'recording') {
+    if (recordState === 'recording' || recordState === 'paused') {
       await stopRecording();
     }
 
@@ -227,6 +239,13 @@ export function useRecordingPanel({
 
   const error = captureError ?? uploadError ?? mobileError;
 
+  const isPaused = captureState === 'paused';
+
+  const durationInCurrentChunk = duration % CHUNK_DURATION_SECS;
+  const isNearChunkBoundary = durationInCurrentChunk >= (CHUNK_DURATION_SECS - PAUSE_LOCKOUT_SECS);
+  const hasUnconfirmedChunk = chunks.some((c) => c.status === 'uploading');
+  const canPause = recordState === 'recording' && !isNearChunkBoundary && !hasUnconfirmedChunk;
+
   return {
     recordState,
     recordingMode,
@@ -235,11 +254,17 @@ export function useRecordingPanel({
     mediaStream,
     warnings,
     progressChunks,
+    isPaused,
     isPausedBySilence,
+    canPause,
+    silenceWarningActive,
+    secondsUntilAutoStop,
     isUploading: isUploading || isCompleting,
     error,
     startWithMobilePolish,
     stopWithMobilePolish,
+    pauseRecording,
+    resumeRecording,
     resetSession,
     isCancelModalOpen,
     cancelTier,

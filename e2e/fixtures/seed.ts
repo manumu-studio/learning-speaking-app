@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 export const E2E_SYNTHETIC_EXTERNAL_ID = 'e2e-test-external-id';
 
 export const SEED_SESSION_ID = 'e2e-seed-session-00000001';
+export const SEED_DELETE_SESSION_ID = 'e2e-seed-session-delete-01';
 export const SEED_DRILL_ID = 'e2e-seed-drill-000000001';
 
 async function ensureE2eUser() {
@@ -100,6 +101,12 @@ export async function seedCompletedSession(): Promise<string> {
     });
   }
 
+  await prisma.userConsent.upsert({
+    where: { userId_flag: { userId: user.id, flag: 'AI_DISCLOSURE' } },
+    update: { granted: true },
+    create: { userId: user.id, flag: 'AI_DISCLOSURE', granted: true },
+  });
+
   return SEED_SESSION_ID;
 }
 
@@ -141,6 +148,42 @@ export async function seedCompletedDrill(): Promise<string> {
   });
 
   return SEED_DRILL_ID;
+}
+
+export async function seedDeletableSession(): Promise<string> {
+  const user = await ensureE2eUser();
+
+  await prisma.speakingSession.upsert({
+    where: { id: SEED_DELETE_SESSION_ID },
+    update: {
+      status: 'DONE',
+      durationSecs: 90,
+      language: 'en',
+      topic: 'Delete Test Topic',
+      intentLabel: 'session to be deleted',
+      summary: 'A short session created specifically for delete flow testing.',
+      updatedAt: new Date(),
+    },
+    create: {
+      id: SEED_DELETE_SESSION_ID,
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 90,
+      language: 'en',
+      topic: 'Delete Test Topic',
+      intentLabel: 'session to be deleted',
+      summary: 'A short session created specifically for delete flow testing.',
+    },
+  });
+
+  return SEED_DELETE_SESSION_ID;
+}
+
+export async function cleanupDeletableSession(): Promise<void> {
+  await prisma.metricSnapshot.deleteMany({ where: { sessionId: SEED_DELETE_SESSION_ID } });
+  await prisma.insight.deleteMany({ where: { sessionId: SEED_DELETE_SESSION_ID } });
+  await prisma.transcript.deleteMany({ where: { sessionId: SEED_DELETE_SESSION_ID } });
+  await prisma.speakingSession.deleteMany({ where: { id: SEED_DELETE_SESSION_ID } });
 }
 
 export async function cleanupSeedData(): Promise<void> {
