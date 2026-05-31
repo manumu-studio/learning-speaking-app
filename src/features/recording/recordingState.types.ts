@@ -1,5 +1,5 @@
 // Discriminated union types for the recording lifecycle state machine
-export type RecordingStatus = 'idle' | 'recording' | 'validating' | 'stopped';
+export type RecordingStatus = 'idle' | 'recording' | 'paused' | 'validating' | 'stopped';
 
 export type RecordingMode = 'press-to-toggle' | 'hold-to-record';
 
@@ -17,6 +17,7 @@ export interface VadPreflightWarning {
 export type RecordingMachineState =
   | { status: 'idle' }
   | { status: 'recording'; mimeType: string }
+  | { status: 'paused'; mimeType: string }
   | {
       status: 'validating';
       audioBlob: Blob;
@@ -33,6 +34,8 @@ export type RecordingMachineState =
 
 export type RecordingMachineAction =
   | { type: 'START_RECORDING'; mimeType: string }
+  | { type: 'PAUSE_RECORDING' }
+  | { type: 'RESUME_RECORDING' }
   | { type: 'STOP_RECORDING'; payload: RecordingPayload }
   | { type: 'VALIDATION_PASSED'; vadWarning: VadPreflightWarning | null }
   | { type: 'VALIDATION_FAILED' }

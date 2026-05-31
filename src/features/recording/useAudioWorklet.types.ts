@@ -2,6 +2,7 @@
 export type AudioWorkletRecordingState =
   | 'idle'
   | 'recording'
+  | 'paused'
   | 'stopping'
   | 'stopped'
   | 'error';
@@ -31,5 +32,7 @@ export interface UseAudioWorkletReturn {
   warnings: string[];
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
+  pauseRecording: () => void;
+  resumeRecording: () => void;
   resetRecording: () => void;
 }

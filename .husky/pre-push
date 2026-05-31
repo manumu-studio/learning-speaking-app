@@ -4,4 +4,7 @@ npm run typecheck || exit 1
 echo "🧪 Running tests with coverage..."
 npm run test:coverage || exit 1
 
+echo "🎭 Running E2E tests..."
+npx playwright test || exit 1
+
 echo "✅ All checks passed — pushing."

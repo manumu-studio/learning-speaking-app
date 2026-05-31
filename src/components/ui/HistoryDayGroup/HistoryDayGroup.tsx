@@ -2,7 +2,7 @@
 import { HistorySessionCard } from '@/components/ui/HistorySessionCard';
 import type { HistoryDayGroupProps } from './HistoryDayGroup.types';
 
-export function HistoryDayGroup({ dayLabel, sessions, baseDelay = 0 }: HistoryDayGroupProps) {
+export function HistoryDayGroup({ dayLabel, sessions, baseDelay = 0, onDeleteSession }: HistoryDayGroupProps) {
   const count = sessions.length;
   const countLabel = count === 1 ? '1 session' : `${count} sessions`;
 
@@ -19,6 +19,7 @@ export function HistoryDayGroup({ dayLabel, sessions, baseDelay = 0 }: HistoryDa
             <HistorySessionCard
               {...session}
               animationDelay={baseDelay + index * 80}
+              {...(onDeleteSession !== undefined ? { onDelete: onDeleteSession } : {})}
             />
           </li>
         ))}
