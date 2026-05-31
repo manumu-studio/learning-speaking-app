@@ -37,13 +37,13 @@ test.describe('Landing Page', () => {
 
   test('primary CTA navigates toward the app session flow', async ({ page }) => {
     const sessionCta = page.getByRole('button', { name: /go to dashboard/i });
+    const signInCta = page.getByRole('button', { name: /sign in with manumustudio/i });
+    await expect(sessionCta.or(signInCta).first()).toBeVisible({ timeout: 10_000 });
+
     if (await sessionCta.isVisible()) {
       await sessionCta.click();
       await expect(page).toHaveURL(/\/session\/new/);
-      return;
     }
-    const signIn = page.getByRole('button', { name: /sign in with manumustudio/i });
-    await expect(signIn).toBeVisible();
   });
 
   test('cookie consent banner appears on first visit to the app', async ({ page }) => {

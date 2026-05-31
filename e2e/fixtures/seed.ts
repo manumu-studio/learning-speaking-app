@@ -8,6 +8,7 @@ export const E2E_SYNTHETIC_EXTERNAL_ID = 'e2e-test-external-id';
 
 export const SEED_SESSION_ID = 'e2e-seed-session-00000001';
 export const SEED_DELETE_SESSION_ID = 'e2e-seed-session-delete-01';
+export const SEED_DRILL_SESSION_ID = 'e2e-seed-session-drill-001';
 export const SEED_DRILL_ID = 'e2e-seed-drill-000000001';
 
 async function ensureE2eUser() {
@@ -111,14 +112,25 @@ export async function seedCompletedSession(): Promise<string> {
 }
 
 export async function seedCompletedDrill(): Promise<string> {
-  await seedCompletedSession();
   const user = await ensureE2eUser();
+
+  await prisma.speakingSession.upsert({
+    where: { id: SEED_DRILL_SESSION_ID },
+    update: { status: 'DONE', durationSecs: 60, language: 'en', updatedAt: new Date() },
+    create: {
+      id: SEED_DRILL_SESSION_ID,
+      userId: user.id,
+      status: 'DONE',
+      durationSecs: 60,
+      language: 'en',
+    },
+  });
 
   await prisma.drillAttempt.upsert({
     where: { id: SEED_DRILL_ID },
     update: {
       userId: user.id,
-      sessionId: SEED_SESSION_ID,
+      sessionId: SEED_DRILL_SESSION_ID,
       drillType: 'rephrase',
       metricKey: 'connectorRepetition',
       prompt:
@@ -133,7 +145,7 @@ export async function seedCompletedDrill(): Promise<string> {
     create: {
       id: SEED_DRILL_ID,
       userId: user.id,
-      sessionId: SEED_SESSION_ID,
+      sessionId: SEED_DRILL_SESSION_ID,
       drillType: 'rephrase',
       metricKey: 'connectorRepetition',
       prompt:
@@ -187,11 +199,15 @@ export async function cleanupDeletableSession(): Promise<void> {
 }
 
 export async function cleanupSeedData(): Promise<void> {
-  await prisma.drillAttempt.deleteMany({ where: { id: SEED_DRILL_ID } });
   await prisma.metricSnapshot.deleteMany({ where: { sessionId: SEED_SESSION_ID } });
   await prisma.insight.deleteMany({ where: { sessionId: SEED_SESSION_ID } });
   await prisma.transcript.deleteMany({ where: { sessionId: SEED_SESSION_ID } });
   await prisma.speakingSession.deleteMany({ where: { id: SEED_SESSION_ID } });
+}
+
+export async function cleanupDrillData(): Promise<void> {
+  await prisma.drillAttempt.deleteMany({ where: { id: SEED_DRILL_ID } });
+  await prisma.speakingSession.deleteMany({ where: { id: SEED_DRILL_SESSION_ID } });
 }
 
 export { prisma };

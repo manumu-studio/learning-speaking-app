@@ -1,4 +1,4 @@
-// Component tests for PromptCard — tabs, shuffle, and free speak
+// Component tests for PromptCard dropdown selector
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
@@ -11,57 +11,56 @@ if (!dailyPrompt) {
 }
 
 describe('PromptCard', () => {
-  it('renders compact pill with truncated text by default', () => {
+  it('renders pill with category label and prompt text', () => {
     render(
       <PromptCard
         prompt={dailyPrompt}
         activeCategory="daily"
-        onShuffle={vi.fn()}
         onCategoryChange={vi.fn()}
         onFreeSpeakToggle={vi.fn()}
         isFreeSpeak={false}
       />,
     );
 
-    expect(screen.getByRole('button', { name: /expand prompt/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select prompt category/i })).toBeInTheDocument();
     expect(screen.getByText('Daily')).toBeInTheDocument();
   });
 
-  it('expands to show full prompt and shuffle on pill click', async () => {
+  it('opens dropdown with categories on click', async () => {
     const user = userEvent.setup();
-    const onShuffle = vi.fn();
+    const onCategoryChange = vi.fn();
 
     render(
       <PromptCard
         prompt={dailyPrompt}
         activeCategory="daily"
-        onShuffle={onShuffle}
-        onCategoryChange={vi.fn()}
+        onCategoryChange={onCategoryChange}
         onFreeSpeakToggle={vi.fn()}
         isFreeSpeak={false}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /expand prompt/i }));
-    expect(screen.getByText(dailyPrompt.text)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /shuffle prompt/i }));
-    expect(onShuffle).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole('button', { name: /select prompt category/i }));
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(screen.getByText('Everyday topics and routines')).toBeInTheDocument();
+    expect(screen.getByText('Professional scenarios')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Interview'));
+    expect(onCategoryChange).toHaveBeenCalledWith('interview');
   });
 
-  it('shows free speak placeholder when enabled', () => {
+  it('shows free speak as selected when enabled', () => {
     render(
       <PromptCard
         prompt={null}
         activeCategory="daily"
-        onShuffle={vi.fn()}
         onCategoryChange={vi.fn()}
         onFreeSpeakToggle={vi.fn()}
         isFreeSpeak
       />,
     );
 
-    expect(
-      screen.getByText('Free speak — say anything you like'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Free speak')).toBeInTheDocument();
+    expect(screen.getByText(/no topic constraints/i)).toBeInTheDocument();
   });
 });
