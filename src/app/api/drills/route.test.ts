@@ -7,7 +7,8 @@ vi.mock('@/features/auth/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/db-utils', () => ({ findOrCreateUser: vi.fn() }));
 vi.mock('@/features/training/generateDrill', () => ({ generateDrill: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+const mockChildLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn() };
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn(() => mockChildLogger) } }));
 vi.mock('@/lib/csrf', () => ({
   validateOrigin: vi.fn().mockReturnValue(true),
   csrfForbiddenResponse: vi.fn(),
@@ -78,8 +79,8 @@ describe('POST /api/drills', () => {
   });
 
   it('returns 403 when CSRF origin validation fails', async () => {
-    // Arrange
-    mockAuth.mockResolvedValueOnce(mockAuthSession as never);
+    // Arrange — auth is called twice per request (wrapper + handler), both must return the session
+    mockAuth.mockResolvedValue(mockAuthSession as never);
     mockValidateOrigin.mockReturnValue(false);
     mockCsrfForbiddenResponse.mockReturnValue(
       Response.json({ error: 'Forbidden', code: 'CSRF_FORBIDDEN' }, { status: 403 }),
@@ -96,8 +97,8 @@ describe('POST /api/drills', () => {
   });
 
   it('creates drill and returns 200 on valid request', async () => {
-    // Arrange
-    mockAuth.mockResolvedValueOnce(mockAuthSession as never);
+    // Arrange — auth is called twice per request (wrapper + handler), both must return the session
+    mockAuth.mockResolvedValue(mockAuthSession as never);
     mockFindOrCreateUser.mockResolvedValueOnce(mockUser as never);
     mockGenerateDrill.mockResolvedValueOnce(mockDrillPrompt);
 
@@ -140,8 +141,8 @@ describe('POST /api/drills', () => {
   });
 
   it('returns 400 when required fields are missing (Zod validation failure)', async () => {
-    // Arrange
-    mockAuth.mockResolvedValueOnce(mockAuthSession as never);
+    // Arrange — auth is called twice per request (wrapper + handler), both must return the session
+    mockAuth.mockResolvedValue(mockAuthSession as never);
     mockFindOrCreateUser.mockResolvedValueOnce(mockUser as never);
 
     const incompleteBody = { drillType: 'rephrase' }; // missing metricKey, recentExamples, focusPattern
@@ -158,8 +159,8 @@ describe('POST /api/drills', () => {
   });
 
   it('returns 400 when the request body is not valid JSON', async () => {
-    // Arrange
-    mockAuth.mockResolvedValueOnce(mockAuthSession as never);
+    // Arrange — auth is called twice per request (wrapper + handler), both must return the session
+    mockAuth.mockResolvedValue(mockAuthSession as never);
     mockFindOrCreateUser.mockResolvedValueOnce(mockUser as never);
 
     const request = new Request('http://localhost/api/drills', {
@@ -185,7 +186,8 @@ describe('GET /api/drills', () => {
   });
 
   it('returns Cache-Control: private, no-store', async () => {
-    mockAuth.mockResolvedValueOnce(mockAuthSession as never);
+    // auth is called twice per request (wrapper + handler)
+    mockAuth.mockResolvedValue(mockAuthSession as never);
     mockFindOrCreateUser.mockResolvedValueOnce(mockUser as never);
     prismaMock.drillAttempt.findMany.mockResolvedValueOnce([]);
     prismaMock.drillAttempt.count.mockResolvedValueOnce(0);
@@ -193,7 +195,8 @@ describe('GET /api/drills', () => {
     prismaMock.drillAttempt.count.mockResolvedValueOnce(0);
     vi.mocked(prismaMock.drillAttempt.groupBy).mockResolvedValueOnce([] as never);
 
-    const response = await GET();
+    const request = new Request('http://localhost/api/drills');
+    const response = await GET(request, { params: Promise.resolve({}) });
 
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
   });

@@ -4,6 +4,7 @@ import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse } from '@/lib/api';
 import { detectPersonalRecords } from '@/lib/personalRecords';
+import { withObservability } from '@/lib/observability';
 
 const PersonalRecordSchema = z.object({
   metricKey: z.enum([
@@ -22,57 +23,54 @@ const PersonalRecordsResponseSchema = z.object({
   personalRecords: z.array(PersonalRecordSchema),
 });
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const { id } = await params;
+async function handler(req: Request) {
+  // Extract session id from URL path: /api/sessions/[id]/personal-records
+  const pathParts = new URL(req.url).pathname.split('/');
+  const id = pathParts.at(-2) ?? '';
 
-    const session = await auth();
-    if (!session?.user?.externalId) {
-      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
-    }
+  const session = await auth();
+  if (!session?.user?.externalId) {
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+  }
 
-    const user = await prisma.user.findUnique({
-      where: { externalId: session.user.externalId },
-    });
+  const user = await prisma.user.findUnique({
+    where: { externalId: session.user.externalId },
+  });
 
-    if (!user) {
-      return errorResponse('User not found', 'USER_NOT_FOUND', 404);
-    }
+  if (!user) {
+    return errorResponse('User not found', 'USER_NOT_FOUND', 404);
+  }
 
-    const speakingSession = await prisma.speakingSession.findFirst({
-      where: { id, userId: user.id },
-      select: {
-        id: true,
-        status: true,
-        createdAt: true,
-      },
-    });
+  const speakingSession = await prisma.speakingSession.findFirst({
+    where: { id, userId: user.id },
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+    },
+  });
 
-    if (!speakingSession) {
-      return errorResponse('Session not found', 'SESSION_NOT_FOUND', 404);
-    }
+  if (!speakingSession) {
+    return errorResponse('Session not found', 'SESSION_NOT_FOUND', 404);
+  }
 
-    if (speakingSession.status !== 'DONE') {
-      const emptyResponse = PersonalRecordsResponseSchema.parse({ personalRecords: [] });
-      return successResponse(emptyResponse, 200, {
-        'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
-      });
-    }
-
-    const personalRecords = await detectPersonalRecords(
-      user.id,
-      speakingSession.id,
-      speakingSession.createdAt,
-    );
-
-    const response = PersonalRecordsResponseSchema.parse({ personalRecords });
-    return successResponse(response, 200, {
+  if (speakingSession.status !== 'DONE') {
+    const emptyResponse = PersonalRecordsResponseSchema.parse({ personalRecords: [] });
+    return successResponse(emptyResponse, 200, {
       'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
     });
-  } catch {
-    return errorResponse('Failed to fetch personal records', 'INTERNAL_ERROR', 500);
   }
+
+  const personalRecords = await detectPersonalRecords(
+    user.id,
+    speakingSession.id,
+    speakingSession.createdAt,
+  );
+
+  const response = PersonalRecordsResponseSchema.parse({ personalRecords });
+  return successResponse(response, 200, {
+    'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+  });
 }
+
+export const GET = withObservability(handler, { route: 'sessions/[id]/personal-records' });

@@ -9,7 +9,7 @@ vi.mock('@/lib/env', () => ({
 }));
 
 vi.mock('@/lib/logger', () => ({
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn().mockReturnThis() },
 }));
 
 vi.mock('@/lib/pipeline/processChunk', () => ({
@@ -23,6 +23,20 @@ vi.mock('@/lib/prisma', () => ({
       update: vi.fn(),
     },
   },
+}));
+
+vi.mock('@/lib/observability', () => ({
+  logPipelineStage: vi.fn(),
+  withObservability: (handler: (req: Request, ctx: unknown) => Promise<Response>) => (req: Request) =>
+    handler(req, { logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn().mockReturnThis() }, requestId: 'test-request-id' }),
+  getRequestId: vi.fn().mockReturnValue('test-request-id'),
+  withRequestId: vi.fn((_id: string, fn: () => unknown) => fn()),
+  currentRequestId: vi.fn(),
+  setSentryRequestContext: vi.fn(),
+}));
+
+vi.mock('@/features/auth/auth', () => ({
+  auth: vi.fn().mockResolvedValue(null),
 }));
 
 import { GET } from './route';

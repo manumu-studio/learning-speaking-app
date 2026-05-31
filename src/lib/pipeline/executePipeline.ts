@@ -14,6 +14,7 @@ import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
+import { logPipelineStage } from '@/lib/observability';
 import { AZURE_SDK_VERSION } from '@/lib/pipeline/persistPronunciation';
 
 type PipelineMode = 'production' | 'dev';
@@ -101,12 +102,14 @@ export async function executePipeline(
   });
 
   // Step 6: Transcribe audio with Whisper (opus buffer is fine for Whisper)
+  const transcribeStart = Date.now();
   const whisperResult = await transcribeAudio(audioBuffer, `session-${id}.webm`);
   const gated = gateSegments(whisperResult.segments);
   const userTranscriptText = gated.cleanText.length > 0 ? gated.cleanText : whisperResult.text;
   const analysisTranscriptText =
     gated.annotatedText.length > 0 ? gated.annotatedText : whisperResult.text;
   const wordCount = userTranscriptText.trim().split(/\s+/).filter(Boolean).length;
+  logPipelineStage({ sessionId: id, stage: 'transcribe', durationMs: Date.now() - transcribeStart, success: true, metadata: { wordCount } });
 
   logger.info(
     {
@@ -142,6 +145,7 @@ export async function executePipeline(
 
   try {
     // Step 9: Azure pronunciation assessment (optional — skipped when credentials are absent)
+    const scoringStart = Date.now();
     if (env.AZURE_SPEECH_KEY !== undefined && env.AZURE_SPEECH_REGION !== undefined) {
       try {
         pronunciationResult = await assessPronunciation(
@@ -193,6 +197,8 @@ export async function executePipeline(
       );
     }
 
+    logPipelineStage({ sessionId: id, stage: 'scoring', durationMs: Date.now() - scoringStart, success: pronunciationResult != null });
+
     // Step 10: Mark ANALYZING
     await prisma.speakingSession.update({
       where: { id },
@@ -206,6 +212,7 @@ export async function executePipeline(
     }
 
     // Step 12: Analyze transcript with Claude (pronunciation summary added when available)
+    const analyzeStart = Date.now();
     const pronunciationSummary = buildPronunciationSummary(pronunciationResult ?? null);
     const analysis = await analyzeTranscript(
       analysisTranscriptText,
@@ -244,6 +251,8 @@ export async function executePipeline(
         'Possible transcription artefacts detected',
       );
     }
+
+    logPipelineStage({ sessionId: id, stage: 'analyze', durationMs: Date.now() - analyzeStart, success: true, metadata: { insightCount: nerFilterResult.kept.length } });
 
     const insightsForStorage = nerFilterResult.kept;
 

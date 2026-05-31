@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';
 import { errorResponse, successResponse } from '@/lib/api';
 import { generateDrill } from '@/features/training/generateDrill';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
+import type pino from 'pino';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
 
@@ -18,21 +19,21 @@ const METRIC_LABELS: Record<string, string> = {
   fillerUsage: 'Filler Usage',
 };
 
-export async function GET() {
+async function getHandler(_req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const authSession = await auth();
+  if (!authSession?.user?.externalId) {
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+  }
+
+  const user = await findOrCreateUser(authSession.user.externalId, {
+    email: authSession.user.email ?? undefined,
+    displayName: authSession.user.name ?? undefined,
+  });
+
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
   try {
-    const authSession = await auth();
-    if (!authSession?.user?.externalId) {
-      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
-    }
-
-    const user = await findOrCreateUser(authSession.user.externalId, {
-      email: authSession.user.email ?? undefined,
-      displayName: authSession.user.name ?? undefined,
-    });
-
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
     const [drills, totalCompleted, weeklyCompleted, improvedCount, metricGroups] = await Promise.all([
       prisma.drillAttempt.findMany({
         where: { userId: user.id },
@@ -108,37 +109,37 @@ const createDrillSchema = z.object({
   sessionTranscript: z.string().optional(),
 });
 
-export async function POST(request: Request) {
+async function postHandler(request: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const authSession = await auth();
+  if (!authSession?.user?.externalId) {
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+  }
+
+  if (!validateOrigin(request)) {
+    return csrfForbiddenResponse();
+  }
+
+  const user = await findOrCreateUser(authSession.user.externalId, {
+    email: authSession.user.email ?? undefined,
+    displayName: authSession.user.name ?? undefined,
+  });
+
+  let body: unknown;
   try {
-    const authSession = await auth();
-    if (!authSession?.user?.externalId) {
-      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
-    }
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON body', 'INVALID_JSON', 400);
+  }
 
-    if (!validateOrigin(request)) {
-      return csrfForbiddenResponse();
-    }
+  const parsed = createDrillSchema.safeParse(body);
+  if (!parsed.success) {
+    return errorResponse('Invalid request', 'INVALID_BODY', 400);
+  }
 
-    const user = await findOrCreateUser(authSession.user.externalId, {
-      email: authSession.user.email ?? undefined,
-      displayName: authSession.user.name ?? undefined,
-    });
+  const { sessionId, drillType, metricKey, recentExamples, focusPattern, intentLabel, sessionTranscript } =
+    parsed.data;
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return errorResponse('Invalid JSON body', 'INVALID_JSON', 400);
-    }
-
-    const parsed = createDrillSchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse('Invalid request', 'INVALID_BODY', 400);
-    }
-
-    const { sessionId, drillType, metricKey, recentExamples, focusPattern, intentLabel, sessionTranscript } =
-      parsed.data;
-
+  try {
     const drillPrompt = await generateDrill({
       drillType,
       metricKey,
@@ -175,3 +176,6 @@ export async function POST(request: Request) {
     return errorResponse('Failed to create drill', 'INTERNAL_ERROR', 500);
   }
 }
+
+export const GET = withObservability(getHandler, { route: 'drills' });
+export const POST = withObservability(postHandler, { route: 'drills' });

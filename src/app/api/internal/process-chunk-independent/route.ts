@@ -1,9 +1,10 @@
 // QStash worker — runs full pipeline (Whisper + Azure + Claude) on a single chunk independently
+import type pino from 'pino';
 import { NextRequest, NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
 import { z } from 'zod';
 import { env } from '@/lib/env';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
 import { processChunkIndependent } from '@/lib/pipeline/processChunkIndependent';
 
 export const maxDuration = 300;
@@ -36,7 +37,8 @@ function getReceiver(): Receiver {
   return _receiver;
 }
 
-export async function POST(request: NextRequest) {
+async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const request = req as NextRequest;
   let sessionId: string | null = null;
 
   try {
@@ -66,3 +68,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Chunk processing failed' }, { status: 500 });
   }
 }
+
+export const POST = withObservability(handler, { route: 'internal/process-chunk-independent' });

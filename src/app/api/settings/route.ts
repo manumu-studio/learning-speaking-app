@@ -2,7 +2,8 @@
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { errorResponse, successResponse } from '@/lib/api';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
+import type pino from 'pino';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
 
@@ -24,21 +25,21 @@ const PatchSettingsSchema = z.object({
  * GET /api/settings
  * Return current user settings (upserts defaults if none exist)
  */
-export async function GET() {
+async function getHandler(_req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const session = await auth();
+  if (!session?.user?.externalId) {
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { externalId: session.user.externalId },
+  });
+
+  if (!user) {
+    return errorResponse('User not found', 'NOT_FOUND', 404);
+  }
+
   try {
-    const session = await auth();
-    if (!session?.user?.externalId) {
-      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { externalId: session.user.externalId },
-    });
-
-    if (!user) {
-      return errorResponse('User not found', 'NOT_FOUND', 404);
-    }
-
     const settings = await prisma.userSettings.upsert({
       where: { userId: user.id },
       update: {},
@@ -59,48 +60,48 @@ export async function GET() {
  * PATCH /api/settings
  * Update one or more user settings fields
  */
-export async function PATCH(request: Request) {
+async function patchHandler(request: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const session = await auth();
+  if (!session?.user?.externalId) {
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+  }
+
+  if (!validateOrigin(request)) {
+    return csrfForbiddenResponse();
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { externalId: session.user.externalId },
+  });
+
+  if (!user) {
+    return errorResponse('User not found', 'NOT_FOUND', 404);
+  }
+
+  let body: unknown;
   try {
-    const session = await auth();
-    if (!session?.user?.externalId) {
-      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
-    }
+    body = await request.json();
+  } catch {
+    return errorResponse('Invalid JSON body', 'VALIDATION_ERROR', 400);
+  }
 
-    if (!validateOrigin(request)) {
-      return csrfForbiddenResponse();
-    }
+  const parsed = PatchSettingsSchema.safeParse(body);
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0]?.message ?? 'Invalid input';
+    return errorResponse(firstIssue, 'VALIDATION_ERROR', 400);
+  }
 
-    const user = await prisma.user.findUnique({
-      where: { externalId: session.user.externalId },
-    });
+  // Strip undefined keys so exactOptionalPropertyTypes is satisfied
+  const fields: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(parsed.data)) {
+    if (val !== undefined) fields[key] = val;
+  }
 
-    if (!user) {
-      return errorResponse('User not found', 'NOT_FOUND', 404);
-    }
+  if (Object.keys(fields).length === 0) {
+    return errorResponse('No fields to update', 'VALIDATION_ERROR', 400);
+  }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return errorResponse('Invalid JSON body', 'VALIDATION_ERROR', 400);
-    }
-
-    const parsed = PatchSettingsSchema.safeParse(body);
-    if (!parsed.success) {
-      const firstIssue = parsed.error.issues[0]?.message ?? 'Invalid input';
-      return errorResponse(firstIssue, 'VALIDATION_ERROR', 400);
-    }
-
-    // Strip undefined keys so exactOptionalPropertyTypes is satisfied
-    const fields: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(parsed.data)) {
-      if (val !== undefined) fields[key] = val;
-    }
-
-    if (Object.keys(fields).length === 0) {
-      return errorResponse('No fields to update', 'VALIDATION_ERROR', 400);
-    }
-
+  try {
     const updated = await prisma.userSettings.upsert({
       where: { userId: user.id },
       update: fields,
@@ -116,3 +117,6 @@ export async function PATCH(request: Request) {
     return errorResponse('Failed to update settings', 'INTERNAL_ERROR', 500);
   }
 }
+
+export const GET = withObservability(getHandler, { route: 'settings' });
+export const PATCH = withObservability(patchHandler, { route: 'settings' });

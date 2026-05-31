@@ -5,7 +5,8 @@ import { prismaMock } from '@/__mocks__/prisma';
 vi.mock('@/features/auth/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/db-utils', () => ({ findOrCreateUser: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+const mockChildLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn() };
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn(() => mockChildLogger) } }));
 
 import { auth } from '@/features/auth/auth';
 import { findOrCreateUser } from '@/lib/db-utils';
@@ -35,7 +36,8 @@ describe('GET /api/drills/[id]', () => {
   });
 
   it('GET returns Cache-Control header', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    // auth is called twice per request (wrapper + handler)
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(findOrCreateUser).mockResolvedValueOnce(mockUser as never);
     prismaMock.drillAttempt.findUnique.mockResolvedValueOnce(mockDrill as never);
 

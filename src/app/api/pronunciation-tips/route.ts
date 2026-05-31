@@ -2,6 +2,7 @@
 import { auth } from '@/features/auth/auth';
 import { errorResponse, successResponse } from '@/lib/api';
 import { generatePronunciationTips } from '@/lib/ai/pronunciationTips';
+import { withObservability } from '@/lib/observability';
 import { z } from 'zod';
 
 const RequestBodySchema = z.object({
@@ -24,22 +25,20 @@ const RequestBodySchema = z.object({
   l1Tags: z.array(z.string()).max(10),
 });
 
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.externalId) {
-      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
-    }
-
-    const body: unknown = await request.json();
-    const parsed = RequestBodySchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse('Invalid request body', 'BAD_REQUEST', 400);
-    }
-
-    const tips = await generatePronunciationTips(parsed.data);
-    return successResponse({ tips });
-  } catch {
-    return errorResponse('Failed to generate tips', 'INTERNAL_ERROR', 500);
+async function handler(request: Request) {
+  const session = await auth();
+  if (!session?.user?.externalId) {
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
   }
+
+  const body: unknown = await request.json();
+  const parsed = RequestBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return errorResponse('Invalid request body', 'BAD_REQUEST', 400);
+  }
+
+  const tips = await generatePronunciationTips(parsed.data);
+  return successResponse({ tips });
 }
+
+export const POST = withObservability(handler, { route: 'pronunciation-tips' });

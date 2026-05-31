@@ -1,4 +1,5 @@
 // QStash fan-in worker — deduplicates chunk transcripts and writes final session results
+import type pino from 'pino';
 import { NextRequest, NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
 import { env } from '@/lib/env';
@@ -8,7 +9,7 @@ import {
 } from '@/lib/pipeline';
 import { processFinal, processParallelFinal } from '@/lib/pipeline/processFinal';
 import { prisma } from '@/lib/prisma';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
 import { z } from 'zod';
 
 export const maxDuration = 300;
@@ -36,7 +37,8 @@ function getReceiver(): Receiver {
   return _receiver;
 }
 
-export async function POST(request: NextRequest) {
+async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const request = req as NextRequest;
   let sessionId: string | null = null;
 
   try {
@@ -84,3 +86,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Final processing failed', code: 'PROCESSING_ERROR' }, { status: 500 });
   }
 }
+
+export const POST = withObservability(handler, { route: 'internal/process-final' });

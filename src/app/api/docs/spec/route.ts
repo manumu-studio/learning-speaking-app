@@ -3,8 +3,9 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
 import yaml from 'js-yaml';
+import { withObservability } from '@/lib/observability';
 
-export async function GET() {
+async function handler() {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Not available in production' }, { status: 404 });
   }
@@ -19,3 +20,5 @@ export async function GET() {
 
   return NextResponse.json(parsed as Record<string, unknown>);
 }
+
+export const GET = withObservability(handler, { route: 'docs/spec' });

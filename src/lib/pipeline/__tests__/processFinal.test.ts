@@ -70,6 +70,15 @@ vi.mock('@/features/session/updatePatternProfile', () => ({
   updatePatternProfile: vi.fn(),
 }));
 
+vi.mock('@/lib/observability', () => ({
+  logPipelineStage: vi.fn(),
+  withObservability: vi.fn(),
+  getRequestId: vi.fn(),
+  withRequestId: vi.fn(),
+  currentRequestId: vi.fn(),
+  setSentryRequestContext: vi.fn(),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { synthesizeAnalysis } from '@/lib/ai/synthesize';
