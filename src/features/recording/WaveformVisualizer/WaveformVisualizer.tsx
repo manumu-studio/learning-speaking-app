@@ -24,7 +24,7 @@ export function WaveformVisualizer({
 
   return (
     <div
-      className={`flex ${config.containerHeight} items-end`}
+      className={`flex ${config.containerHeight} w-full max-w-xs items-center justify-center`}
       style={{ gap: config.gap }}
       aria-hidden="true"
     >
