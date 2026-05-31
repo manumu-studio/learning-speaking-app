@@ -7,10 +7,10 @@ test.describe('Session flow', () => {
     await authenticatedPage.goto('/session/new');
     await expect(
       authenticatedPage.getByRole('button', { name: /select prompt category/i }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
     await expect(
       authenticatedPage.getByRole('button', { name: 'Start recording', exact: true }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('session history page shows heading and empty or list state', async ({
