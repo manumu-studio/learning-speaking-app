@@ -18,8 +18,9 @@ import { InsightsList } from '@/components/ui/InsightsList';
 import { VocabSuggestions } from '@/components/ui/VocabSuggestions';
 import type { VocabSuggestion } from '@/components/ui/VocabSuggestions';
 import { ScoreChip } from '@/components/ui/ScoreChip';
-import { PILLAR_CONFIG, PILLAR_KEYS } from '@/features/dashboard/pillars';
+import { PILLAR_CONFIG, PILLAR_KEYS, METRIC_LABELS } from '@/features/dashboard/pillars';
 import type { PillarKey } from '@/features/dashboard/pillars';
+import { PillarTooltip, usePillarTooltip } from '@/components/ui/PillarTooltip';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
 import { FocusHighlight } from '@/components/ui/FocusHighlight';
 import { AnnotatedTranscript } from '@/components/ui/AnnotatedTranscript';
@@ -56,18 +57,7 @@ function buildPartialData(
   };
 }
 
-// Metric key to human-readable label mapping
-const METRIC_LABELS: Record<string, string> = {
-  connectorRepetition: 'Connector Repetition',
-  structuralVariety: 'Structural Variety',
-  vocabularyPrecision: 'Vocabulary Precision',
-  verbAccuracy: 'Verb Accuracy',
-  argumentClosure: 'Argument Closure',
-  fillerUsage: 'Filler Usage',
-  pronunciationAccuracy: 'Pronunciation Accuracy',
-  prosodyScore: 'Prosody & Rhythm',
-  speakingRate: 'Speaking Rate',
-};
+// METRIC_LABELS imported from @/features/dashboard/pillars (single source of truth)
 
 interface FocusComparison {
   metricLabel: string;
@@ -140,6 +130,7 @@ interface PillarHeroRowProps {
 
 function PillarHeroRow({ metrics }: PillarHeroRowProps) {
   const averages = computeSessionPillarAverages(metrics);
+  const { getTriggerProps, getTooltipProps } = usePillarTooltip();
 
   return (
     <div
@@ -149,18 +140,27 @@ function PillarHeroRow({ metrics }: PillarHeroRowProps) {
       {PILLAR_KEYS.map((pillarKey) => {
         const config = PILLAR_CONFIG[pillarKey];
         const score = averages[pillarKey];
+        const trigger = getTriggerProps(pillarKey);
+        const tooltip = getTooltipProps(pillarKey);
         return (
-          <div
-            key={pillarKey}
-            className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-800/60"
-          >
-            <span className="text-xs font-medium text-slate-500 dark:text-sky-300/70">
-              {config.label}
-            </span>
-            <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              {score > 0 ? score.toFixed(1) : '—'}
-            </span>
-            {score > 0 && <ScoreChip score={score} scale="ten" />}
+          <div key={pillarKey} className="relative">
+            <div
+              className="flex cursor-pointer flex-col items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-slate-600"
+              {...trigger}
+            >
+              <span className="text-xs font-medium text-slate-500 dark:text-sky-300/70">
+                {config.label}
+              </span>
+              <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {score > 0 ? score.toFixed(1) : '—'}
+              </span>
+              {score > 0 && <ScoreChip score={score} scale="ten" />}
+            </div>
+            <PillarTooltip
+              pillarKey={pillarKey}
+              metrics={metrics}
+              {...tooltip}
+            />
           </div>
         );
       })}

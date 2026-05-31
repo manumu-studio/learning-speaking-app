@@ -19,8 +19,8 @@ export function SessionTimer({ seconds, isActive, limitSecs }: SessionTimerProps
   const colorClass = showCountdown
     ? 'text-amber-500 dark:text-amber-400'
     : isActive
-      ? 'text-white dark:text-white'
-      : 'text-white/90 dark:text-white/80';
+      ? 'text-slate-700 dark:text-white'
+      : 'text-slate-500 dark:text-white/80';
 
   return (
     <div
