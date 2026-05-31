@@ -216,17 +216,12 @@ export function RecordingPanel(props: RecordingPanelProps) {
 
         {/* Audio level hint */}
         <div className="h-4" aria-live="polite">
-          {recordState === 'recording' && levelWarning === 'too_quiet' && (
-            <p className="animate-pulse text-xs font-medium text-amber-500">
-              Too quiet — speak up
-            </p>
-          )}
           {recordState === 'recording' && levelWarning === 'clipping' && (
             <p className="text-xs font-medium text-red-400">
               Too loud — move back
             </p>
           )}
-          {showAutoSaveToast && !levelWarning && (
+          {showAutoSaveToast && (
             <p className="text-xs font-medium text-emerald-500">
               ✓ Progress saved
             </p>

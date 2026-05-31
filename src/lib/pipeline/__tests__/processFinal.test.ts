@@ -403,4 +403,15 @@ describe('processParallelFinal', () => {
       }),
     );
   });
+
+  it('scopes metricSnapshot delete to synthesis keys only, preserving pronunciation', async () => {
+    await processParallelFinal('sess-1');
+
+    expect(prisma.metricSnapshot.deleteMany).toHaveBeenCalledWith({
+      where: {
+        sessionId: 'sess-1',
+        key: { in: ['connectorRepetition'] },
+      },
+    });
+  });
 });
