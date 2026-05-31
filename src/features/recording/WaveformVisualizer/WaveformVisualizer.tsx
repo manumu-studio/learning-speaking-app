@@ -5,29 +5,36 @@ import { useWaveformVisualizer } from './useWaveformVisualizer';
 import type { WaveformVisualizerProps } from './WaveformVisualizer.types';
 
 const DEFAULT_BAR_COUNT = 24;
-const BAR_WIDTH_PX = 4;
-const MAX_BAR_HEIGHT_PX = 48;
-const MIN_BAR_HEIGHT_PX = 4;
+const LARGE_BAR_COUNT = 80;
+
+const SIZE_CONFIG = {
+  default: { barWidth: 4, maxHeight: 48, minHeight: 4, gap: 2, containerHeight: 'h-12' },
+  large: { barWidth: 2, maxHeight: 120, minHeight: 4, gap: 2, containerHeight: 'h-32' },
+} as const;
 
 export function WaveformVisualizer({
   stream,
-  barCount = DEFAULT_BAR_COUNT,
+  barCount,
   barColorClass = 'bg-red-400',
+  size = 'default',
 }: WaveformVisualizerProps) {
-  const { barHeights } = useWaveformVisualizer({ stream, barCount });
+  const config = SIZE_CONFIG[size];
+  const resolvedBarCount = barCount ?? (size === 'large' ? LARGE_BAR_COUNT : DEFAULT_BAR_COUNT);
+  const { barHeights } = useWaveformVisualizer({ stream, barCount: resolvedBarCount });
 
   return (
     <div
-      className="flex h-12 items-end gap-[2px]"
+      className={`flex ${config.containerHeight} items-end`}
+      style={{ gap: config.gap }}
       aria-hidden="true"
     >
       {barHeights.map((height, index) => {
-        const barHeightPx = Math.max(MIN_BAR_HEIGHT_PX, height * MAX_BAR_HEIGHT_PX);
+        const barHeightPx = Math.max(config.minHeight, height * config.maxHeight);
         return (
           <div
             key={index}
             className={`rounded-sm transition-all duration-75 ${barColorClass}`}
-            style={{ width: BAR_WIDTH_PX, height: barHeightPx }}
+            style={{ width: config.barWidth, height: barHeightPx }}
           />
         );
       })}

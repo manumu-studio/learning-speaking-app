@@ -1,5 +1,5 @@
 // Runs full Whisper + Azure + Claude pipeline on one chunk, stores in ChunkResult
-import { Prisma } from '@prisma/client';
+import { Prisma, SessionStatus } from '@prisma/client';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
@@ -37,6 +37,11 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
   });
 
   try {
+    await prisma.speakingSession.updateMany({
+      where: { id: sessionId, status: SessionStatus.CHUNKS_PROCESSING },
+      data: { status: SessionStatus.TRANSCRIBING },
+    });
+
     const audioBuffer = await getAudio(storageKey);
     const whisperResult = await transcribeWavChunk(
       audioBuffer,
@@ -53,6 +58,11 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
       env.AZURE_SPEECH_REGION !== undefined &&
       transcriptText.length > 0
     ) {
+      await prisma.speakingSession.updateMany({
+        where: { id: sessionId, status: SessionStatus.TRANSCRIBING },
+        data: { status: SessionStatus.SCORING },
+      });
+
       try {
         const pronResult = await assessPronunciation(
           audioBuffer,
@@ -80,6 +90,11 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
         );
       }
     }
+
+    await prisma.speakingSession.updateMany({
+      where: { id: sessionId, status: { in: [SessionStatus.TRANSCRIBING, SessionStatus.SCORING] } },
+      data: { status: SessionStatus.ANALYZING },
+    });
 
     const session = await prisma.speakingSession.findUnique({
       where: { id: sessionId },

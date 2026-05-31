@@ -22,6 +22,7 @@ vi.mock('@/lib/prisma', () => ({
     },
     speakingSession: {
       findUnique: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   },
 }));
