@@ -31,7 +31,23 @@ export async function POST(request: NextRequest) {
     });
 
     if (chunkResultCount > 0) {
-      await processParallelFinal(parsed.data.sessionId);
+      const maxAttempts = 12;
+      const pollIntervalMs = 10_000;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          await processParallelFinal(parsed.data.sessionId);
+          break;
+        } catch (retryError) {
+          const msg = retryError instanceof Error ? retryError.message : '';
+          if (msg.includes('still processing') && attempt < maxAttempts) {
+            logger.info({ sessionId, attempt, maxAttempts }, 'Chunks still processing — polling');
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+            continue;
+          }
+          throw retryError;
+        }
+      }
     } else {
       await processFinal(parsed.data.sessionId);
     }

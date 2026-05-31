@@ -317,6 +317,40 @@ describe('processParallelFinal', () => {
     expect(synthesizeAnalysis).not.toHaveBeenCalled();
   });
 
+  it('throws when chunks are still PROCESSING (race condition)', async () => {
+    vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
+      makeChunkResult(0),
+      makeChunkResult(1, { status: 'PROCESSING' }),
+    ] as never);
+
+    await expect(processParallelFinal('sess-1')).rejects.toThrow(
+      /still processing/,
+    );
+    expect(synthesizeAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('throws when not all expected chunks exist yet', async () => {
+    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
+      id: 'sess-1',
+      userId: 'user-1',
+      status: SessionStatus.AWAITING_FINAL,
+      focusMetricKey: null,
+      promptUsed: null,
+      processedAt: null,
+      chunkCount: 3,
+    } as never);
+
+    vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
+      makeChunkResult(0),
+      makeChunkResult(1),
+    ] as never);
+
+    await expect(processParallelFinal('sess-1')).rejects.toThrow(
+      /2\/3 exist/,
+    );
+    expect(synthesizeAnalysis).not.toHaveBeenCalled();
+  });
+
   it('marks session FAILED when all chunks failed', async () => {
     vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
       makeChunkResult(0, { status: 'FAILED', transcriptText: null, pronunciationReport: null, insights: null }),

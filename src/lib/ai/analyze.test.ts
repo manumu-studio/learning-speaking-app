@@ -86,6 +86,38 @@ describe('Analysis result schema', () => {
     expect(analysisResultSchema.parse(baseValidResult)).toEqual(baseValidResult);
   });
 
+  it('accepts null values for optional insight fields (nullish)', () => {
+    const withNulls = {
+      ...baseValidResult,
+      insights: [
+        {
+          category: 'grammar' as const,
+          pattern: 'Test',
+          detail: 'Test detail',
+          frequency: null,
+          severity: null,
+          examples: null,
+          suggestion: null,
+          confidence: null,
+        },
+      ],
+    };
+    const parsed = analysisResultSchema.parse(withNulls);
+    expect(parsed.insights[0]?.frequency).toBeNull();
+    expect(parsed.insights[0]?.severity).toBeNull();
+  });
+
+  it('accepts coherenceScore with score 0 for empty transcripts', () => {
+    const withZeroScore = {
+      ...baseValidResult,
+      coherenceScore: {
+        ...enrichedFields.coherenceScore,
+        score: 0,
+      },
+    };
+    expect(() => analysisResultSchema.parse(withZeroScore)).not.toThrow();
+  });
+
   it('validates with coherenceScore present', () => {
     const withCoherence = { ...baseValidResult, coherenceScore: enrichedFields.coherenceScore };
     expect(analysisResultSchema.parse(withCoherence)).toEqual(withCoherence);
@@ -93,6 +125,27 @@ describe('Analysis result schema', () => {
 
   it('validates without coherenceScore when field is absent', () => {
     expect(analysisResultSchema.parse(baseValidResult)).toEqual(baseValidResult);
+  });
+
+  it('validates with vocabularySuggestions when present', () => {
+    const withVocab = {
+      ...baseValidResult,
+      vocabularySuggestions: [
+        { word: 'establish', meaning: 'To set up formally.', exampleSentence: 'We need to establish clear goals.' },
+        { word: 'demonstrate', meaning: 'To show clearly.', exampleSentence: 'This example demonstrates the pattern.' },
+      ],
+    };
+    expect(analysisResultSchema.parse(withVocab)).toEqual(withVocab);
+  });
+
+  it('accepts vocabularySuggestions with fewer than 2 items', () => {
+    const singleItem = {
+      ...baseValidResult,
+      vocabularySuggestions: [
+        { word: 'only', meaning: 'One item.', exampleSentence: 'Only one suggestion.' },
+      ],
+    };
+    expect(() => analysisResultSchema.parse(singleItem)).not.toThrow();
   });
 
   it('rejects vocabularyDiversity repetitionFlags with count below 2', () => {
