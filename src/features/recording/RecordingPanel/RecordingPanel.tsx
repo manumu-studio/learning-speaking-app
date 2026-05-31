@@ -226,7 +226,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
               Too loud — move back
             </p>
           )}
-          {showAutoSaveToast && (
+          {showAutoSaveToast && !levelWarning && (
             <p className="text-xs font-medium text-emerald-500">
               ✓ Progress saved
             </p>
