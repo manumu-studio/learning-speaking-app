@@ -63,8 +63,8 @@ export function ProcessingStatus({ status, errorMessage, onRetry, partialData }:
   const currentIndex = STEPS.findIndex((s) => s.key === displayStatus);
 
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50 p-6" aria-live="polite" role="status">
-      <h3 className="text-lg font-semibold text-blue-900">Processing Your Workout</h3>
+    <div className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-slate-700 dark:bg-slate-800/80" aria-live="polite" role="status">
+      <h3 className="text-lg font-semibold text-blue-900 dark:text-sky-300">Processing Your Workout</h3>
       <div className="mt-4 space-y-3">
         {STEPS.map((step, index) => {
           const isActive = index === currentIndex;
@@ -78,14 +78,14 @@ export function ProcessingStatus({ status, errorMessage, onRetry, partialData }:
                     ? 'bg-green-500 text-white'
                     : isActive
                       ? 'animate-pulse bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-400'
+                      : 'bg-gray-200 text-gray-400 dark:bg-slate-700 dark:text-slate-500'
                 }`}
               >
                 {isComplete ? '✓' : index + 1}
               </div>
               <span
                 className={`text-sm ${
-                  isActive ? 'font-medium text-blue-900' : 'text-gray-600'
+                  isActive ? 'font-medium text-blue-900 dark:text-sky-300' : 'text-gray-600 dark:text-slate-400'
                 }`}
               >
                 {step.label}
@@ -96,8 +96,8 @@ export function ProcessingStatus({ status, errorMessage, onRetry, partialData }:
       </div>
 
       {progressiveSteps.length > 0 && (
-        <div className="mt-5 border-t border-blue-200 pt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-800">
+        <div className="mt-5 border-t border-blue-200 pt-4 dark:border-slate-700">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-sky-400">
             Results arriving
           </p>
           <ul className="space-y-2">

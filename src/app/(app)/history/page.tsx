@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useState } from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
+import { MicLoadingIndicator } from '@/components/ui/MicLoadingIndicator';
 import { HistoryDayGroup } from '@/components/ui/HistoryDayGroup';
 import { DeleteSessionModal } from '@/components/ui/DeleteSessionModal';
 import { useSessionHistory } from '@/features/session/useSessionHistory';
@@ -94,13 +95,9 @@ function HistoryContent() {
       </div>
 
       {isLoading && (
-        <p
-          className="text-gray-400 dark:text-gray-500 text-center py-12"
-          aria-live="polite"
-          role="status"
-        >
-          Loading sessions...
-        </p>
+        <div className="flex items-center justify-center pt-32">
+          <MicLoadingIndicator />
+        </div>
       )}
 
       {!isLoading && error !== null && (

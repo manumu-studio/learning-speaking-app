@@ -34,6 +34,19 @@ export const PILLAR_CONFIG = {
 
 export const PILLAR_KEYS: readonly PillarKey[] = ['delivery', 'language', 'pronunciation'] as const;
 
+// Canonical metric key → human-readable label mapping (single source of truth)
+export const METRIC_LABELS: Record<string, string> = {
+  connectorRepetition: 'Connector Repetition',
+  structuralVariety: 'Structural Variety',
+  vocabularyPrecision: 'Vocabulary Precision',
+  verbAccuracy: 'Verb Accuracy',
+  argumentClosure: 'Argument Closure',
+  fillerUsage: 'Filler Usage',
+  pronunciationAccuracy: 'Pronunciation Accuracy',
+  prosodyScore: 'Prosody & Rhythm',
+  speakingRate: 'Speaking Rate',
+};
+
 export type PillarScore = {
   pillarKey: PillarKey;
   label: string;
