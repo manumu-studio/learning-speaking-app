@@ -1,4 +1,4 @@
-// Web Worker — ring buffer that emits 120s WAV chunks with 1.5s overlap between segments
+// Web Worker — ring buffer that emits 120s WAV chunks with 5s overlap between segments
 import {
   DEFAULT_SAMPLE_RATE,
   encodePcmToWav,
@@ -6,7 +6,7 @@ import {
 } from '@/lib/audio/wavEncoder';
 
 const DEFAULT_CHUNK_DURATION_SECS = 120;
-const DEFAULT_OVERLAP_SECS = 1.5;
+const DEFAULT_OVERLAP_SECS = 5;
 
 interface ConfigureMessage {
   type: 'configure';

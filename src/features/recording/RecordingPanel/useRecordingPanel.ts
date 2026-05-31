@@ -1,4 +1,4 @@
-// Orchestrates chunked AudioWorklet recording, upload, and session completion
+// Orchestrates chunked AudioWorklet recording, parallel upload, and session completion
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -10,6 +10,11 @@ import { useSilenceDetector } from '@/features/recording/useSilenceDetector';
 import { useProcessingSessions } from '@/features/session/ProcessingSessionsContext';
 import type { RecordingStatus } from '@/features/recording/recordingState.types';
 import type { RecordingPanelProps } from './RecordingPanel.types';
+
+const TIER_1_MAX_SECS = 45;
+const TIER_2_MAX_SECS = 120;
+
+type CancelTier = 'silent' | 'prompt' | 'modal';
 
 function mapRecordingState(
   state: 'idle' | 'recording' | 'stopping' | 'stopped' | 'error',
@@ -23,6 +28,16 @@ function mapRecordingState(
   return 'idle';
 }
 
+function getCancelTier(durationSecs: number): CancelTier {
+  if (durationSecs < TIER_1_MAX_SECS) {
+    return 'silent';
+  }
+  if (durationSecs < TIER_2_MAX_SECS) {
+    return 'prompt';
+  }
+  return 'modal';
+}
+
 export function useRecordingPanel({
   topic,
   focus,
@@ -32,22 +47,30 @@ export function useRecordingPanel({
   const router = useRouter();
   const [mobileError, setMobileError] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const { addSession } = useProcessingSessions();
 
   const {
     chunks,
-    uploadChunk,
+    sessionId,
+    uploadChunkIndependent,
     completeSession,
     isUploading,
     error: uploadError,
     resetUploader,
-  } = useChunkUploader({ topic, focus, promptUsed });
+    abortAllUploads,
+    waitForInFlightUploads,
+  } = useChunkUploader({
+    topic,
+    focus,
+    promptUsed,
+  });
 
   const handleChunkReady = useCallback(
-    (event: Parameters<typeof uploadChunk>[0]) => {
-      uploadChunk(event);
+    (event: Parameters<typeof uploadChunkIndependent>[0]) => {
+      uploadChunkIndependent(event);
     },
-    [uploadChunk],
+    [uploadChunkIndependent],
   );
 
   const {
@@ -63,6 +86,8 @@ export function useRecordingPanel({
   } = useAudioWorklet({ onChunkReady: handleChunkReady });
 
   const recordState = mapRecordingState(captureState);
+  const cancelTier = getCancelTier(duration);
+  const hasCompletedChunks = chunks.some((chunk) => chunk.status === 'completed');
 
   const { isPausedBySilence } = useSilenceDetector({
     stream: mediaStream,
@@ -79,6 +104,88 @@ export function useRecordingPanel({
     onInterrupted: setMobileError,
   });
 
+  const handleCancelPress = useCallback(async () => {
+    const tier = getCancelTier(duration);
+
+    if (tier === 'silent') {
+      abortAllUploads();
+      await stopRecording();
+      resetRecording();
+      resetUploader();
+      router.push('/');
+      return;
+    }
+
+    setIsCancelModalOpen(true);
+  }, [abortAllUploads, duration, resetRecording, resetUploader, router, stopRecording]);
+
+  const handleCancelModalDismiss = useCallback(() => {
+    setIsCancelModalOpen(false);
+  }, []);
+
+  const handleDiscardSession = useCallback(async () => {
+    abortAllUploads();
+
+    if (recordState === 'recording') {
+      await stopRecording();
+    }
+
+    const currentSessionId = sessionId;
+
+    if (currentSessionId) {
+      try {
+        await fetch('/api/internal/cancel-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: currentSessionId }),
+        });
+      } catch {
+        // Non-fatal — user is navigating away regardless
+      }
+    }
+
+    resetRecording();
+    resetUploader();
+    setIsCancelModalOpen(false);
+    router.push('/');
+  }, [
+    abortAllUploads,
+    recordState,
+    stopRecording,
+    sessionId,
+    resetRecording,
+    resetUploader,
+    router,
+  ]);
+
+  const handleFinishEarly = useCallback(async () => {
+    if (recordState === 'recording') {
+      await stopRecording();
+    }
+
+    setIsCancelModalOpen(false);
+    await waitForInFlightUploads();
+
+    setIsCompleting(true);
+    const completedSessionId = await completeSession(duration);
+
+    if (!completedSessionId) {
+      setIsCompleting(false);
+      return;
+    }
+
+    addSession(completedSessionId);
+    router.push(`/session/${completedSessionId}`);
+  }, [
+    addSession,
+    completeSession,
+    duration,
+    recordState,
+    router,
+    stopRecording,
+    waitForInFlightUploads,
+  ]);
+
   useEffect(() => {
     if (captureState !== 'stopped' || isCompleting) {
       return;
@@ -86,10 +193,10 @@ export function useRecordingPanel({
 
     const finalize = async () => {
       setIsCompleting(true);
-      const sessionId = await completeSession(duration);
-      if (sessionId) {
-        addSession(sessionId);
-        router.push(`/session/${sessionId}`);
+      const completedId = await completeSession(duration);
+      if (completedId) {
+        addSession(completedId);
+        router.push(`/session/${completedId}`);
         return;
       }
       setIsCompleting(false);
@@ -103,6 +210,7 @@ export function useRecordingPanel({
     resetUploader();
     setMobileError(null);
     setIsCompleting(false);
+    setIsCancelModalOpen(false);
   }, [resetRecording, resetUploader]);
 
   const progressChunks = useMemo(
@@ -133,5 +241,13 @@ export function useRecordingPanel({
     startWithMobilePolish,
     stopWithMobilePolish,
     resetSession,
+    isCancelModalOpen,
+    cancelTier,
+    hasCompletedChunks,
+    sessionId,
+    handleCancelPress,
+    handleCancelModalDismiss,
+    handleDiscardSession,
+    handleFinishEarly,
   };
 }

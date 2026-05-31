@@ -6,7 +6,8 @@ import {
   isQstashFinalFailureAttempt,
   persistSessionFailedStatus,
 } from '@/lib/pipeline';
-import { processFinal } from '@/lib/pipeline/processFinal';
+import { processFinal, processParallelFinal } from '@/lib/pipeline/processFinal';
+import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -57,7 +58,16 @@ export async function POST(request: NextRequest) {
     }
 
     sessionId = parsed.data.sessionId;
-    await processFinal(parsed.data.sessionId);
+
+    const chunkResultCount = await prisma.chunkResult.count({
+      where: { sessionId: parsed.data.sessionId },
+    });
+
+    if (chunkResultCount > 0) {
+      await processParallelFinal(parsed.data.sessionId);
+    } else {
+      await processFinal(parsed.data.sessionId);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

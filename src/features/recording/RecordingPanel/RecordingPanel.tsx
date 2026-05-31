@@ -17,6 +17,8 @@ import {
   RecordingContext,
   useRecordingContext,
 } from '@/features/recording/RecordingContext';
+import { CancelRecordingModal } from '@/components/ui/CancelRecordingModal';
+import { useProgressiveResults } from '@/features/recording/useProgressiveResults';
 import { useRecordingPanel } from './useRecordingPanel';
 import type { RecordingPanelProps } from './RecordingPanel.types';
 
@@ -46,7 +48,20 @@ export function RecordingPanel(props: RecordingPanelProps) {
     error,
     startWithMobilePolish,
     stopWithMobilePolish,
+    isCancelModalOpen,
+    hasCompletedChunks,
+    sessionId,
+    handleCancelPress,
+    handleCancelModalDismiss,
+    handleDiscardSession,
+    handleFinishEarly,
   } = useRecordingPanel(props);
+
+  const { completedChunks } = useProgressiveResults({
+    sessionId,
+    isRecording: recordState === 'recording',
+    elapsedSecs: duration,
+  });
 
   const handleShufflePrompt = useCallback(() => {
     setSelectedPrompt((current) =>
@@ -140,6 +155,49 @@ export function RecordingPanel(props: RecordingPanelProps) {
         />
       </div>
 
+      {completedChunks.length > 0 && (
+        <div className="mt-4 w-full rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300">
+            Results building up
+          </p>
+          <ul className="space-y-2">
+            {completedChunks.map((chunk) => (
+              <li key={chunk.chunkIndex} className="flex items-start gap-3 text-sm">
+                <span className="mt-0.5 shrink-0 text-green-500" aria-hidden="true">&#10003;</span>
+                <div>
+                  <span className="font-medium text-gray-800 dark:text-gray-200">
+                    Segment {chunk.chunkIndex + 1}
+                  </span>
+                  {chunk.transcriptSnippet && (
+                    <p className="mt-0.5 text-xs italic text-gray-600 dark:text-gray-400">
+                      &ldquo;{chunk.transcriptSnippet}&rdquo;
+                    </p>
+                  )}
+                  {chunk.pronScore !== null && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Pronunciation: {Math.round(chunk.pronScore)}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {recordState === 'recording' && (
+        <button
+          type="button"
+          onClick={() => {
+            void handleCancelPress();
+          }}
+          aria-label="Cancel recording"
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:border-zinc-700 dark:text-gray-400 dark:hover:bg-zinc-800"
+        >
+          Cancel
+        </button>
+      )}
+
       <div className="text-center min-h-[60px] w-full" aria-live="polite" role="status">
         {error && (
           <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md mx-auto">
@@ -171,6 +229,19 @@ export function RecordingPanel(props: RecordingPanelProps) {
           </p>
         )}
       </div>
+
+      <CancelRecordingModal
+        isOpen={isCancelModalOpen}
+        durationSecs={duration}
+        hasCompletedChunks={hasCompletedChunks}
+        onDiscard={() => {
+          void handleDiscardSession();
+        }}
+        onFinishEarly={() => {
+          void handleFinishEarly();
+        }}
+        onDismiss={handleCancelModalDismiss}
+      />
     </div>
   );
 }

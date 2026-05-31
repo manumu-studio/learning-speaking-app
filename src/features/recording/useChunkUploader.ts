@@ -54,11 +54,15 @@ interface UseChunkUploaderReturn {
   chunks: ChunkUploadState[];
   sessionId: string | null;
   uploadChunk: (event: ChunkReadyEvent) => void;
+  uploadChunkIndependent: (event: ChunkReadyEvent) => void;
+  abortAllUploads: () => void;
   completeSession: (totalDurationSecs: number) => Promise<string | null>;
   ensureSession: () => Promise<string>;
   isUploading: boolean;
+  inFlightChunks: number;
   error: string | null;
   resetUploader: () => void;
+  waitForInFlightUploads: (timeoutMs?: number) => Promise<void>;
 }
 
 async function parseError(response: Response): Promise<string> {
@@ -111,12 +115,15 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
   const [chunks, setChunks] = useState<ChunkUploadState[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [inFlightChunks, setInFlightChunks] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const configRef = useRef(config);
   const sessionIdRef = useRef<string | null>(null);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
   const activeUploadsRef = useRef(0);
+  const inFlightCountRef = useRef(0);
+  const abortControllersRef = useRef<Map<number, AbortController>>(new Map());
   const sessionInitRef = useRef<Promise<string> | null>(null);
   const maxChunkIndexRef = useRef(-1);
   const isFastPathRef = useRef(false);
@@ -230,7 +237,7 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
               chunkIndex: event.chunkIndex,
               durationSecs: Math.max(1, Math.round(event.durationSecs)),
               storageKey: presignData.storageKey,
-              overlapSecs: event.chunkIndex === 0 ? 0 : 1.5,
+              overlapSecs: event.chunkIndex === 0 ? 0 : 5,
             }),
           },
         );
@@ -268,6 +275,134 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
     });
   }, [ensureSession]);
 
+  const uploadChunkIndependent = useCallback((event: ChunkReadyEvent) => {
+    maxChunkIndexRef.current = Math.max(maxChunkIndexRef.current, event.chunkIndex);
+
+    const abort = new AbortController();
+    abortControllersRef.current.set(event.chunkIndex, abort);
+
+    inFlightCountRef.current += 1;
+    setInFlightChunks(inFlightCountRef.current);
+    activeUploadsRef.current += 1;
+    setIsUploading(true);
+
+    setChunks((prev) => [
+      ...prev,
+      { chunkIndex: event.chunkIndex, status: 'uploading' },
+    ]);
+
+    void (async () => {
+      try {
+        const useFastPath = event.isFinal && event.chunkIndex === 0;
+
+        if (useFastPath) {
+          isFastPathRef.current = true;
+          const fastSessionId = await uploadSingleChunkFastPath(event, configRef.current);
+          sessionIdRef.current = fastSessionId;
+          setSessionId(fastSessionId);
+          setChunks((prev) =>
+            prev.map((chunk) =>
+              chunk.chunkIndex === event.chunkIndex
+                ? { ...chunk, status: 'completed' }
+                : chunk,
+            ),
+          );
+          return;
+        }
+
+        const currentSessionId = await ensureSession();
+
+        const presignResponse = await fetch(`/api/sessions/${currentSessionId}/presign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chunkIndex: event.chunkIndex }),
+          signal: abort.signal,
+        });
+
+        if (!presignResponse.ok) {
+          throw new Error(await parseError(presignResponse));
+        }
+
+        const presignData = presignSchema.parse(await presignResponse.json());
+
+        const putResponse = await fetch(presignData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'audio/wav' },
+          body: event.wavBlob,
+          signal: abort.signal,
+        });
+
+        if (!putResponse.ok) {
+          throw new Error('Failed to upload chunk to storage');
+        }
+
+        const enqueueResponse = await fetch(
+          `/api/sessions/${currentSessionId}/chunks/enqueue-independent`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chunkIndex: event.chunkIndex,
+              durationSecs: Math.max(1, Math.round(event.durationSecs)),
+              storageKey: presignData.storageKey,
+              overlapSecs: event.chunkIndex === 0 ? 0 : 5,
+            }),
+            signal: abort.signal,
+          },
+        );
+
+        if (!enqueueResponse.ok) {
+          throw new Error(await parseError(enqueueResponse));
+        }
+
+        setChunks((prev) =>
+          prev.map((chunk) =>
+            chunk.chunkIndex === event.chunkIndex
+              ? { ...chunk, status: 'completed' }
+              : chunk,
+          ),
+        );
+      } catch (uploadError) {
+        if (uploadError instanceof Error && uploadError.name === 'AbortError') {
+          setChunks((prev) =>
+            prev.map((chunk) =>
+              chunk.chunkIndex === event.chunkIndex
+                ? { ...chunk, status: 'failed', error: 'Cancelled' }
+                : chunk,
+            ),
+          );
+          return;
+        }
+
+        const message =
+          uploadError instanceof Error ? uploadError.message : 'Chunk upload failed';
+        setError(message);
+        setChunks((prev) =>
+          prev.map((chunk) =>
+            chunk.chunkIndex === event.chunkIndex
+              ? { ...chunk, status: 'failed', error: message }
+              : chunk,
+          ),
+        );
+      } finally {
+        abortControllersRef.current.delete(event.chunkIndex);
+        inFlightCountRef.current -= 1;
+        setInFlightChunks(inFlightCountRef.current);
+        activeUploadsRef.current -= 1;
+        if (activeUploadsRef.current === 0) {
+          setIsUploading(false);
+        }
+      }
+    })();
+  }, [ensureSession]);
+
+  const abortAllUploads = useCallback(() => {
+    for (const controller of abortControllersRef.current.values()) {
+      controller.abort();
+    }
+    abortControllersRef.current.clear();
+  }, []);
+
   const completeSession = useCallback(async (totalDurationSecs: number): Promise<string | null> => {
     await queueRef.current;
 
@@ -300,6 +435,15 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
     return currentSessionId;
   }, []);
 
+  const waitForInFlightUploads = useCallback(async (timeoutMs = 30_000): Promise<void> => {
+    const start = Date.now();
+    while (inFlightCountRef.current > 0 && Date.now() - start < timeoutMs) {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 500);
+      });
+    }
+  }, []);
+
   const resetUploader = useCallback(() => {
     sessionIdRef.current = null;
     sessionInitRef.current = null;
@@ -308,6 +452,9 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
     setError(null);
     setIsUploading(false);
     activeUploadsRef.current = 0;
+    abortControllersRef.current.clear();
+    inFlightCountRef.current = 0;
+    setInFlightChunks(0);
     maxChunkIndexRef.current = -1;
     isFastPathRef.current = false;
     queueRef.current = Promise.resolve();
@@ -317,10 +464,14 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
     chunks,
     sessionId,
     uploadChunk,
+    uploadChunkIndependent,
+    abortAllUploads,
     completeSession,
     ensureSession,
     isUploading,
+    inFlightChunks,
     error,
     resetUploader,
+    waitForInFlightUploads,
   };
 }

@@ -40,7 +40,19 @@ export type PronunciationReportDetail = {
  */
 export interface SessionDetail {
   id: string;
-  status: 'CREATED' | 'UPLOADED' | 'CHUNKS_PROCESSING' | 'AWAITING_FINAL' | 'PROCESSING_FINAL' | 'TRANSCRIBING' | 'SCORING' | 'ANALYZING' | 'DONE' | 'FAILED';
+  status:
+    | 'CREATED'
+    | 'UPLOADED'
+    | 'CHUNKS_PROCESSING'
+    | 'AWAITING_FINAL'
+    | 'PROCESSING_FINAL'
+    | 'TRANSCRIBING'
+    | 'SCORING'
+    | 'ANALYZING'
+    | 'DONE'
+    | 'FAILED'
+    | 'CANCELLED';
+  partialResults?: boolean;
   durationSecs: number | null;
   isChunked?: boolean;
   chunkCount?: number | null;
