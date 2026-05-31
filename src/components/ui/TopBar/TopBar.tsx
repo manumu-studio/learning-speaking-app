@@ -32,7 +32,7 @@ export function TopBar({ userName, userEmail }: TopBarProps) {
                 priority
               />
             </div>
-            <MainNav />
+            <MainNav className="hidden md:flex" />
           </div>
 
           {/* Right: theme toggle + user info + sign out */}
