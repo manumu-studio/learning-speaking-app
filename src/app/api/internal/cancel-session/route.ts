@@ -1,9 +1,10 @@
 // Authenticated endpoint — cancels a session, deletes R2 audio and chunk records
+import type pino from 'pino';
 import { auth } from '@/features/auth/auth';
 import { errorResponse, successResponse } from '@/lib/api';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { findOrCreateUser } from '@/lib/db-utils';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
 import { prisma } from '@/lib/prisma';
 import { deleteAudio } from '@/lib/storage/r2';
 import { SessionStatus } from '@prisma/client';
@@ -13,14 +14,14 @@ const bodySchema = z.object({
   sessionId: z.string(),
 });
 
-export async function POST(request: Request) {
+async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
   try {
     const session = await auth();
     if (!session?.user?.externalId) {
       return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
     }
 
-    if (!validateOrigin(request)) {
+    if (!validateOrigin(req)) {
       return csrfForbiddenResponse();
     }
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
       displayName: session.user.name ?? undefined,
     });
 
-    const parsed = bodySchema.safeParse(await request.json());
+    const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return errorResponse('Invalid request body', 'VALIDATION_ERROR', 400);
     }
@@ -89,3 +90,5 @@ export async function POST(request: Request) {
     return errorResponse('Failed to cancel session', 'INTERNAL_ERROR', 500);
   }
 }
+
+export const POST = withObservability(handler, { route: 'internal/cancel-session' });

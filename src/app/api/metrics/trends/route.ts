@@ -1,6 +1,5 @@
 // Metrics trends API — returns time-series metric data grouped by date with pillar aggregations
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { PILLAR_CONFIG, PILLAR_KEYS } from '@/features/dashboard/pillars';
@@ -12,6 +11,7 @@ import {
   type TrendDataPoint,
   type PillarTrend,
 } from '@/lib/schemas/trends';
+import { withObservability } from '@/lib/observability';
 
 type Range = '7d' | '30d' | '90d' | 'all';
 
@@ -48,7 +48,7 @@ function mean(values: readonly number[]): number {
 // GET handler
 // ---------------------------------------------------------------------------
 
-export async function GET(request: NextRequest) {
+async function handler(request: Request) {
   const session = await auth();
 
   if (!session?.user?.externalId) {
@@ -65,7 +65,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Parse range — default to '30d' on invalid/missing values
-  const rawRange = request.nextUrl.searchParams.get('range');
+  const url = new URL(request.url);
+  const rawRange = url.searchParams.get('range');
   const rangeResult = RangeSchema.safeParse(rawRange);
   const range: Range = rangeResult.success ? rangeResult.data : '30d';
 
@@ -202,3 +203,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withObservability(handler, { route: 'metrics/trends' });

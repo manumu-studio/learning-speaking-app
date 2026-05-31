@@ -4,7 +4,6 @@
 import { useEffect } from 'react';
 import type { DevAxeInitProps } from './DevAxeInit.types';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function DevAxeInit(_props: DevAxeInitProps): null {
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return;

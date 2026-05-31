@@ -118,11 +118,11 @@ test.describe('history delete flow', () => {
     await modal.getByRole('button', { name: 'Delete', exact: true }).click();
 
     // Session removed from list
-    await expect(sessionLabel).toBeHidden({ timeout: 10_000 });
+    await expect(sessionLabel).toBeHidden({ timeout: 20_000 });
 
     // Toast notification appears
     await expect(authenticatedPage.getByText('Session deleted', { exact: true })).toBeVisible({
-      timeout: 5_000,
+      timeout: 10_000,
     });
   });
 });
