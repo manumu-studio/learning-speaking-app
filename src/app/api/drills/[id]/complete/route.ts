@@ -25,14 +25,7 @@ function isDrillType(value: string): value is DrillType {
   return (DRILL_TYPES as readonly string[]).includes(value);
 }
 
-const METRIC_LABELS: Record<string, string> = {
-  connectorRepetition: 'Connector Repetition',
-  structuralVariety: 'Structural Variety',
-  vocabularyPrecision: 'Vocabulary Precision',
-  verbAccuracy: 'Verb Accuracy',
-  argumentClosure: 'Argument Closure',
-  fillerUsage: 'Filler Usage',
-};
+import { METRIC_LABELS } from '@/features/dashboard/pillars';
 
 function drillAudioKey(userId: string, drillId: string, extension: string): string {
   return `drills/${userId}/${drillId}/audio.${extension}`;

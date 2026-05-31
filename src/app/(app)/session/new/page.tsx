@@ -5,6 +5,7 @@ import { useState, useEffect, startTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { Container } from '@/components/ui/Container';
+import { MicLoadingIndicator } from '@/components/ui/MicLoadingIndicator';
 import { RecordingPanel } from '@/features/recording/RecordingPanel';
 import { FocusBanner } from '@/features/dashboard/FocusBanner';
 import { findPromptById } from '@/lib/prompts/promptLibrary';
@@ -41,13 +42,7 @@ export default function NewSessionPage() {
   }, []);
 
   if (state.status === 'loading') {
-    return (
-      <Container>
-        <div className="flex justify-center py-16">
-          <span className="text-sm text-gray-500 dark:text-gray-400">Loading…</span>
-        </div>
-      </Container>
-    );
+    return <MicLoadingIndicator />;
   }
 
   if (state.status === 'error') {
