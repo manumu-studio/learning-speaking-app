@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RecordButton } from '@/components/ui/RecordButton';
 import { SessionTimer } from '@/components/ui/SessionTimer';
-import { AudioLevelMeter } from '@/components/ui/AudioLevelMeter';
+import { useAudioLevelMeter } from '@/components/ui/AudioLevelMeter/useAudioLevelMeter';
 import { WaveformVisualizer } from '@/features/recording/WaveformVisualizer';
 import { PromptCard } from '@/features/recording/PromptCard';
 import {
@@ -53,6 +53,11 @@ export function RecordingPanel(props: RecordingPanelProps) {
     handleDiscardSession,
     handleFinishEarly,
   } = useRecordingPanel(props);
+
+  const { warning: levelWarning } = useAudioLevelMeter({
+    stream: mediaStream,
+    isActive: recordState === 'recording',
+  });
 
   const { completedChunks } = useProgressiveResults({
     sessionId,
@@ -112,7 +117,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
       : 'Press the button to start — no time limit';
 
   return (
-    <div className="flex flex-col items-center justify-center py-6 sm:py-12 space-y-6 sm:space-y-8 w-full max-w-md mx-auto px-4">
+    <div className="flex flex-col items-center justify-center py-4 sm:py-12 space-y-4 sm:space-y-8 w-full max-w-md mx-auto px-4 min-h-[calc(100vh-8rem)] sm:min-h-0">
       <RecordingContext
         todaySessionCount={todaySessionCount}
         nextRecordingNumber={nextRecordingNumber}
@@ -141,20 +146,29 @@ export function RecordingPanel(props: RecordingPanelProps) {
         </div>
       )}
 
-      <div className="flex w-full items-end justify-center gap-4 sm:gap-6">
-        {recordState === 'recording' && (
-          <AudioLevelMeter stream={mediaStream} isActive={recordState === 'recording'} />
-        )}
+      <div className="relative flex w-full items-end justify-center gap-4 sm:gap-6">
         <SessionTimer seconds={duration} isActive={recordState === 'recording'} />
+        <div className="h-6" aria-live="polite">
+          {recordState === 'recording' && levelWarning === 'too_quiet' && (
+            <p className="animate-pulse text-xs font-medium text-amber-600 dark:text-amber-400">
+              Too quiet — speak up
+            </p>
+          )}
+          {recordState === 'recording' && levelWarning === 'clipping' && (
+            <p className="text-xs font-medium text-red-600 dark:text-red-400">
+              Too loud — move back
+            </p>
+          )}
+        </div>
       </div>
 
       {showAutoSaveToast && (
         <div className="animate-fade-in-out rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
-          ✓ Auto-saved
+          ✓ Progress saved
         </div>
       )}
 
-      <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
+      <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center flex-1 justify-center">
         <WaveformVisualizer stream={mediaStream} />
         <RecordButton
           state={recordState}

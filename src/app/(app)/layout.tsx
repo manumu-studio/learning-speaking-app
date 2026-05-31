@@ -4,6 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 import { auth } from '@/features/auth/auth';
 import { syncUser } from '@/features/auth/syncUser';
 import { TopBar } from '@/components/ui/TopBar';
+import { MobileNav } from '@/components/ui/MobileNav';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { AppProviders } from '@/components/ui/AppProviders';
 import { OnboardingGuard } from '@/components/ui/OnboardingGuard';
@@ -34,9 +35,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 userName={session.user.name ?? null}
                 userEmail={session.user.email ?? null}
               />
-              <main id="main-content" className="pt-16">
+              <main id="main-content" className="pt-16 pb-16 md:pb-0">
                 {children}
               </main>
+              <MobileNav />
             </div>
           </OnboardingGuard>
         </AppProviders>

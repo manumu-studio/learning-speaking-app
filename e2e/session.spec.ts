@@ -64,7 +64,8 @@ test.describe('session detail with real data', () => {
       authenticatedPage.getByText(/test transcript for the e2e seeded session/i),
     ).toBeVisible();
 
-    await expect(authenticatedPage.getByText(/argument closure/i)).toBeVisible();
+    await authenticatedPage.getByRole('button', { name: /Language Feedback/i }).click();
+    await expect(authenticatedPage.getByText('Argument Closure', { exact: true })).toBeVisible();
   });
 
   test('session detail shows focus highlight when focusMetricKey is set', async ({
@@ -75,6 +76,7 @@ test.describe('session detail with real data', () => {
       authenticatedPage.getByText(/testing strategies with good structural variety/i),
     ).toBeVisible({ timeout: 15_000 });
 
+    await authenticatedPage.getByRole('button', { name: /Language Feedback/i }).click();
     await expect(authenticatedPage.getByText(/focus area.*structural variety/i)).toBeVisible({
       timeout: 15_000,
     });

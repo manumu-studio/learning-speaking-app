@@ -1,6 +1,7 @@
 // Tests for session results page — insight rendering, category badges, pronunciation scores
 /** @vitest-environment jsdom */
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { SessionDetail } from '@/features/session/useSessionStatus.types';
 
@@ -132,18 +133,40 @@ describe('SessionResultsPage', () => {
   });
 
   it('renders both insight patterns for a completed session', async () => {
+    const user = userEvent.setup();
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
+
+    await screen.findByText('Strong session overall.');
+    const languageBtn = screen.getByRole('button', { name: /Language Feedback/i });
+    await user.click(languageBtn);
+
+    const grammarBtn = await screen.findByRole('button', { name: /Grammar/i });
+    await user.click(grammarBtn);
+    const vocabBtn = screen.getByRole('button', { name: /Vocabulary/i });
+    await user.click(vocabBtn);
 
     expect(await screen.findByRole('heading', { name: 'establish' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Article usage' })).toBeInTheDocument();
   });
 
   it('renders insight category badges', async () => {
+    const user = userEvent.setup();
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
 
-    await screen.findByRole('heading', { name: 'establish' });
+    await screen.findByText('Strong session overall.');
+    const languageBtn = screen.getByRole('button', { name: /Language Feedback/i });
+    await user.click(languageBtn);
+
+    const grammarBtn = await screen.findByRole('button', { name: /Grammar/i });
+    await user.click(grammarBtn);
+
+    await screen.findAllByText('establish');
     const grammarBadges = screen.getAllByText('grammar');
     expect(grammarBadges.length).toBeGreaterThanOrEqual(1);
+
+    const vocabBtn = screen.getByRole('button', { name: /Vocabulary/i });
+    await user.click(vocabBtn);
+    await screen.findByText('Article usage');
     const vocabularyBadges = screen.getAllByText('vocabulary');
     expect(vocabularyBadges.length).toBeGreaterThanOrEqual(1);
   });
@@ -153,7 +176,7 @@ describe('SessionResultsPage', () => {
 
     await screen.findByText('Strong session overall.');
     expect(
-      screen.getByRole('heading', { name: /Pronunciation & Intonation/i }),
+      screen.getByRole('button', { name: /Pronunciation & Intonation/i }),
     ).toBeInTheDocument();
   });
 

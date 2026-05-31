@@ -202,7 +202,7 @@ interface CategoryInsightsSectionProps {
 
 function CategoryInsightsSection({ title, insights, baseDelay }: CategoryInsightsSectionProps) {
   return (
-    <CollapsibleSection title={title} count={insights.length} defaultOpen>
+    <CollapsibleSection title={title} count={insights.length}>
       {insights.length === 0 ? (
         <p className="text-sm text-gray-500 dark:text-gray-400">No issues detected</p>
       ) : (
@@ -542,7 +542,6 @@ function SessionContent({
               <CollapsibleSection
                 title="Language Feedback"
                 count={languageInsightCount}
-                defaultOpen
                 animationDelay={200}
               >
                 <div className="flex flex-col gap-4">
@@ -591,7 +590,6 @@ function SessionContent({
           {pronunciationReport !== null && (
             <CollapsibleSection
               title="Pronunciation & Intonation"
-              defaultOpen
               animationDelay={pronunciationSectionDelay}
             >
               <div className="space-y-4">
