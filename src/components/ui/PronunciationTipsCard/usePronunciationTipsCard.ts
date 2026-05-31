@@ -16,13 +16,15 @@ export function usePronunciationTipsCard(
   useEffect(() => {
     const weakWords = pronunciationReport.words
       .filter((w) => w.accuracyScore < WEAK_WORD_THRESHOLD)
+      .sort((a, b) => a.accuracyScore - b.accuracyScore)
+      .slice(0, 10)
       .map((w) => ({
         word: w.word,
         accuracyScore: w.accuracyScore,
         errorType: w.errorType,
       }));
 
-    const l1Tags = [...new Set(pronunciationReport.words.flatMap((w) => w.l1Tags))];
+    const l1Tags = [...new Set(pronunciationReport.words.flatMap((w) => w.l1Tags))].slice(0, 10);
 
     void fetch('/api/pronunciation-tips', {
       method: 'POST',
