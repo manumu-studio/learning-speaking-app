@@ -63,17 +63,19 @@ export default function NewSessionPage() {
   return (
     <>
       {state.status === 'pending' && <AiDisclosureModal onAccept={acceptDisclosure} />}
-      <Container>
+      <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-4xl mx-auto px-4 overflow-hidden">
         {selectedPrompt !== null && (
           <PromptBanner
             promptText={selectedPrompt.text}
             category={selectedPrompt.category}
-            className="mb-4"
+            className="mb-2 shrink-0"
           />
         )}
-        {focus && <FocusBanner focusLabel={focus.focusLabel} className="mb-4" />}
-        <RecordingPanel focus={focus} promptUsed={selectedPrompt?.text ?? null} />
-      </Container>
+        {focus && <FocusBanner focusLabel={focus.focusLabel} className="mb-2 shrink-0" />}
+        <div className="flex-1 min-h-0 flex items-center">
+          <RecordingPanel focus={focus} promptUsed={selectedPrompt?.text ?? null} />
+        </div>
+      </div>
     </>
   );
 }

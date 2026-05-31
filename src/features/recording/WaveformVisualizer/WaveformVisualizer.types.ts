@@ -7,6 +7,8 @@ export interface WaveformVisualizerProps {
   barCount?: number;
   /** Bar colour class (Tailwind). Default: 'bg-red-400' */
   barColorClass?: string;
+  /** Visual size preset. Default: 'default' */
+  size?: 'default' | 'large';
 }
 
 export interface UseWaveformVisualizerOptions {
