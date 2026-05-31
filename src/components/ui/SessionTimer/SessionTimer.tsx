@@ -19,15 +19,16 @@ export function SessionTimer({ seconds, isActive, limitSecs }: SessionTimerProps
   const colorClass = showCountdown
     ? 'text-amber-500 dark:text-amber-400'
     : isActive
-      ? 'text-red-500 dark:text-red-400'
-      : 'text-gray-400 dark:text-gray-500';
+      ? 'text-white dark:text-white'
+      : 'text-white/90 dark:text-white/80';
 
   return (
     <div
       role="timer"
       aria-live="off"
       aria-label="Session timer"
-      className={`text-5xl sm:text-6xl font-mono font-bold tracking-widest transition-colors duration-300 ${colorClass}`}
+      style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}
+      className={`text-3xl sm:text-4xl font-extralight tracking-[0.15em] tabular-nums transition-colors duration-300 ${colorClass}`}
     >
       {formatTime(displaySeconds)}
     </div>
