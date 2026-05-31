@@ -9,3 +9,15 @@ export const PatternProfilePatternsSchema = z.record(z.string(), z.number());
 
 /** PatternProfile.focusAreas — array of focus area strings */
 export const PatternProfileFocusAreasSchema = z.array(z.string());
+
+/** Claude vocabularySuggestions — words to add from session analysis */
+export const VocabularySuggestionsSchema = z
+  .array(
+    z.object({
+      word: z.string(),
+      meaning: z.string(),
+      exampleSentence: z.string(),
+    }),
+  )
+  .min(2)
+  .max(3);

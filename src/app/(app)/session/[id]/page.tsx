@@ -12,8 +12,11 @@ import {
   PersonalRecordBanner,
   usePersonalRecordBanner,
 } from '@/components/ui/PersonalRecordBanner';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
+import { InsightCard } from '@/components/ui/InsightCard';
 import { InsightsList } from '@/components/ui/InsightsList';
-import type { InsightData } from '@/components/ui/InsightsList';
+import { VocabSuggestions } from '@/components/ui/VocabSuggestions';
+import type { VocabSuggestion } from '@/components/ui/VocabSuggestions';
 import { ScoreChip } from '@/components/ui/ScoreChip';
 import { PILLAR_CONFIG, PILLAR_KEYS } from '@/features/dashboard/pillars';
 import type { PillarKey } from '@/features/dashboard/pillars';
@@ -166,38 +169,61 @@ function PillarHeroRow({ metrics }: PillarHeroRowProps) {
 }
 
 /**
- * Split insights into "went well" and "to sharpen" groups for coaching-first ordering.
+ * Group session insights into grammar, vocabulary, and structure buckets.
  */
-function splitInsightsBySentiment(
-  insights: InsightData[],
-  metrics: SessionMetricSnapshot[],
-): { wentWell: InsightData[]; toSharpen: InsightData[] } {
-  const scoreByCategory = new Map<string, number>();
-  for (const m of metrics) {
-    scoreByCategory.set(m.key.toLowerCase(), m.score);
-  }
+function groupInsightsByCategory(insights: SessionDetail['insights']) {
+  return {
+    grammar: insights.filter((i) => i.category.toLowerCase() === 'grammar'),
+    vocabulary: insights.filter((i) => i.category.toLowerCase() === 'vocabulary'),
+    structure: insights.filter((i) => i.category.toLowerCase() === 'structure'),
+  };
+}
 
-  const wentWell: InsightData[] = [];
-  const toSharpen: InsightData[] = [];
+/** Derive vocabulary suggestions from vocabulary insights when explicit suggestions are unavailable. */
+function deriveVocabSuggestions(insights: SessionDetail['insights']): VocabSuggestion[] {
+  return insights
+    .filter((i) => i.category.toLowerCase() === 'vocabulary')
+    .slice(0, 3)
+    .map((insight) => ({
+      word: insight.pattern,
+      meaning: insight.detail,
+      exampleSentence:
+        insight.suggestion ??
+        insight.examples?.[0] ??
+        `Try using "${insight.pattern}" in your next session.`,
+    }));
+}
 
-  for (const insight of insights) {
-    const categoryKey = insight.category.toLowerCase().replace(/\s/g, '');
-    const metricScore = scoreByCategory.get(categoryKey) ?? null;
+interface CategoryInsightsSectionProps {
+  title: string;
+  insights: SessionDetail['insights'];
+  baseDelay: number;
+}
 
-    const isHighSeverity =
-      insight.severity === 'high' || insight.severity === 'medium';
-
-    const isStrongScore = metricScore !== null && metricScore >= 7;
-    const isLowSeverity = insight.severity === null || insight.severity === 'low';
-
-    if (isStrongScore || (isLowSeverity && !isHighSeverity)) {
-      wentWell.push(insight);
-    } else {
-      toSharpen.push(insight);
-    }
-  }
-
-  return { wentWell, toSharpen };
+function CategoryInsightsSection({ title, insights, baseDelay }: CategoryInsightsSectionProps) {
+  return (
+    <CollapsibleSection title={title} count={insights.length} defaultOpen>
+      {insights.length === 0 ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">No issues detected</p>
+      ) : (
+        <div className="space-y-4">
+          {insights.map((insight, index) => (
+            <InsightCard
+              key={insight.id}
+              category={insight.category}
+              pattern={insight.pattern}
+              detail={insight.detail}
+              frequency={insight.frequency}
+              severity={insight.severity}
+              examples={insight.examples}
+              suggestion={insight.suggestion}
+              animationDelay={baseDelay + index * 80}
+            />
+          ))}
+        </div>
+      )}
+    </CollapsibleSection>
+  );
 }
 
 export default function SessionResultsPage({
@@ -508,130 +534,145 @@ function SessionContent({
           )}
 
           {(() => {
-            const { wentWell, toSharpen } = splitInsightsBySentiment(
-              session.insights,
-              session.metrics ?? [],
-            );
-            const hasBothSections = wentWell.length > 0 && toSharpen.length > 0;
+            const grouped = groupInsightsByCategory(session.insights);
+            const vocabSuggestions = deriveVocabSuggestions(session.insights);
+            const languageInsightCount = session.insights.length;
 
             return (
-              <div className="mt-4 flex flex-col gap-6">
-                {hasBothSections ? (
-                  <>
-                    <section aria-labelledby="went-well-heading">
-                      <h3
-                        id="went-well-heading"
-                        className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
-                      >
-                        What went well
-                      </h3>
-                      <InsightsList insights={wentWell} baseDelay={200} />
-                    </section>
-                    <section aria-labelledby="to-sharpen-heading">
-                      <h3
-                        id="to-sharpen-heading"
-                        className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
-                      >
-                        What to sharpen
-                      </h3>
-                      <InsightsList
-                        insights={toSharpen}
-                        baseDelay={200 + wentWell.length * 80}
-                      />
-                    </section>
-                  </>
-                ) : (
-                  <InsightsList insights={session.insights} baseDelay={200} />
-                )}
-              </div>
+              <CollapsibleSection
+                title="Language Feedback"
+                count={languageInsightCount}
+                defaultOpen
+                animationDelay={200}
+              >
+                <div className="flex flex-col gap-4">
+                  <CategoryInsightsSection
+                    title="Grammar"
+                    insights={grouped.grammar}
+                    baseDelay={220}
+                  />
+                  <CategoryInsightsSection
+                    title="Vocabulary"
+                    insights={grouped.vocabulary}
+                    baseDelay={280}
+                  />
+                  <CategoryInsightsSection
+                    title="Structure"
+                    insights={grouped.structure}
+                    baseDelay={340}
+                  />
+                  <VocabSuggestions suggestions={vocabSuggestions} animationDelay={400} />
+                  {focusComparison && (
+                    <FocusHighlight
+                      metricLabel={focusComparison.metricLabel}
+                      currentScore={focusComparison.currentScore}
+                      previousScore={focusComparison.previousScore}
+                      animationDelay={focusHighlightDelay}
+                    />
+                  )}
+                  {weakestSnapshot !== null && drillConfig !== undefined && (
+                    <DrillRecommendation
+                      drillType={drillConfig.drillType}
+                      metricLabel={weakestLabel}
+                      timeLimit={drillConfig.timeLimit}
+                      onStartDrill={() =>
+                        void handleStartDrill(drillConfig.drillType, weakestSnapshot.key)
+                      }
+                    />
+                  )}
+                  {session.focusNext && (
+                    <FocusNextBanner focusNext={session.focusNext} animationDelay={focusBannerDelay} />
+                  )}
+                </div>
+              </CollapsibleSection>
             );
           })()}
 
           {pronunciationReport !== null && (
-            <div className="space-y-6">
-              <PronunciationSection
-                pronunciationReport={pronunciationReport}
-                animationDelay={pronunciationSectionDelay}
-                {...(pronunciationHistory.length >= 2
-                  ? {
-                      progressChip: {
-                        metricLabel: 'Fluency',
-                        deltaPercent: Math.round(
-                          (pronunciationHistory[pronunciationHistory.length - 1]?.fluencyScore ?? 0) -
-                            (pronunciationHistory[pronunciationHistory.length - 2]?.fluencyScore ?? 0)
-                        ),
-                      },
-                    }
-                  : {})}
-              />
-              {pitchState.status === 'ready' && (
-                <PitchContour
-                  contour={pitchState.contour}
-                  animationDelay={pronunciationSectionDelay + 50}
+            <CollapsibleSection
+              title="Pronunciation & Intonation"
+              defaultOpen
+              animationDelay={pronunciationSectionDelay}
+            >
+              <div className="space-y-4">
+                <PronunciationSection
+                  pronunciationReport={pronunciationReport}
+                  animationDelay={pronunciationSectionDelay}
+                  {...(pronunciationHistory.length >= 2
+                    ? {
+                        progressChip: {
+                          metricLabel: 'Fluency',
+                          deltaPercent: Math.round(
+                            (pronunciationHistory[pronunciationHistory.length - 1]?.fluencyScore ??
+                              0) -
+                              (pronunciationHistory[pronunciationHistory.length - 2]?.fluencyScore ??
+                                0),
+                          ),
+                        },
+                      }
+                    : {})}
                 />
-              )}
-              <WordColorMap
-                words={pronunciationReport.words}
-                animationDelay={wordColorMapDelay}
-              />
-              <ProsodyFeedback
-                words={pronunciationReport.words}
-                prosodyScore={pronunciationReport.prosodyScore}
-                animationDelay={wordColorMapDelay + 50}
-              />
-              <ProsodyPanel
-                words={pronunciationReport.words}
-                speakingRateWpm={pronunciationReport.speakingRateWpm}
-                prosodyScore={pronunciationReport.prosodyScore}
-                animationDelay={prosodyPanelDelay}
-              />
-              <PronunciationTipsCard
-                pronunciationReport={pronunciationReport}
-                animationDelay={prosodyPanelDelay + 100}
-              />
-              <PracticeSuggestion
-                pronunciationReport={pronunciationReport}
-                animationDelay={prosodyPanelDelay + 200}
-              />
-              <PronunciationProgress
-                currentSessionId={session.id}
-                history={pronunciationHistory}
-                animationDelay={prosodyPanelDelay + 300}
-              />
-            </div>
-          )}
-
-          {focusComparison && (
-            <FocusHighlight
-              metricLabel={focusComparison.metricLabel}
-              currentScore={focusComparison.currentScore}
-              previousScore={focusComparison.previousScore}
-              animationDelay={focusHighlightDelay}
-            />
-          )}
-
-          {weakestSnapshot !== null && drillConfig !== undefined && (
-            <DrillRecommendation
-              drillType={drillConfig.drillType}
-              metricLabel={weakestLabel}
-              timeLimit={drillConfig.timeLimit}
-              onStartDrill={() => void handleStartDrill(drillConfig.drillType, weakestSnapshot.key)}
-              className="mt-6"
-            />
-          )}
-
-          {session.focusNext && (
-            <FocusNextBanner focusNext={session.focusNext} animationDelay={focusBannerDelay} />
+                <CollapsibleSection title="Word Color Map" defaultOpen={false}>
+                  <WordColorMap
+                    words={pronunciationReport.words}
+                    animationDelay={wordColorMapDelay}
+                  />
+                </CollapsibleSection>
+                <CollapsibleSection title="Prosody Feedback" defaultOpen={false}>
+                  <ProsodyFeedback
+                    words={pronunciationReport.words}
+                    prosodyScore={pronunciationReport.prosodyScore}
+                    animationDelay={wordColorMapDelay + 50}
+                  />
+                </CollapsibleSection>
+                <ProsodyPanel
+                  words={pronunciationReport.words}
+                  speakingRateWpm={pronunciationReport.speakingRateWpm}
+                  prosodyScore={pronunciationReport.prosodyScore}
+                  animationDelay={prosodyPanelDelay}
+                />
+                {pitchState.status === 'ready' && (
+                  <CollapsibleSection title="Pitch Contour" defaultOpen={false}>
+                    <PitchContour
+                      contour={pitchState.contour}
+                      animationDelay={pronunciationSectionDelay + 50}
+                    />
+                  </CollapsibleSection>
+                )}
+                <CollapsibleSection title="Pronunciation Tips" defaultOpen={false}>
+                  <PronunciationTipsCard
+                    pronunciationReport={pronunciationReport}
+                    animationDelay={prosodyPanelDelay + 100}
+                  />
+                </CollapsibleSection>
+                <CollapsibleSection title="Practice Suggestion" defaultOpen={false}>
+                  <PracticeSuggestion
+                    pronunciationReport={pronunciationReport}
+                    animationDelay={prosodyPanelDelay + 200}
+                  />
+                </CollapsibleSection>
+                <CollapsibleSection title="Pronunciation Progress" defaultOpen={false}>
+                  <PronunciationProgress
+                    currentSessionId={session.id}
+                    history={pronunciationHistory}
+                    animationDelay={prosodyPanelDelay + 300}
+                  />
+                </CollapsibleSection>
+              </div>
+            </CollapsibleSection>
           )}
 
           {session.transcript && (
-            <AnnotatedTranscript
-              text={session.transcript.text}
-              wordCount={session.transcript.wordCount}
-              insights={session.insights}
-              metrics={session.metrics ?? []}
-              animationDelay={transcriptDelay}
-            />
+            <CollapsibleSection title="Annotated Transcript" defaultOpen={false} animationDelay={transcriptDelay}>
+              <AnnotatedTranscript
+                text={session.transcript.text}
+                wordCount={session.transcript.wordCount}
+                insights={session.insights}
+                metrics={session.metrics ?? []}
+                animationDelay={transcriptDelay}
+                embedded
+              />
+            </CollapsibleSection>
           )}
             </>
           )}

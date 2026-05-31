@@ -215,14 +215,14 @@ export function useRecordingPanel({
 
   const progressChunks = useMemo(
     () =>
-      Array.from({ length: Math.max(1, chunkIndex + 1) }, (_, index) => {
+      Array.from({ length: Math.max(1, recordState === 'recording' ? chunkIndex + 1 : chunkIndex) }, (_, index) => {
         const uploaded = chunks.find((chunk) => chunk.chunkIndex === index);
         return {
           chunkIndex: index,
           status: uploaded?.status ?? ('pending' as const),
         };
       }),
-    [chunkIndex, chunks],
+    [chunkIndex, chunks, recordState],
   );
 
   const error = captureError ?? uploadError ?? mobileError;
