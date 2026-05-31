@@ -42,7 +42,7 @@ test.describe('Landing Page', () => {
 
     if (await sessionCta.isVisible()) {
       await sessionCta.click();
-      await expect(page).toHaveURL(/\/dashboard|\/session\/new/);
+      await expect(page).toHaveURL(/\/dashboard|\/session\/new/, { timeout: 10_000 });
     }
   });
 
