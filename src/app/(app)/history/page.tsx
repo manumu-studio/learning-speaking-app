@@ -4,7 +4,7 @@ import { Suspense, useCallback, useState } from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { HistoryDayGroup } from '@/components/ui/HistoryDayGroup';
-import { DeleteSessionModal, useDeleteSessionModal } from '@/components/ui/DeleteSessionModal';
+import { DeleteSessionModal } from '@/components/ui/DeleteSessionModal';
 import { useSessionHistory } from '@/features/session/useSessionHistory';
 import type { DateFilter } from '@/features/session/useSessionHistory.types';
 
@@ -44,22 +44,18 @@ function HistoryContent() {
 
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [showDeleteToast, setShowDeleteToast] = useState(false);
-  const { isDeleting, deleteSession } = useDeleteSessionModal();
 
   const handleDeleteRequest = useCallback((sessionId: string) => {
     setDeleteTargetId(sessionId);
   }, []);
 
-  const handleDeleteConfirm = useCallback(async () => {
+  const handleDeleteConfirm = useCallback(() => {
     if (deleteTargetId === null) return;
-    const success = await deleteSession(deleteTargetId);
-    if (success) {
-      removeSession(deleteTargetId);
-      setDeleteTargetId(null);
-      setShowDeleteToast(true);
-      setTimeout(() => setShowDeleteToast(false), 3000);
-    }
-  }, [deleteTargetId, deleteSession, removeSession]);
+    removeSession(deleteTargetId);
+    setDeleteTargetId(null);
+    setShowDeleteToast(true);
+    setTimeout(() => setShowDeleteToast(false), 3000);
+  }, [deleteTargetId, removeSession]);
 
   const handleDeleteClose = useCallback(() => {
     setDeleteTargetId(null);
@@ -167,8 +163,7 @@ function HistoryContent() {
           isOpen
           sessionId={deleteTargetId}
           onClose={handleDeleteClose}
-          onConfirm={() => { void handleDeleteConfirm(); }}
-          isDeleting={isDeleting}
+          onConfirm={handleDeleteConfirm}
         />
       )}
 
