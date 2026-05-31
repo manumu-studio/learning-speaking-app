@@ -29,6 +29,7 @@ export function MetricCard({
   onSelect,
   lastTrainedToday,
   drillCount = 0,
+  pitchPreview,
 }: MetricCardProps) {
   const trendDisplay = TREND_DISPLAY[trend];
   const isSelectable = onSelect !== undefined;
@@ -73,6 +74,17 @@ export function MetricCard({
           height={28}
         />
       </div>
+      {pitchPreview !== undefined && pitchPreview.length > 1 && (
+        <div className="mt-2">
+          <p className="mb-1 text-xs text-slate-500 dark:text-slate-400">Recent pitch contour</p>
+          <SparkLine
+            data={pitchPreview}
+            color="#8b5cf6"
+            width={160}
+            height={24}
+          />
+        </div>
+      )}
       {drillCount > 0 ? (
         <span className="mt-2 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
           <svg

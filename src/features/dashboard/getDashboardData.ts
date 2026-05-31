@@ -33,6 +33,36 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   speakingRate: 'Speaking Rate',
 };
 
+/** Downsample voiced F0 frames into a normalized sparkline series */
+function downsamplePitchPreview(f0Hz: number[], targetPoints = 24): number[] {
+  const voiced = f0Hz.filter((value) => value > 0);
+  if (voiced.length < 2) {
+    return [];
+  }
+
+  const min = Math.min(...voiced);
+  const max = Math.max(...voiced);
+  const range = max - min || 1;
+  const normalized = voiced.map((value) => (value - min) / range);
+  const step = Math.max(1, Math.floor(normalized.length / targetPoints));
+
+  return normalized.filter((_, index) => index % step === 0).slice(0, targetPoints);
+}
+
+async function fetchRecentProsodyPitchPreview(userId: string): Promise<number[]> {
+  const latestFeature = await prisma.chunkFeature.findFirst({
+    where: { session: { userId, isOnboarding: false } },
+    orderBy: { createdAt: 'desc' },
+    select: { f0Hz: true },
+  });
+
+  if (!latestFeature) {
+    return [];
+  }
+
+  return downsamplePitchPreview(latestFeature.f0Hz);
+}
+
 /**
  * Loads and derives dashboard metrics for one user: weekly totals, streak, per-metric trends/history,
  * recent sessions, and drill aggregates. Call only after auth has resolved `userId`.
@@ -117,7 +147,10 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
   const weeklySessionCount = weeklySessions.length;
   const currentStreak = computeStreak(allSessions.map((s) => s.createdAt));
   const workoutWeeks = computeWorkoutWeeks(allSessions.map((s) => s.createdAt));
-  const personalRecords = await fetchAllTimePersonalRecords(userId);
+  const [personalRecords, recentProsodyPitchPreview] = await Promise.all([
+    fetchAllTimePersonalRecords(userId),
+    fetchRecentProsodyPitchPreview(userId),
+  ]);
 
   // Group snapshots by key client-side (single query instead of 6)
   const snapshotsByKey = new Map<MetricKey, Array<{ score: number; level: string }>>();
@@ -193,6 +226,7 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
     drillStats,
     personalRecords,
     totalWorkoutCount: totalSessions,
+    recentProsodyPitchPreview,
   };
 }
 

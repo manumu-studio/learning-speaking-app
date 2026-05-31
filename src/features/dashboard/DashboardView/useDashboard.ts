@@ -89,6 +89,7 @@ const dashboardDataSchema = z.object({
     }),
   ),
   totalWorkoutCount: z.number(),
+  recentProsodyPitchPreview: z.array(z.number()).default([]),
 });
 
 const FOCUS_STORAGE_KEY = 'lsa-focus';

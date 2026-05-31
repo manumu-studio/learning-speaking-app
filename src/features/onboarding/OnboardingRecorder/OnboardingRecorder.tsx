@@ -2,11 +2,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAudioRecorder } from '@/features/recording/useAudioRecorder';
+import { useAudioWorklet } from '@/features/recording/useAudioWorklet';
+import type { ChunkReadyEvent } from '@/features/recording/useAudioWorklet.types';
 import { useSileroVad } from '@/features/recording/useSileroVad';
 import { useSilenceDetector } from '@/features/recording/useSilenceDetector';
 import { useMobileRecording } from '@/features/recording/useMobileRecording';
 import { validateRecording } from '@/features/recording/validateRecording';
+import type { RecordingStatus } from '@/features/recording/recordingState.types';
+import type { VadPreflightWarning } from '@/features/recording/recordingState.types';
 import { RecordButton } from '@/components/ui/RecordButton';
 import { SessionTimer } from '@/components/ui/SessionTimer';
 import { AudioLevelMeter } from '@/components/ui/AudioLevelMeter';
@@ -18,57 +21,87 @@ import type { OnboardingRecorderProps } from './OnboardingRecorder.types';
 
 const MAX_DURATION_SECS = 60;
 const MIN_DURATION_SECS = 30;
+const WAV_MIME = 'audio/wav';
 
 export function OnboardingRecorder({ onComplete }: OnboardingRecorderProps) {
   const validationRunRef = useRef<string | null>(null);
   const [mobileError, setMobileError] = useState<string | null>(null);
   const [isPausedBySilence, setIsPausedBySilence] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [uiState, setUiState] = useState<RecordingStatus>('idle');
+  const [vadWarning, setVadWarning] = useState<VadPreflightWarning | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const { addSession } = useProcessingSessions();
   const { upload, isUploading, error: uploadError } = useOnboardingRecorder();
 
+  const handleChunkReady = useCallback((event: ChunkReadyEvent) => {
+    if (event.isFinal) {
+      setAudioBlob(event.wavBlob);
+    }
+  }, []);
+
   const {
-    state,
+    state: captureState,
     duration,
-    audioBlob,
-    mimeType,
     mediaStream,
-    vadWarning,
-    error: recordError,
+    error: captureError,
     startRecording,
     stopRecording,
-    completeValidation,
-    failValidation,
     resetRecording,
-    timeLimitSecs,
-  } = useAudioRecorder({
-    recordingMode: 'press-to-toggle',
-    maxDurationSecs: MAX_DURATION_SECS,
-    timeLimitSecs: MAX_DURATION_SECS,
-    isPaused: isPausedBySilence,
-    warningBeforeSplitSecs: 15,
+  } = useAudioWorklet({
+    onChunkReady: handleChunkReady,
+    chunkDurationSecs: MAX_DURATION_SECS,
   });
 
   const { isPausedBySilence: detectedSilence } = useSilenceDetector({
     stream: mediaStream,
-    isRecording: state === 'recording',
+    isRecording: captureState === 'recording',
   });
 
   useEffect(() => {
     setIsPausedBySilence(detectedSilence);
   }, [detectedSilence]);
 
+  useEffect(() => {
+    if (captureState === 'recording' || captureState === 'stopping') {
+      setUiState('recording');
+      return;
+    }
+    if (captureState === 'stopped' && audioBlob && uiState !== 'stopped') {
+      setUiState('validating');
+      return;
+    }
+    if (captureState === 'idle' || captureState === 'error') {
+      setUiState('idle');
+    }
+  }, [captureState, audioBlob, uiState]);
+
+  useEffect(() => {
+    if (captureState === 'recording' && duration >= MAX_DURATION_SECS) {
+      void stopRecording();
+    }
+  }, [captureState, duration, stopRecording]);
+
   const { startWithMobilePolish, stopWithMobilePolish } = useMobileRecording({
-    isRecording: state === 'recording',
+    isRecording: captureState === 'recording',
     mediaStream,
-    startRecording,
-    stopRecording,
+    startRecording: () => {
+      setAudioBlob(null);
+      setValidationError(null);
+      setVadWarning(null);
+      validationRunRef.current = null;
+      return startRecording();
+    },
+    stopRecording: () => {
+      void stopRecording();
+    },
     onInterrupted: setMobileError,
   });
 
   const { status: vadStatus, analyzeBlob, reset: resetVad } = useSileroVad();
   const isAnalyzing = vadStatus === 'loading' || vadStatus === 'running';
-  const error = recordError ?? uploadError ?? mobileError;
+  const error = captureError ?? uploadError ?? mobileError ?? validationError;
 
   const audioPreviewUrl = useMemo(() => {
     if (audioBlob) return URL.createObjectURL(audioBlob);
@@ -82,7 +115,7 @@ export function OnboardingRecorder({ onComplete }: OnboardingRecorderProps) {
   }, [audioPreviewUrl]);
 
   useEffect(() => {
-    if (state !== 'validating' || !audioBlob || !mimeType) return;
+    if (uiState !== 'validating' || !audioBlob) return;
 
     const runKey = `${audioBlob.size}-${duration}`;
     if (validationRunRef.current === runKey) return;
@@ -90,42 +123,62 @@ export function OnboardingRecorder({ onComplete }: OnboardingRecorderProps) {
 
     const runValidation = async () => {
       if (duration < MIN_DURATION_SECS) {
-        failValidation(
+        setValidationError(
           `Please speak for at least ${MIN_DURATION_SECS} seconds so we can build your voice profile.`,
         );
+        resetRecording();
+        setAudioBlob(null);
+        setUiState('idle');
         return;
       }
 
-      const validation = validateRecording({ durationSeconds: duration, blob: audioBlob, mimeType });
+      const validation = validateRecording({
+        durationSeconds: duration,
+        blob: audioBlob,
+        mimeType: WAV_MIME,
+      });
       if (!validation.valid) {
-        failValidation(validation.message);
+        setValidationError(validation.message);
+        resetRecording();
+        setAudioBlob(null);
+        setUiState('idle');
         return;
       }
 
       const vadResult = await analyzeBlob(audioBlob);
       if (vadResult.outcome === 'no-speech') {
-        failValidation(vadResult.message);
+        setValidationError(vadResult.message);
+        resetRecording();
+        setAudioBlob(null);
+        setUiState('idle');
         return;
       }
       if (vadResult.outcome === 'error') {
-        completeValidation(null);
+        setVadWarning(null);
+        setUiState('stopped');
         return;
       }
       if (vadResult.outcome === 'multi-voice') {
-        completeValidation({ message: vadResult.message, canProceed: true });
+        setVadWarning({ message: vadResult.message, canProceed: true });
+        setUiState('stopped');
         return;
       }
-      completeValidation(null);
+      setVadWarning(null);
+      setUiState('stopped');
     };
 
     void runValidation();
-  }, [state, audioBlob, mimeType, duration, analyzeBlob, completeValidation, failValidation]);
+  }, [uiState, audioBlob, duration, analyzeBlob, resetRecording]);
 
   const resetSession = useCallback(() => {
     resetRecording();
     resetVad();
     validationRunRef.current = null;
     setMobileError(null);
+    setAudioBlob(null);
+    setValidationError(null);
+    setVadWarning(null);
+    setUiState('idle');
   }, [resetRecording, resetVad]);
 
   const handleUpload = async () => {
@@ -147,20 +200,20 @@ export function OnboardingRecorder({ onComplete }: OnboardingRecorderProps) {
       </div>
 
       <div className="flex items-end justify-center gap-4 w-full">
-        {state === 'recording' && (
-          <AudioLevelMeter stream={mediaStream} isActive={state === 'recording'} />
+        {uiState === 'recording' && (
+          <AudioLevelMeter stream={mediaStream} isActive={uiState === 'recording'} />
         )}
         <SessionTimer
           seconds={duration}
-          isActive={state === 'recording'}
-          limitSecs={timeLimitSecs ?? MAX_DURATION_SECS}
+          isActive={uiState === 'recording'}
+          limitSecs={MAX_DURATION_SECS}
         />
       </div>
 
       <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
         <WaveformVisualizer stream={mediaStream} />
         <RecordButton
-          state={state}
+          state={uiState}
           recordingMode="press-to-toggle"
           onStart={startWithMobilePolish}
           onStop={stopWithMobilePolish}
@@ -174,24 +227,24 @@ export function OnboardingRecorder({ onComplete }: OnboardingRecorderProps) {
             <p className="text-sm text-amber-800 dark:text-amber-300">{error}</p>
           </div>
         )}
-        {!error && state === 'idle' && (
+        {!error && uiState === 'idle' && (
           <p className="text-gray-500 dark:text-gray-400">Press the button to start</p>
         )}
-        {!error && state === 'recording' && !isPausedBySilence && (
+        {!error && uiState === 'recording' && !isPausedBySilence && (
           <p className="font-medium text-gray-700 dark:text-gray-200">Recording…</p>
         )}
-        {!error && state === 'recording' && isPausedBySilence && (
+        {!error && uiState === 'recording' && isPausedBySilence && (
           <p className="text-amber-700 dark:text-amber-300">Paused — waiting for speech</p>
         )}
-        {!error && state === 'validating' && (
+        {!error && uiState === 'validating' && (
           <p className="text-blue-600 dark:text-blue-400">Checking recording…</p>
         )}
-        {isUploading && state === 'stopped' && (
+        {isUploading && uiState === 'stopped' && (
           <p className="text-blue-600 dark:text-blue-400">Uploading…</p>
         )}
       </div>
 
-      {audioPreviewUrl && state === 'stopped' && (
+      {audioPreviewUrl && uiState === 'stopped' && (
         <AudioPreviewPanel
           audioPreviewUrl={audioPreviewUrl}
           vadWarning={vadWarning}

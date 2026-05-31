@@ -2,8 +2,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
-import { useAudioRecorder } from '@/features/recording/useAudioRecorder';
+import { useCallback, useEffect, useRef } from 'react';
+import { useAudioWorklet } from '@/features/recording/useAudioWorklet';
 import { DrillTimer } from '@/features/training/DrillTimer';
 import { DrillPromptCard } from '@/features/training/DrillPromptCard';
 import { DrillFeedback } from '@/features/training/DrillFeedback';
@@ -26,15 +26,25 @@ export function DrillView({ drillId }: DrillViewProps) {
     tryAgain,
   } = useDrill(drillId);
 
-  const recorder = useAudioRecorder();
-  const recorderRef = useRef(recorder);
-  const stateRef = useRef(state);
+  const finalBlobRef = useRef<Blob | null>(null);
 
-  useLayoutEffect(() => {
-    recorderRef.current = recorder;
+  const worklet = useAudioWorklet({
+    onChunkReady: (event) => {
+      if (event.isFinal) {
+        finalBlobRef.current = event.wavBlob;
+      }
+    },
+    chunkDurationSecs: 300,
   });
 
-  useLayoutEffect(() => {
+  const workletRef = useRef(worklet);
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    workletRef.current = worklet;
+  });
+
+  useEffect(() => {
     stateRef.current = state;
   });
 
@@ -42,9 +52,9 @@ export function DrillView({ drillId }: DrillViewProps) {
 
   const handleRecordingTimerComplete = useCallback(() => {
     if (stateRef.current !== 'recording') return;
-    const r = recorderRef.current;
-    if (r.state === 'recording') {
-      r.stopRecording();
+    const recorder = workletRef.current;
+    if (recorder.state === 'recording') {
+      void recorder.stopRecording();
     }
   }, []);
 
@@ -65,13 +75,15 @@ export function DrillView({ drillId }: DrillViewProps) {
 
   useEffect(() => {
     if (state === 'prompt') {
-      recorderRef.current.resetRecording();
+      finalBlobRef.current = null;
+      workletRef.current.resetRecording();
     }
   }, [state]);
 
   useEffect(() => {
     if (state === 'recording') {
-      void recorderRef.current.startRecording();
+      finalBlobRef.current = null;
+      void workletRef.current.startRecording();
     }
   }, [state]);
 
@@ -80,12 +92,12 @@ export function DrillView({ drillId }: DrillViewProps) {
       submissionSentRef.current = false;
       return;
     }
-    const r = recorderRef.current;
-    if (r.state === 'stopped' && r.audioBlob && !submissionSentRef.current) {
+    const recorder = workletRef.current;
+    if (recorder.state === 'stopped' && finalBlobRef.current && !submissionSentRef.current) {
       submissionSentRef.current = true;
-      void submitDrillWithAudio(r.audioBlob);
+      void submitDrillWithAudio(finalBlobRef.current);
     }
-  }, [state, recorder.state, recorder.audioBlob, submitDrillWithAudio]);
+  }, [state, worklet.state, submitDrillWithAudio]);
 
   if (isLoading) {
     return (
@@ -154,16 +166,16 @@ export function DrillView({ drillId }: DrillViewProps) {
           <p className="text-center text-zinc-300" aria-live="polite" role="status">
             Recording… speak now.
           </p>
-          {recorder.error ? (
-            <p className="text-center text-sm text-amber-400">{recorder.error}</p>
+          {worklet.error ? (
+            <p className="text-center text-sm text-amber-400">{worklet.error}</p>
           ) : null}
           <button
             type="button"
             aria-label="Stop recording"
             onClick={() => {
-              const r = recorderRef.current;
-              if (r.state === 'recording') {
-                r.stopRecording();
+              const recorder = workletRef.current;
+              if (recorder.state === 'recording') {
+                void recorder.stopRecording();
               }
             }}
             className="w-full rounded-lg bg-red-600 py-3 text-sm font-medium text-white transition-colors hover:bg-red-500"

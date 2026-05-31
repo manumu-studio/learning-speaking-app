@@ -53,7 +53,11 @@ function SpeakingMetricCardItem({ metric, context }: SpeakingMetricCardItemProps
   );
 }
 
-function PronunciationMetricCardItem({ metric, drillCount }: PronunciationMetricCardItemProps) {
+function PronunciationMetricCardItem({
+  metric,
+  drillCount,
+  pitchPreview,
+}: PronunciationMetricCardItemProps) {
   return (
     <MetricCard
       metricKey={metric.key}
@@ -65,6 +69,7 @@ function PronunciationMetricCardItem({ metric, drillCount }: PronunciationMetric
       isSelected={false}
       lastTrainedToday={metric.lastTrainedToday}
       drillCount={drillCount}
+      pitchPreview={metric.key === 'prosodyScore' ? pitchPreview : undefined}
     />
   );
 }
@@ -117,6 +122,11 @@ function PillarCardWithState({
               key={metric.key}
               metric={metric}
               drillCount={metricContext.data.drillStats.byMetric[metric.key]}
+              pitchPreview={
+                metric.key === 'prosodyScore'
+                  ? metricContext.data.recentProsodyPitchPreview
+                  : undefined
+              }
             />
           ) : (
             <SpeakingMetricCardItem

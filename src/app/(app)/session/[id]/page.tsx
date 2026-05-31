@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/PronunciationSection';
 import { WordColorMap } from '@/components/ui/WordColorMap';
 import { ProsodyPanel } from '@/components/ui/ProsodyPanel';
+import { ProsodyFeedback } from '@/components/ui/ProsodyFeedback';
 import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
 import { PronunciationProgress, PronunciationHistorySchema } from '@/components/ui/PronunciationProgress';
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
@@ -36,7 +37,21 @@ import { useSessionStatus } from '@/features/session/useSessionStatus';
 import type { SessionDetail, SessionMetricSnapshot } from '@/features/session/useSessionStatus.types';
 import { DrillRecommendation } from '@/features/training/DrillRecommendation';
 import type { DrillType } from '@/features/training/training.types';
+import type { ProcessingPartialData } from '@/components/ui/ProcessingStatus';
 import styles from './SessionResults.module.css';
+
+function buildPartialData(
+  session: SessionDetail,
+  hasPitchContour: boolean,
+): ProcessingPartialData {
+  return {
+    hasTranscript: session.transcript !== undefined && session.transcript !== null,
+    hasPronunciation:
+      session.pronunciationReport !== undefined && session.pronunciationReport !== null,
+    hasInsights: session.insights.length > 0,
+    hasPitchContour,
+  };
+}
 
 // Metric key to human-readable label mapping
 const METRIC_LABELS: Record<string, string> = {
@@ -219,7 +234,9 @@ function SessionContent({
   const [focusComparison, setFocusComparison] = useState<FocusComparison | null>(null);
   const [pronunciationHistory, setPronunciationHistory] = useState<HistoryItem[]>([]);
   const [resultsView, setResultsView] = useState<'overall' | 'segments'>('overall');
-  const pitchState = usePitchContour(isDone ? id : '');
+  const pitchState = usePitchContour(
+    session !== null && session.status !== 'FAILED' ? id : '',
+  );
 
   useEffect(() => {
     const focusKey = session?.focusMetricKey;
@@ -281,6 +298,21 @@ function SessionContent({
   }
 
   if (isProcessing && session) {
+    const partialData = buildPartialData(
+      session,
+      pitchState.status === 'ready',
+    );
+    const partialPronunciation = (() => {
+      if (
+        session.pronunciationReport === null ||
+        session.pronunciationReport === undefined
+      ) {
+        return null;
+      }
+      const result = PronunciationReportSchema.safeParse(session.pronunciationReport);
+      return result.success ? result.data : null;
+    })();
+
     return (
       <Container>
         <h1 className="mb-6 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -289,7 +321,47 @@ function SessionContent({
         <ProcessingStatus
           status={session.status}
           onRetry={retry}
+          partialData={partialData}
         />
+
+        {session.transcript && (
+          <div className="mt-8">
+            <AnnotatedTranscript
+              text={session.transcript.text}
+              wordCount={session.transcript.wordCount}
+              insights={session.insights}
+              metrics={session.metrics ?? []}
+              animationDelay={0}
+            />
+          </div>
+        )}
+
+        {partialPronunciation !== null && (
+          <div className="mt-8 space-y-6">
+            <PronunciationSection
+              pronunciationReport={partialPronunciation}
+              animationDelay={100}
+            />
+            <WordColorMap words={partialPronunciation.words} animationDelay={150} />
+            <ProsodyFeedback
+              words={partialPronunciation.words}
+              prosodyScore={partialPronunciation.prosodyScore}
+              animationDelay={200}
+            />
+          </div>
+        )}
+
+        {session.insights.length > 0 && (
+          <div className="mt-8">
+            <InsightsList insights={session.insights} baseDelay={250} />
+          </div>
+        )}
+
+        {pitchState.status === 'ready' && (
+          <div className="mt-8">
+            <PitchContour contour={pitchState.contour} animationDelay={300} />
+          </div>
+        )}
       </Container>
     );
   }
@@ -495,6 +567,11 @@ function SessionContent({
               <WordColorMap
                 words={pronunciationReport.words}
                 animationDelay={wordColorMapDelay}
+              />
+              <ProsodyFeedback
+                words={pronunciationReport.words}
+                prosodyScore={pronunciationReport.prosodyScore}
+                animationDelay={wordColorMapDelay + 50}
               />
               <ProsodyPanel
                 words={pronunciationReport.words}

@@ -38,7 +38,6 @@ export function useRecordingPanel({
     chunks,
     uploadChunk,
     completeSession,
-    ensureSession,
     isUploading,
     error: uploadError,
     resetUploader,
@@ -70,15 +69,10 @@ export function useRecordingPanel({
     isRecording: recordState === 'recording',
   });
 
-  const startWithSession = useCallback(async () => {
-    await ensureSession();
-    await startRecording();
-  }, [ensureSession, startRecording]);
-
   const { startWithMobilePolish, stopWithMobilePolish } = useMobileRecording({
     isRecording: recordState === 'recording',
     mediaStream,
-    startRecording: () => startWithSession(),
+    startRecording: () => startRecording(),
     stopRecording: () => {
       void stopRecording();
     },

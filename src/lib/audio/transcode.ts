@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import ffmpegPath from 'ffmpeg-static';
 
 /**
- * Converts any audio format Buffer (typically WebM/Opus from browser MediaRecorder)
+ * Converts any audio format Buffer (typically WebM/Opus from browser recordings)
  * to a PCM 16kHz mono 16-bit WAV Buffer suitable for the Azure Speech SDK.
  *
  * Uses ffmpeg-static -- no system ffmpeg required.

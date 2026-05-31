@@ -5,36 +5,31 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProcessingSessionsProvider } from '@/features/session/ProcessingSessionsContext';
 import { RecordingPanel } from './RecordingPanel';
 
-vi.mock('@/features/recording/useAudioRecorder', () => ({
-  useAudioRecorder: () => ({
+vi.mock('@/features/recording/useAudioWorklet', () => ({
+  useAudioWorklet: () => ({
     state: 'idle' as const,
     duration: 0,
-    audioBlob: null,
-    mimeType: null,
+    chunkIndex: 0,
     mediaStream: null,
-    vadWarning: null,
+    captureMode: 'audioworklet' as const,
     error: null,
-    recordingMode: 'press-to-toggle' as const,
+    warnings: [],
     startRecording: vi.fn().mockResolvedValue(undefined),
-    stopRecording: vi.fn(),
-    completeValidation: vi.fn(),
-    failValidation: vi.fn(),
+    stopRecording: vi.fn().mockResolvedValue(undefined),
     resetRecording: vi.fn(),
-    segmentIndex: 0,
-    isAutoSegmenting: false,
-    secondsUntilSplit: null,
-    timeLimitSecs: null,
   }),
 }));
 
-vi.mock('@/features/recording/useSegmentUploader', () => ({
-  useSegmentUploader: () => ({
-    segments: [],
-    uploadSegment: vi.fn(),
-    totalUploaded: 0,
-    totalFailed: 0,
+vi.mock('@/features/recording/useChunkUploader', () => ({
+  useChunkUploader: () => ({
+    chunks: [],
+    sessionId: null,
+    uploadChunk: vi.fn(),
+    completeSession: vi.fn().mockResolvedValue(null),
+    ensureSession: vi.fn().mockResolvedValue('session-id'),
     isUploading: false,
-    latestSessionId: null,
+    error: null,
+    resetUploader: vi.fn(),
   }),
 }));
 
@@ -43,14 +38,6 @@ vi.mock('@/features/recording/useSileroVad', () => ({
     status: 'idle' as const,
     analyzeBlob: vi.fn().mockResolvedValue({ outcome: 'speech-detected' }),
     reset: vi.fn(),
-  }),
-}));
-
-vi.mock('@/features/session', () => ({
-  useUploadSession: () => ({
-    upload: vi.fn().mockResolvedValue('session-id'),
-    isUploading: false,
-    error: null,
   }),
 }));
 

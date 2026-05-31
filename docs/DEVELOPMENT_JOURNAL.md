@@ -131,3 +131,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.47.1 | [PR-0.47.1](pull-requests/PR-0.47.1.md) | 2026-05-30 | Chunked pipeline reliability + ChunkFeature stub |
 | 0.49.0 | [ENTRY-54](journal/ENTRY-54.md) | 2026-05-30 | Pitch contour — parselmouth service, ChunkFeature, SVG viz |
 | 0.49.0 | [PR-0.49.0](pull-requests/PR-0.49.0.md) | 2026-05-30 | Pitch contour visualization |
+| 0.50.0 | [ENTRY-55](journal/ENTRY-55.md) | 2026-05-31 | Recording UX — fast path, prosody UI, MediaRecorder removal |
+| 0.50.0 | [PR-0.50.0](pull-requests/PR-0.50.0.md) | 2026-05-31 | Two-tier recording + progressive results |

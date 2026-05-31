@@ -10,7 +10,7 @@ export const MAX_DURATION_SECONDS = 300;
 export const MIN_BLOB_BYTES = 500;
 export const MAX_BLOB_BYTES = 25 * 1024 * 1024;
 
-const ALLOWED_MIME_PREFIXES = ['audio/webm', 'audio/mp4', 'audio/ogg'] as const;
+const ALLOWED_MIME_PREFIXES = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav'] as const;
 
 function failure(
   code: ValidationFailure['code'],
