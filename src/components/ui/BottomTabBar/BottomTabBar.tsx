@@ -46,7 +46,7 @@ export function BottomTabBar({ onMorePress }: BottomTabBarProps) {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-md dark:border-gray-800 dark:bg-black/95 md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-black/95 md:hidden"
     >
       <div className="flex items-center justify-around h-14 px-2">
         {tabs.map(({ href, label, icon }) => {
@@ -58,8 +58,8 @@ export function BottomTabBar({ onMorePress }: BottomTabBarProps) {
               href={href}
               className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
                 isActive
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-sky-600 dark:text-sky-400'
+                  : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <TabIcon icon={icon} className="h-5 w-5" />

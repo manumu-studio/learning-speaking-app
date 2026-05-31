@@ -23,8 +23,8 @@ interface StatColumnProps {
 function StatColumn({ value, label }: StatColumnProps) {
   return (
     <div className="flex flex-col items-center gap-1 min-w-[60px]">
-      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</span>
-      <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</span>
+      <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+      <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</span>
     </div>
   );
 }
@@ -42,15 +42,15 @@ export function SessionHeader({
 
   return (
     <div
-      className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-6"
+      className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm p-6"
       style={style}
     >
       {workoutNumber !== undefined && (
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">
           Workout #{workoutNumber}
         </p>
       )}
-      <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed mb-5">
+      <p className="text-slate-700 dark:text-slate-300 text-base leading-relaxed mb-5">
         {summary ?? 'Workout analysis complete.'}
       </p>
 

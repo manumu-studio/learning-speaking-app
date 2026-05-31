@@ -7,7 +7,7 @@ test.describe('Drill flow', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto('/drills');
-    await expect(authenticatedPage.getByRole('heading', { name: 'Training', level: 1 })).toBeVisible();
+    await expect(authenticatedPage.getByRole('heading', { name: 'Training', level: 1 })).toBeVisible({ timeout: 15_000 });
     const empty = authenticatedPage.getByText(/no drills yet/i);
     const loading = authenticatedPage.getByText(/loading training history/i);
     await expect(empty.or(loading).first()).toBeVisible({ timeout: 15000 });

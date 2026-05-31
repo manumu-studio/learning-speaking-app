@@ -154,8 +154,8 @@ export function DashboardView({ className }: DashboardViewProps) {
 
   if (error) {
     return (
-      <div className={`rounded-xl bg-white p-8 text-center ${className ?? ''}`}>
-        <p className="text-slate-500">Unable to load dashboard. We&apos;ll fix this — check back soon.</p>
+      <div className={`rounded-xl bg-white p-8 text-center dark:bg-slate-800 ${className ?? ''}`}>
+        <p className="text-slate-500 dark:text-slate-400">Unable to load dashboard. We&apos;ll fix this — check back soon.</p>
       </div>
     );
   }
