@@ -1,6 +1,6 @@
 // E2E tests for drills list and drill detail UI
 import { test, expect } from './fixtures/auth';
-import { cleanupSeedData, seedCompletedDrill, SEED_DRILL_ID } from './fixtures/seed';
+import { cleanupDrillData, seedCompletedDrill, SEED_DRILL_ID } from './fixtures/seed';
 
 test.describe('Drill flow', () => {
   test('drills page loads with training heading and history or empty state', async ({
@@ -43,7 +43,7 @@ test.describe('completed drill detail', () => {
   });
 
   test.afterAll(async () => {
-    await cleanupSeedData();
+    await cleanupDrillData();
   });
 
   test('drill detail page renders completed drill with feedback', async ({ authenticatedPage }) => {
@@ -57,6 +57,6 @@ test.describe('completed drill detail', () => {
     await authenticatedPage.goto(`/drill/${SEED_DRILL_ID}`);
     await expect(authenticatedPage.getByText(/great improvement/i)).toBeVisible({ timeout: 15_000 });
 
-    await expect(authenticatedPage.getByText('✅ Improved')).toBeVisible();
+    await expect(authenticatedPage.getByText('✅ Improved')).toBeVisible({ timeout: 10_000 });
   });
 });

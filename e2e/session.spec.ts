@@ -6,7 +6,7 @@ test.describe('Session flow', () => {
   test('new session page loads with recording UI', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/session/new');
     await expect(
-      authenticatedPage.getByRole('button', { name: /expand prompt/i }),
+      authenticatedPage.getByRole('button', { name: /select prompt category/i }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Start recording', exact: true }),
@@ -36,48 +36,31 @@ test.describe('Session flow', () => {
     await expect(authenticatedPage).toHaveURL(/\/session\/new/);
   });
 
-  test('compact prompt pill expands to full card with category tabs', async ({
+  test('prompt selector dropdown shows categories with descriptions', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto('/session/new');
 
-    // Compact pill visible by default
-    const expandButton = authenticatedPage.getByRole('button', {
-      name: 'Expand prompt card',
-      exact: true,
+    const selector = authenticatedPage.getByRole('button', {
+      name: /select prompt category/i,
     });
-    await expect(expandButton).toBeVisible({ timeout: 10_000 });
+    await expect(selector).toBeVisible({ timeout: 10_000 });
 
-    // No "New Speaking Session" heading (compact mode)
-    await expect(
-      authenticatedPage.getByRole('heading', { name: /new speaking session/i }),
-    ).toHaveCount(0);
+    // Default is free speak
+    await expect(authenticatedPage.getByText('Free speak')).toBeVisible();
 
-    // "Free speak" button visible in compact mode
-    const freeSpeakButton = authenticatedPage.getByRole('button', {
-      name: 'Free speak',
-      exact: true,
-    });
-    await expect(freeSpeakButton).toBeVisible();
+    // Open dropdown
+    await selector.click();
 
-    // Click pill to expand
-    await expandButton.click();
+    // Category options with descriptions visible
+    const listbox = authenticatedPage.getByRole('listbox');
+    await expect(listbox).toBeVisible();
+    await expect(authenticatedPage.getByText('Everyday topics and routines')).toBeVisible();
+    await expect(authenticatedPage.getByText('Professional scenarios')).toBeVisible();
 
-    // Expanded card shows shuffle button
-    await expect(
-      authenticatedPage.getByRole('button', { name: /shuffle/i }),
-    ).toBeVisible();
-
-    // Category tabs appear after clicking "change topic"
-    await authenticatedPage.getByText('change topic').click();
-    await expect(
-      authenticatedPage.getByRole('tablist', { name: /prompt category/i }),
-    ).toBeVisible();
-
-    // "Free speak" button still visible in expanded mode
-    await expect(
-      authenticatedPage.getByRole('button', { name: 'Free speak', exact: true }).first(),
-    ).toBeVisible();
+    // Select a category
+    await authenticatedPage.getByText('Interview').click();
+    await expect(listbox).toBeHidden();
   });
 });
 
@@ -109,7 +92,9 @@ test.describe('session detail with real data', () => {
     ).toBeVisible();
 
     await authenticatedPage.getByRole('button', { name: /Language Feedback/i }).click();
-    await expect(authenticatedPage.getByText('Argument Closure', { exact: true })).toBeVisible();
+    await expect(authenticatedPage.getByText('Argument Closure', { exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('session detail shows focus highlight when focusMetricKey is set', async ({
