@@ -23,10 +23,8 @@ import type { RecordingPanelProps } from './RecordingPanel.types';
 
 export function RecordingPanel(props: RecordingPanelProps) {
   const [activeCategory, setActiveCategory] = useState<PromptCategory>('daily');
-  const [isFreeSpeak, setIsFreeSpeak] = useState(false);
-  const [selectedPrompt, setSelectedPrompt] = useState<SpeakingPrompt | null>(() =>
-    pickRandomPrompt('daily'),
-  );
+  const [isFreeSpeak, setIsFreeSpeak] = useState(true);
+  const [selectedPrompt, setSelectedPrompt] = useState<SpeakingPrompt | null>(null);
 
   const {
     todaySessionCount,
@@ -65,19 +63,19 @@ export function RecordingPanel(props: RecordingPanelProps) {
     isActive: recordState === 'recording',
   });
 
-  const { completedChunks } = useProgressiveResults({
+  useProgressiveResults({
     sessionId,
     isRecording: recordState === 'recording',
     elapsedSecs: duration,
   });
 
+  // Auto-save toast (triggered when a new chunk completes)
   const [showAutoSaveToast, setShowAutoSaveToast] = useState(false);
   const prevChunkIndex = useRef(chunkIndex);
   useEffect(() => {
     if (chunkIndex > prevChunkIndex.current && recordState === 'recording') {
       const timer = setTimeout(() => setShowAutoSaveToast(false), 3000);
       prevChunkIndex.current = chunkIndex;
-      // Deferred to avoid synchronous setState in effect body
       queueMicrotask(() => setShowAutoSaveToast(true));
       return () => clearTimeout(timer);
     }
@@ -85,11 +83,51 @@ export function RecordingPanel(props: RecordingPanelProps) {
     return undefined;
   }, [chunkIndex, recordState]);
 
-  const handleShufflePrompt = useCallback(() => {
-    setSelectedPrompt((current) =>
-      pickRandomPrompt(activeCategory, current?.id),
-    );
-  }, [activeCategory]);
+  // Wake Lock — prevent screen from dimming during recording
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  useEffect(() => {
+    if (recordState !== 'recording' && !isPaused) {
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+      return;
+    }
+    if (recordState === 'recording' && 'wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(
+        (lock) => { wakeLockRef.current = lock; },
+        () => {},
+      );
+    }
+    return () => {
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+    };
+  }, [recordState, isPaused]);
+
+  // Media Session API — AirPods / headphone play/pause control
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+
+    if (recordState === 'recording' || isPaused) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Recording workout',
+        artist: 'Learning Speaking App',
+      });
+      navigator.mediaSession.playbackState = isPaused ? 'paused' : 'playing';
+
+      const handlePlay = () => { if (isPaused) resumeRecording(); };
+      const handlePause = () => { if (recordState === 'recording' && canPause) pauseRecording(); };
+
+      navigator.mediaSession.setActionHandler('play', handlePlay);
+      navigator.mediaSession.setActionHandler('pause', handlePause);
+
+      return () => {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+        navigator.mediaSession.playbackState = 'none';
+      };
+    }
+    return undefined;
+  }, [recordState, isPaused, canPause, pauseRecording, resumeRecording]);
 
   const handleCategoryChange = useCallback((category: PromptCategory) => {
     setActiveCategory(category);
@@ -98,7 +136,11 @@ export function RecordingPanel(props: RecordingPanelProps) {
   }, []);
 
   const handleFreeSpeakToggle = useCallback(() => {
-    setIsFreeSpeak((prev) => !prev);
+    setIsFreeSpeak((prev) => {
+      if (prev) return prev;
+      setSelectedPrompt(null);
+      return true;
+    });
   }, []);
 
   if (typeof window !== 'undefined' && !navigator.mediaDevices?.getUserMedia) {
@@ -123,7 +165,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
       : 'Press the button to start — no time limit';
 
   return (
-    <div className="flex flex-col items-center justify-center py-4 sm:py-12 space-y-4 sm:space-y-8 w-full max-w-md mx-auto px-4 min-h-[calc(100vh-8rem)] sm:min-h-0">
+    <div className="flex flex-col items-center justify-center py-2 sm:py-6 space-y-3 sm:space-y-5 w-full max-w-md mx-auto px-4">
       <RecordingContext
         todaySessionCount={todaySessionCount}
         nextRecordingNumber={nextRecordingNumber}
@@ -133,7 +175,6 @@ export function RecordingPanel(props: RecordingPanelProps) {
       <PromptCard
         prompt={isFreeSpeak ? null : selectedPrompt}
         activeCategory={activeCategory}
-        onShuffle={handleShufflePrompt}
         onCategoryChange={handleCategoryChange}
         onFreeSpeakToggle={handleFreeSpeakToggle}
         isFreeSpeak={isFreeSpeak}
@@ -174,7 +215,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
         </div>
       )}
 
-      <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center flex-1 justify-center">
+      <div className="flex w-full flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <WaveformVisualizer stream={mediaStream} />
         <div className="flex flex-col items-center gap-3">
           <RecordButton
@@ -226,36 +267,6 @@ export function RecordingPanel(props: RecordingPanelProps) {
         </div>
       )}
 
-      {completedChunks.length > 0 && (
-        <div className="mt-4 w-full rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300">
-            Results building up
-          </p>
-          <ul className="space-y-2">
-            {completedChunks.map((chunk) => (
-              <li key={chunk.chunkIndex} className="flex items-start gap-3 text-sm">
-                <span className="mt-0.5 shrink-0 text-green-500" aria-hidden="true">&#10003;</span>
-                <div>
-                  <span className="font-medium text-gray-800 dark:text-gray-200">
-                    Segment {chunk.chunkIndex + 1}
-                  </span>
-                  {chunk.transcriptSnippet && (
-                    <p className="mt-0.5 text-xs italic text-gray-600 dark:text-gray-400">
-                      &ldquo;{chunk.transcriptSnippet}&rdquo;
-                    </p>
-                  )}
-                  {chunk.pronScore !== null && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Pronunciation: {Math.round(chunk.pronScore)}
-                    </p>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {(recordState === 'recording' || isPaused) && (
         <button
           type="button"
@@ -269,25 +280,19 @@ export function RecordingPanel(props: RecordingPanelProps) {
         </button>
       )}
 
-      <div className="text-center min-h-[60px] w-full" aria-live="polite" role="status">
+      <div className="text-center min-h-10 w-full" aria-live="polite" role="status">
         {error && (
-          <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md mx-auto">
+          <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-3 max-w-md mx-auto">
             <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
           </div>
         )}
 
         {!error && recordState === 'idle' && (
-          <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg">{idleHint}</p>
-        )}
-
-        {!error && recordState === 'recording' && !isPausedBySilence && (
-          <p className="text-gray-700 dark:text-gray-200 text-base sm:text-lg font-medium">
-            Speaking... chunks upload automatically every 2 minutes
-          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">{idleHint}</p>
         )}
 
         {!error && recordState === 'recording' && isPausedBySilence && !silenceWarningActive && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/50">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-950/50">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
               Paused — no speech detected
             </p>
@@ -295,13 +300,13 @@ export function RecordingPanel(props: RecordingPanelProps) {
         )}
 
         {!error && isPaused && (
-          <p className="text-emerald-600 dark:text-emerald-400 text-base sm:text-lg font-medium">
+          <p className="text-emerald-600 dark:text-emerald-400 text-sm sm:text-base font-medium">
             Tap to resume recording
           </p>
         )}
 
         {!error && recordState === 'stopped' && (
-          <p className="text-blue-600 dark:text-blue-400 text-base sm:text-lg font-medium">
+          <p className="text-blue-600 dark:text-blue-400 text-sm sm:text-base font-medium">
             Finalizing session...
           </p>
         )}
