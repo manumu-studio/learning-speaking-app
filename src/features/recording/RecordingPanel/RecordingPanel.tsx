@@ -1,7 +1,7 @@
 // Main recording interface — chunked AudioWorklet capture with background upload
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RecordButton } from '@/components/ui/RecordButton';
 import { SessionTimer } from '@/components/ui/SessionTimer';
 import { AudioLevelMeter } from '@/components/ui/AudioLevelMeter';
@@ -12,7 +12,6 @@ import {
   type PromptCategory,
   type SpeakingPrompt,
 } from '@/features/recording/prompts.config';
-import { ChunkProgressBar } from '@/components/ui/ChunkProgressBar';
 import {
   RecordingContext,
   useRecordingContext,
@@ -42,9 +41,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
     chunkIndex,
     mediaStream,
     warnings,
-    progressChunks,
     isPausedBySilence,
-    isUploading,
     error,
     startWithMobilePolish,
     stopWithMobilePolish,
@@ -62,6 +59,20 @@ export function RecordingPanel(props: RecordingPanelProps) {
     isRecording: recordState === 'recording',
     elapsedSecs: duration,
   });
+
+  const [showAutoSaveToast, setShowAutoSaveToast] = useState(false);
+  const prevChunkIndex = useRef(chunkIndex);
+  useEffect(() => {
+    if (chunkIndex > prevChunkIndex.current && recordState === 'recording') {
+      const timer = setTimeout(() => setShowAutoSaveToast(false), 3000);
+      prevChunkIndex.current = chunkIndex;
+      // Deferred to avoid synchronous setState in effect body
+      queueMicrotask(() => setShowAutoSaveToast(true));
+      return () => clearTimeout(timer);
+    }
+    prevChunkIndex.current = chunkIndex;
+    return undefined;
+  }, [chunkIndex, recordState]);
 
   const handleShufflePrompt = useCallback(() => {
     setSelectedPrompt((current) =>
@@ -135,14 +146,13 @@ export function RecordingPanel(props: RecordingPanelProps) {
           <AudioLevelMeter stream={mediaStream} isActive={recordState === 'recording'} />
         )}
         <SessionTimer seconds={duration} isActive={recordState === 'recording'} />
-        {chunkIndex > 0 && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-            Chunk {chunkIndex + 1}
-          </span>
-        )}
       </div>
 
-      <ChunkProgressBar chunks={progressChunks} activeChunkIndex={chunkIndex} />
+      {showAutoSaveToast && (
+        <div className="animate-fade-in-out rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
+          ✓ Auto-saved
+        </div>
+      )}
 
       <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
         <WaveformVisualizer stream={mediaStream} />
@@ -151,7 +161,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
           recordingMode={recordingMode}
           onStart={startWithMobilePolish}
           onStop={stopWithMobilePolish}
-          disabled={isUploading}
+          disabled={recordState === 'recording' && duration < 45}
         />
       </div>
 

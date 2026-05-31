@@ -1,8 +1,8 @@
-// PronunciationSection: top-level container showing score tier badges and speaking rate for a pronunciation report
+// PronunciationSection: top-level container showing score tier badges for a pronunciation report
 'use client';
 
 import React from 'react';
-import type { PronunciationSectionProps, WpmStatus } from './PronunciationSection.types';
+import type { PronunciationSectionProps } from './PronunciationSection.types';
 import { ScoreTierBadge } from '@/components/ui/ScoreTierBadge';
 
 export function PronunciationSection({
@@ -16,7 +16,6 @@ export function PronunciationSection({
     fluencyScore,
     completenessScore,
     prosodyScore,
-    speakingRateWpm,
     failureReason,
   } = pronunciationReport;
 
@@ -27,14 +26,6 @@ export function PronunciationSection({
     { label: 'Completeness', azureScore: completenessScore },
     { label: 'Prosody', azureScore: prosodyScore },
   ] as const;
-
-  const wpmStatus: WpmStatus =
-    speakingRateWpm >= 110 && speakingRateWpm <= 140 ? 'ideal' : 'outside-ideal';
-
-  const wpmColorClass =
-    wpmStatus === 'ideal'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
 
   return (
     <section
@@ -97,21 +88,6 @@ export function PronunciationSection({
           ))}
         </div>
       </details>
-
-      <div className="flex items-center gap-2 mt-6">
-        <span className="text-sm text-gray-600 dark:text-gray-400">Speaking rate:</span>
-        <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${wpmColorClass}`}>
-          {Math.round(speakingRateWpm)} words/min
-        </span>
-        {wpmStatus === 'ideal' && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">(ideal range)</span>
-        )}
-        {wpmStatus === 'outside-ideal' && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            (ideal: 110-140 wpm)
-          </span>
-        )}
-      </div>
     </section>
   );
 }

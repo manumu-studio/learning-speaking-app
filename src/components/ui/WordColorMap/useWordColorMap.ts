@@ -14,7 +14,8 @@ const NON_BLOCKING_L1_TAGS = new Set([
 function computeWordColor(word: WordPronunciation): WordColor {
   if (word.errorType === 'Insertion') return 'gray-italic';
 
-  if (word.errorType === 'Mispronunciation' || word.errorType === 'Omission') return 'amber';
+  if (word.errorType === 'Omission') return 'amber';
+  if (word.errorType === 'Mispronunciation' && word.accuracyScore < 60) return 'amber';
 
   const allL1NonBlocking =
     word.l1Tags.length > 0 && word.l1Tags.every((tag) => NON_BLOCKING_L1_TAGS.has(tag));

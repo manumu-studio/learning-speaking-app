@@ -9,9 +9,9 @@ import { useWordColorMap } from './useWordColorMap';
 
 const COLOR_CLASSES: Record<WordColor, string> = {
   green: 'text-green-700 dark:text-green-400',
-  yellow: 'text-yellow-700 dark:text-yellow-400',
-  amber: 'text-amber-700 dark:text-amber-400',
-  'gray-italic': 'text-gray-400 italic dark:text-gray-500',
+  yellow: 'text-yellow-600 dark:text-yellow-400',
+  amber: 'text-rose-600 dark:text-rose-400',
+  'gray-italic': 'text-gray-500 italic dark:text-gray-400',
 } as const;
 
 export function WordColorMap({
@@ -76,22 +76,22 @@ export function WordColorMap({
         })}
       </div>
 
-      <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
+      <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
         <span className="flex items-center gap-1">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500" />
-          Good (≥80)
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-400" />
+          Clear
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-yellow-500" />
-          Building (60-79 or accent)
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-yellow-400" />
+          Accented
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
-          Sharpen (&lt;60)
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-400" />
+          Needs work
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-400" />
-          Extra word
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gray-500" />
+          Inserted
         </span>
       </div>
     </section>

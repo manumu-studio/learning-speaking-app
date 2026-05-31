@@ -56,8 +56,19 @@ describe('ProsodyFeedback', () => {
 
   it('shows intonation indicator on words with intonation errors', () => {
     const words = [makeWord({ word: 'test', intonationErrorTypes: ['MonotonePitch'] })];
-    render(<ProsodyFeedback words={words} prosodyScore={6} animationDelay={0} />);
-    expect(screen.getByText('↕')).toBeInTheDocument();
+    const { container } = render(
+      <ProsodyFeedback words={words} prosodyScore={6} animationDelay={0} />,
+    );
+    const indicators = container.querySelectorAll('[aria-label*="intonation issue"]');
+    expect(indicators.length).toBeGreaterThan(0);
+  });
+
+  it('renders visible legend for prosody indicators', () => {
+    render(<ProsodyFeedback words={[makeWord()]} prosodyScore={8} animationDelay={0} />);
+    expect(screen.getByLabelText('Prosody indicator legend')).toBeInTheDocument();
+    expect(screen.getByText('Pause / break issue')).toBeInTheDocument();
+    expect(screen.getByText('Intonation issue')).toBeInTheDocument();
+    expect(screen.getByText('Monotone pitch')).toBeInTheDocument();
   });
 
   it('shows break indicator on words with break errors', () => {
@@ -70,8 +81,11 @@ describe('ProsodyFeedback', () => {
 
   it('shows monotone indicator when pitch delta is below threshold', () => {
     const words = [makeWord({ word: 'flat', monotonePitchDelta: 0.1 })];
-    render(<ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />);
-    expect(screen.getByText('~')).toBeInTheDocument();
+    const { container } = render(
+      <ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />,
+    );
+    const indicators = container.querySelectorAll('[aria-label*="monotone pitch"]');
+    expect(indicators.length).toBeGreaterThan(0);
   });
 
   it('shows monotone coaching tip when monotone pattern detected', () => {
@@ -114,8 +128,11 @@ describe('ProsodyFeedback', () => {
         monotonePitchDelta: 0.1,
       }),
     ];
-    render(<ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />);
-    expect(screen.getByText('↕')).toBeInTheDocument();
-    expect(screen.queryByText('~')).not.toBeInTheDocument();
+    const { container } = render(
+      <ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />,
+    );
+    const wordSpan = container.querySelector('[aria-label="both, intonation issue, monotone pitch"]');
+    expect(wordSpan?.querySelector('.text-amber-600')).toBeInTheDocument();
+    expect(wordSpan?.querySelector('.text-blue-500')).not.toBeInTheDocument();
   });
 });

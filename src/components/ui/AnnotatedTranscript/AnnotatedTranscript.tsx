@@ -13,6 +13,7 @@ export function AnnotatedTranscript({
   metrics,
   highlightedMetricKey,
   animationDelay,
+  embedded = false,
 }: AnnotatedTranscriptProps): React.JSX.Element {
   const { sentences, annotationMap, isExpanded, toggle } = useAnnotatedTranscript(
     text,
@@ -22,6 +23,41 @@ export function AnnotatedTranscript({
 
   const outerStyle =
     animationDelay !== undefined ? { animationDelay: `${animationDelay}ms` } : undefined;
+
+  const transcriptBody = (
+    <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+      {sentences.map((sentence) => {
+        const annotations = annotationMap.get(sentence.index) ?? [];
+        const isHighlighted =
+          highlightedMetricKey !== null &&
+          highlightedMetricKey !== undefined &&
+          annotations.some((a) =>
+            a.category.toLowerCase().includes(highlightedMetricKey.toLowerCase()),
+          );
+
+        return (
+          <React.Fragment key={sentence.index}>
+            <span
+              className={
+                isHighlighted
+                  ? 'rounded bg-indigo-50 px-0.5 dark:bg-indigo-900/20'
+                  : undefined
+              }
+            >
+              {sentence.text}
+            </span>
+            {annotations.map((annotation, i) => (
+              <PinBadge key={`${annotation.insightId}-${i}`} annotation={annotation} />
+            ))}{' '}
+          </React.Fragment>
+        );
+      })}
+    </p>
+  );
+
+  if (embedded) {
+    return <div style={outerStyle}>{transcriptBody}</div>;
+  }
 
   return (
     <div
@@ -73,34 +109,7 @@ export function AnnotatedTranscript({
         style={{ maxHeight: isExpanded ? '600px' : '0' }}
       >
         <div className="p-5 pt-0">
-          <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-            {sentences.map((sentence) => {
-              const annotations = annotationMap.get(sentence.index) ?? [];
-              const isHighlighted =
-                highlightedMetricKey !== null &&
-                highlightedMetricKey !== undefined &&
-                annotations.some((a) =>
-                  a.category.toLowerCase().includes(highlightedMetricKey.toLowerCase()),
-                );
-
-              return (
-                <React.Fragment key={sentence.index}>
-                  <span
-                    className={
-                      isHighlighted
-                        ? 'bg-indigo-50 dark:bg-indigo-900/20 rounded px-0.5'
-                        : undefined
-                    }
-                  >
-                    {sentence.text}
-                  </span>
-                  {annotations.map((annotation, i) => (
-                    <PinBadge key={`${annotation.insightId}-${i}`} annotation={annotation} />
-                  ))}{' '}
-                </React.Fragment>
-              );
-            })}
-          </p>
+          {transcriptBody}
         </div>
       </div>
     </div>
