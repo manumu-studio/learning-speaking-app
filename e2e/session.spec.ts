@@ -64,7 +64,7 @@ test.describe('session detail with real data', () => {
       authenticatedPage.getByText(/test transcript for the e2e seeded session/i),
     ).toBeVisible();
 
-    await expect(authenticatedPage.getByText(/argument closure/i)).toBeVisible();
+    await expect(authenticatedPage.getByText('Argument Closure', { exact: true })).toBeVisible();
   });
 
   test('session detail shows focus highlight when focusMetricKey is set', async ({
