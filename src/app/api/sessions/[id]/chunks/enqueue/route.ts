@@ -5,6 +5,8 @@ import { findOrCreateUser, hasConsent } from '@/lib/db-utils';
 import { enqueueChunkProcessing } from '@/lib/queue/qstash';
 import { errorResponse, successResponse } from '@/lib/api';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
+import { withObservability } from '@/lib/observability';
+import type pino from 'pino';
 import { SessionStatus } from '@prisma/client';
 import { z } from 'zod';
 
@@ -15,84 +17,87 @@ const enqueueBodySchema = z.object({
   overlapSecs: z.number().min(0).default(1.5),
 });
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
+async function postHandler(
+  req: Request,
+  { logger: _logger }: { logger: pino.Logger; requestId: string },
+  routeCtx: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id: sessionId } = await params;
+  const { id: sessionId } = await routeCtx.params;
 
-    const session = await auth();
-    if (!session?.user?.externalId) {
-      return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
-    }
+  const session = await auth();
+  if (!session?.user?.externalId) {
+    return errorResponse('Unauthorized', 'UNAUTHORIZED', 401);
+  }
 
-    if (!validateOrigin(request)) {
-      return csrfForbiddenResponse();
-    }
+  if (!validateOrigin(req)) {
+    return csrfForbiddenResponse();
+  }
 
-    const user = await findOrCreateUser(session.user.externalId, {
-      email: session.user.email ?? undefined,
-      displayName: session.user.name ?? undefined,
-    });
+  const user = await findOrCreateUser(session.user.externalId, {
+    email: session.user.email ?? undefined,
+    displayName: session.user.name ?? undefined,
+  });
 
-    const consented = await hasConsent(user.id, 'AUDIO_STORAGE');
-    if (!consented) {
-      return errorResponse('Recording consent required', 'CONSENT_REQUIRED', 403);
-    }
+  const consented = await hasConsent(user.id, 'AUDIO_STORAGE');
+  if (!consented) {
+    return errorResponse('Recording consent required', 'CONSENT_REQUIRED', 403);
+  }
 
-    const speakingSession = await prisma.speakingSession.findFirst({
-      where: { id: sessionId, userId: user.id, isChunked: true },
-    });
+  const speakingSession = await prisma.speakingSession.findFirst({
+    where: { id: sessionId, userId: user.id, isChunked: true },
+  });
 
-    if (!speakingSession) {
-      return errorResponse('Chunked session not found', 'NOT_FOUND', 404);
-    }
+  if (!speakingSession) {
+    return errorResponse('Chunked session not found', 'NOT_FOUND', 404);
+  }
 
-    const parsed = enqueueBodySchema.safeParse(await request.json());
-    if (!parsed.success) {
-      return errorResponse('Invalid request body', 'VALIDATION_ERROR', 400);
-    }
+  const parsed = enqueueBodySchema.safeParse(await req.json());
+  if (!parsed.success) {
+    return errorResponse('Invalid request body', 'VALIDATION_ERROR', 400);
+  }
 
-    const { chunkIndex, durationSecs, storageKey, overlapSecs } = parsed.data;
-    const expectedPrefix = `sessions/${user.id}/${sessionId}/chunks/`;
-    if (!storageKey.startsWith(expectedPrefix)) {
-      return errorResponse('Invalid storage key', 'VALIDATION_ERROR', 400);
-    }
+  const { chunkIndex, durationSecs, storageKey, overlapSecs } = parsed.data;
+  const expectedPrefix = `sessions/${user.id}/${sessionId}/chunks/`;
+  if (!storageKey.startsWith(expectedPrefix)) {
+    return errorResponse('Invalid storage key', 'VALIDATION_ERROR', 400);
+  }
 
-    await prisma.sessionChunk.upsert({
-      where: {
-        sessionId_chunkIndex: { sessionId, chunkIndex },
-      },
-      create: {
-        sessionId,
-        chunkIndex,
-        durationSecs,
-        overlapSecs,
-        audioUrl: storageKey,
-      },
-      update: {
-        durationSecs,
-        overlapSecs,
-        audioUrl: storageKey,
-      },
-    });
-
-    if (speakingSession.status === SessionStatus.CREATED) {
-      await prisma.speakingSession.update({
-        where: { id: sessionId },
-        data: { status: SessionStatus.UPLOADED },
-      });
-    }
-
-    await enqueueChunkProcessing(sessionId, chunkIndex);
-
-    return successResponse({
+  await prisma.sessionChunk.upsert({
+    where: {
+      sessionId_chunkIndex: { sessionId, chunkIndex },
+    },
+    create: {
       sessionId,
       chunkIndex,
-      status: 'queued',
-    }, 201);
-  } catch {
-    return errorResponse('Failed to enqueue chunk', 'INTERNAL_ERROR', 500);
+      durationSecs,
+      overlapSecs,
+      audioUrl: storageKey,
+    },
+    update: {
+      durationSecs,
+      overlapSecs,
+      audioUrl: storageKey,
+    },
+  });
+
+  if (speakingSession.status === SessionStatus.CREATED) {
+    await prisma.speakingSession.update({
+      where: { id: sessionId },
+      data: { status: SessionStatus.UPLOADED },
+    });
   }
+
+  await enqueueChunkProcessing(sessionId, chunkIndex);
+
+  return successResponse({
+    sessionId,
+    chunkIndex,
+    status: 'queued',
+  }, 201);
 }
+
+export const POST = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
+  withObservability(
+    (r, obsCtx) => postHandler(r, obsCtx, routeCtx),
+    { route: 'sessions/[id]/chunks/enqueue' },
+  )(req);

@@ -1,4 +1,5 @@
 // Webhook handler for async session processing (QStash → executePipeline)
+import type pino from 'pino';
 import { NextRequest, NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
 import { env } from '@/lib/env';
@@ -7,7 +8,7 @@ import {
   isQstashFinalFailureAttempt,
   persistSessionFailedStatus,
 } from '@/lib/pipeline';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
 import { z } from 'zod';
 
 // Tell Vercel Fluid Compute this function may run up to 3 minutes.
@@ -37,7 +38,8 @@ function getReceiver(): Receiver {
   return _receiver;
 }
 
-export async function POST(request: NextRequest) {
+async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const request = req as NextRequest;
   let sessionId: string | null = null;
 
   try {
@@ -78,3 +80,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Processing failed', code: 'PROCESSING_ERROR' }, { status: 500 });
   }
 }
+
+export const POST = withObservability(handler, { route: 'internal/process' });

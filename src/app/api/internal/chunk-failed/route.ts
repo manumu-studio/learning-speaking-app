@@ -1,10 +1,11 @@
 // QStash failure callback — marks a session chunk as FAILED after all retries are exhausted
+import type pino from 'pino';
 import { NextRequest, NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
 import { ChunkStatus } from '@prisma/client';
 import { env } from '@/lib/env';
 import { prisma } from '@/lib/prisma';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
 import { z } from 'zod';
 
 const chunkBodySchema = z.object({
@@ -42,7 +43,9 @@ function decodeBase64Json(value: string): unknown {
   return JSON.parse(Buffer.from(value, 'base64').toString('utf-8'));
 }
 
-export async function POST(request: NextRequest) {
+async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const request = req as NextRequest;
+
   try {
     const signature = request.headers.get('upstash-signature');
     const rawBody = await request.text();
@@ -94,3 +97,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Callback processing failed', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }
+
+export const POST = withObservability(handler, { route: 'internal/chunk-failed' });

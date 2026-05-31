@@ -1,4 +1,5 @@
 // QStash worker — processes a single uploaded session chunk
+import type pino from 'pino';
 import { NextRequest, NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
 import { env } from '@/lib/env';
@@ -7,7 +8,7 @@ import {
   persistSessionFailedStatus,
 } from '@/lib/pipeline';
 import { processChunk } from '@/lib/pipeline/processChunk';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
 import { z } from 'zod';
 
 export const maxDuration = 300;
@@ -36,7 +37,8 @@ function getReceiver(): Receiver {
   return _receiver;
 }
 
-export async function POST(request: NextRequest) {
+async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  const request = req as NextRequest;
   let sessionId: string | null = null;
 
   try {
@@ -75,3 +77,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Chunk processing failed', code: 'PROCESSING_ERROR' }, { status: 500 });
   }
 }
+
+export const POST = withObservability(handler, { route: 'internal/process-chunk' });

@@ -12,6 +12,14 @@ import { auth } from '@/features/auth/auth';
 import { getDashboardData } from '@/features/dashboard/getDashboardData';
 import { GET } from './route';
 
+// Helper — creates a minimal GET request for route handler invocations
+function makeGetRequest(): Request {
+  return new Request('http://localhost/api/dashboard');
+}
+
+// Minimal second-arg stub required by the withObservability wrapper signature
+const emptyRouteCtx = { params: Promise.resolve({}) };
+
 // --- Fixtures ---
 
 const mockSession = {
@@ -47,7 +55,7 @@ describe('GET /api/dashboard', () => {
     vi.mocked(auth).mockResolvedValue(null as never);
 
     // Act
-    const response = await GET();
+    const response = await GET(makeGetRequest(), emptyRouteCtx);
 
     // Assert
     expect(response.status).toBe(401);
@@ -60,7 +68,7 @@ describe('GET /api/dashboard', () => {
     vi.mocked(auth).mockResolvedValue({ user: {} } as never);
 
     // Act
-    const response = await GET();
+    const response = await GET(makeGetRequest(), emptyRouteCtx);
 
     // Assert
     expect(response.status).toBe(401);
@@ -75,7 +83,7 @@ describe('GET /api/dashboard', () => {
     prismaMock.user.findUnique.mockResolvedValue(null);
 
     // Act
-    const response = await GET();
+    const response = await GET(makeGetRequest(), emptyRouteCtx);
 
     // Assert
     expect(response.status).toBe(401);
@@ -91,7 +99,7 @@ describe('GET /api/dashboard', () => {
     vi.mocked(getDashboardData).mockResolvedValue(mockDashboardData as never);
 
     // Act
-    const response = await GET();
+    const response = await GET(makeGetRequest(), emptyRouteCtx);
 
     // Assert
     expect(response.status).toBe(200);
@@ -107,20 +115,23 @@ describe('GET /api/dashboard', () => {
     prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
     vi.mocked(getDashboardData).mockResolvedValue(mockDashboardData as never);
 
-    const response = await GET();
+    const response = await GET(makeGetRequest(), emptyRouteCtx);
 
     expect(response.headers.get('Cache-Control')).toBe(
       'private, max-age=30, stale-while-revalidate=60',
     );
   });
 
-  it('propagates unhandled errors from getDashboardData', async () => {
-    // Arrange — handler has no try/catch, so errors bubble up
+  it('returns 500 when getDashboardData throws an unhandled error', async () => {
+    // Arrange — withObservability catches unhandled errors and returns 500
     vi.mocked(auth).mockResolvedValue(mockSession as never);
     prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
     vi.mocked(getDashboardData).mockRejectedValue(new Error('DB timeout'));
 
-    // Act & Assert
-    await expect(GET()).rejects.toThrow('DB timeout');
+    // Act
+    const response = await GET(makeGetRequest(), emptyRouteCtx);
+
+    // Assert
+    expect(response.status).toBe(500);
   });
 });

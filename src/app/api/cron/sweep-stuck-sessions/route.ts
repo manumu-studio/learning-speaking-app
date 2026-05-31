@@ -4,7 +4,8 @@ import { ChunkStatus, SessionStatus } from '@prisma/client';
 import { env } from '@/lib/env';
 import { prisma } from '@/lib/prisma';
 import { maybeEnqueueFinalProcessing } from '@/lib/pipeline/processChunk';
-import { logger } from '@/lib/logger';
+import { withObservability } from '@/lib/observability';
+import type pino from 'pino';
 
 const STUCK_STATUSES: SessionStatus[] = [
   SessionStatus.UPLOADED,
@@ -15,7 +16,7 @@ const STUCK_STATUSES: SessionStatus[] = [
 
 const STUCK_THRESHOLD_MS = 5 * 60 * 1000;
 
-function isAuthorized(request: NextRequest): boolean {
+function isAuthorized(request: Request): boolean {
   if (env.CRON_SECRET === undefined) {
     return false;
   }
@@ -23,7 +24,10 @@ function isAuthorized(request: NextRequest): boolean {
   return authHeader === `Bearer ${env.CRON_SECRET}`;
 }
 
-export async function GET(request: NextRequest) {
+async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
+  // Cast to NextRequest for header access compatibility
+  const request = req as NextRequest;
+
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
   }
@@ -112,3 +116,5 @@ export async function GET(request: NextRequest) {
     skipped,
   });
 }
+
+export const GET = withObservability(handler, { route: 'cron/sweep-stuck-sessions' });

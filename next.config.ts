@@ -1,14 +1,20 @@
 // Next.js configuration — routing, security headers, bundle analysis, and build settings
 import type { NextConfig } from 'next';
 import path from 'path';
+import { readFileSync } from 'node:fs';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withSentryConfig } from '@sentry/nextjs';
+
+const packageVersion = JSON.parse(readFileSync('./package.json', 'utf-8')).version;
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
 const nextConfig: NextConfig = {
+  env: {
+    APP_VERSION: packageVersion,
+  },
   outputFileTracingRoot: path.join(__dirname),
   transpilePackages: ['swagger-ui-react'],
   serverExternalPackages: ['ffmpeg-static', 'pino', 'pino-pretty'],
@@ -66,7 +72,22 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(withBundleAnalyzer(nextConfig), {
-  silent: true,
-  sourcemaps: { disable: true },
-});
+const sentryBuildOptions = (() => {
+  const token = process.env.SENTRY_AUTH_TOKEN;
+  if (token) {
+    return {
+      silent: true as const,
+      org: process.env.SENTRY_ORG ?? '',
+      project: process.env.SENTRY_PROJECT ?? '',
+      authToken: token,
+      hideSourceMaps: true as const,
+      sourcemaps: { disable: false as const },
+    };
+  }
+  return {
+    silent: true as const,
+    sourcemaps: { disable: true as const },
+  };
+})();
+
+export default withSentryConfig(withBundleAnalyzer(nextConfig), sentryBuildOptions);

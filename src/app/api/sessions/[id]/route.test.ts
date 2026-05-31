@@ -7,7 +7,7 @@ vi.mock('@/features/auth/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/storage/r2', () => ({ deleteAudio: vi.fn(), uploadAudio: vi.fn(), generateAudioKey: vi.fn() }));
 vi.mock('@/lib/csrf', () => ({ validateOrigin: vi.fn().mockReturnValue(true), csrfForbiddenResponse: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), child: vi.fn().mockReturnThis() } }));
 
 import { auth } from '@/features/auth/auth';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
@@ -36,7 +36,7 @@ describe('GET /api/sessions/[id]', () => {
   });
 
   it('GET returns Cache-Control header', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSpeakingSession as never);
     prismaMock.speakingSession.count.mockResolvedValueOnce(1);
@@ -71,7 +71,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(null as never);
+    vi.mocked(auth).mockResolvedValue(null as never);
 
     const response = await DELETE(deleteRequest, deleteParams);
 
@@ -81,7 +81,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('returns CSRF forbidden when origin validation fails', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(validateOrigin).mockReturnValueOnce(false);
     vi.mocked(csrfForbiddenResponse).mockReturnValueOnce(
       new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 }),
@@ -94,7 +94,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('returns 404 when session not found or not owned by user', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(validateOrigin).mockReturnValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(null as never);
@@ -107,7 +107,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('deletes R2 audio for session and chunks (best-effort)', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(validateOrigin).mockReturnValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSessionWithAudio as never);
@@ -126,7 +126,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('skips session audio if audioDeletedAt is already set', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(validateOrigin).mockReturnValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce({
@@ -142,7 +142,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('calls prisma.speakingSession.delete with correct ID', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(validateOrigin).mockReturnValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSessionWithAudio as never);
@@ -157,7 +157,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('returns 204 with null body on success', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(validateOrigin).mockReturnValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSessionWithAudio as never);
@@ -171,7 +171,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('logs warning (not error) if R2 deletion fails', async () => {
-    vi.mocked(auth).mockResolvedValueOnce(mockAuthSession as never);
+    vi.mocked(auth).mockResolvedValue(mockAuthSession as never);
     vi.mocked(validateOrigin).mockReturnValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.speakingSession.findFirst.mockResolvedValueOnce(mockSessionWithAudio as never);

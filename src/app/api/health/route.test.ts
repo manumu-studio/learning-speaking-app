@@ -29,7 +29,7 @@ describe('GET /api/health', () => {
     expect(body.checks.database).toBe('ok');
   });
 
-  it('returns 503 with status degraded when database is down', async () => {
+  it('returns 503 with status error when database is down', async () => {
     vi.mocked(prisma.$queryRaw).mockRejectedValue(new Error('Connection refused'));
 
     const response = await GET();
@@ -39,7 +39,7 @@ describe('GET /api/health', () => {
     };
 
     expect(response.status).toBe(503);
-    expect(body.status).toBe('degraded');
+    expect(body.status).toBe('error');
     expect(body.checks.database).toBe('error');
   });
 
