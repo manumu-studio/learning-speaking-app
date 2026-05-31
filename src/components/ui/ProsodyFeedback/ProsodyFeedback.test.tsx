@@ -1,4 +1,4 @@
-// Tests for ProsodyFeedback — prosody score display, word indicators, and monotone coaching
+// Tests for ProsodyFeedback — coach-style prosody tips with severity ranking
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { WordPronunciation } from '@/components/ui/PronunciationSection';
@@ -39,100 +39,95 @@ describe('ProsodyFeedback', () => {
     );
     const heading = container.querySelector('#prosody-feedback-heading');
     expect(heading).toBeInTheDocument();
-    expect(heading?.textContent).toBe('Prosody Feedback');
+    expect(heading?.textContent).toBe('Rhythm & Intonation');
   });
 
-  it('renders word indicators for each word', () => {
-    const words = [
-      makeWord({ word: 'the' }),
-      makeWord({ word: 'cat' }),
-      makeWord({ word: 'sat' }),
-    ];
-    render(<ProsodyFeedback words={words} prosodyScore={8} animationDelay={0} />);
-    expect(screen.getByText('the')).toBeInTheDocument();
-    expect(screen.getByText('cat')).toBeInTheDocument();
-    expect(screen.getByText('sat')).toBeInTheDocument();
+  it('shows actionable tip for break error words', () => {
+    const words = [makeWord({ word: 'however', breakErrorTypes: ['MissingBreak'] })];
+    const { container } = render(<ProsodyFeedback words={words} prosodyScore={6} animationDelay={0} />);
+    expect(container.textContent).toContain('however');
+    expect(screen.getByText(/add a brief pause/i)).toBeInTheDocument();
   });
 
-  it('shows intonation indicator on words with intonation errors', () => {
-    const words = [makeWord({ word: 'test', intonationErrorTypes: ['MonotonePitch'] })];
-    const { container } = render(
-      <ProsodyFeedback words={words} prosodyScore={6} animationDelay={0} />,
-    );
-    const indicators = container.querySelectorAll('[aria-label*="intonation issue"]');
-    expect(indicators.length).toBeGreaterThan(0);
+  it('shows actionable tip for intonation error words', () => {
+    const words = [makeWord({ word: 'really', intonationErrorTypes: ['MonotonePitch'] })];
+    const { container } = render(<ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />);
+    expect(container.textContent).toContain('really');
+    expect(screen.getByText(/vary your pitch/i)).toBeInTheDocument();
   });
 
-  it('renders visible legend for prosody indicators', () => {
-    render(<ProsodyFeedback words={[makeWord()]} prosodyScore={8} animationDelay={0} />);
-    expect(screen.getByLabelText('Prosody indicator legend')).toBeInTheDocument();
-    expect(screen.getByText('Pause / break issue')).toBeInTheDocument();
-    expect(screen.getByText('Intonation issue')).toBeInTheDocument();
-    expect(screen.getByText('Monotone pitch')).toBeInTheDocument();
+  it('shows coaching for monotone words via pitch delta', () => {
+    const words = [makeWord({ word: 'important', monotonePitchDelta: 0.1 })];
+    const { container } = render(<ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />);
+    expect(container.textContent).toContain('important');
+    expect(screen.getByText(/sounds flat/i)).toBeInTheDocument();
   });
 
-  it('shows break indicator on words with break errors', () => {
-    const words = [makeWord({ word: 'pause', breakErrorTypes: ['UnexpectedBreak'] })];
-    const { container } = render(
-      <ProsodyFeedback words={words} prosodyScore={6} animationDelay={0} />,
-    );
-    expect(container.querySelector('.border-dashed')).toBeInTheDocument();
-  });
-
-  it('shows monotone indicator when pitch delta is below threshold', () => {
-    const words = [makeWord({ word: 'flat', monotonePitchDelta: 0.1 })];
-    const { container } = render(
-      <ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />,
-    );
-    const indicators = container.querySelectorAll('[aria-label*="monotone pitch"]');
-    expect(indicators.length).toBeGreaterThan(0);
-  });
-
-  it('shows monotone coaching tip when monotone pattern detected', () => {
-    const words = [makeWord({ word: 'flat', monotonePitchDelta: 0.1 })];
-    render(<ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />);
-    expect(
-      screen.getByText(/try varying pitch on stressed syllables/i),
-    ).toBeInTheDocument();
-  });
-
-  it('does not show monotone coaching when no monotone words', () => {
-    const words = [makeWord({ word: 'good', monotonePitchDelta: 0.8 })];
+  it('filters out "None" from breakErrorTypes (Azure noise)', () => {
+    const words = [makeWord({ word: 'clean', breakErrorTypes: ['None'] })];
     render(<ProsodyFeedback words={words} prosodyScore={9} animationDelay={0} />);
-    expect(
-      screen.queryByText(/try varying pitch on stressed syllables/i),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(/rhythm and intonation sound natural/i)).toBeInTheDocument();
   });
 
-  it('shows "no issues" message when all words are clean', () => {
+  it('filters out "None" from intonationErrorTypes (Azure noise)', () => {
+    const words = [makeWord({ word: 'fine', intonationErrorTypes: ['None'] })];
+    render(<ProsodyFeedback words={words} prosodyScore={9} animationDelay={0} />);
+    expect(screen.getByText(/rhythm and intonation sound natural/i)).toBeInTheDocument();
+  });
+
+  it('limits displayed issues to top 5 by severity', () => {
+    const words = Array.from({ length: 10 }, (_, i) =>
+      makeWord({ word: `word${i}`, breakErrorTypes: ['UnexpectedBreak'] }),
+    );
+    render(<ProsodyFeedback words={words} prosodyScore={4} animationDelay={0} />);
+    const tips = screen.getAllByText(/remove the pause/i);
+    expect(tips.length).toBe(5);
+    expect(screen.getByText(/\+ 5 more minor issues/i)).toBeInTheDocument();
+  });
+
+  it('shows coaching summary for break-heavy sessions', () => {
+    const words = [
+      makeWord({ word: 'one', breakErrorTypes: ['UnexpectedBreak'] }),
+      makeWord({ word: 'two', breakErrorTypes: ['MissingBreak'] }),
+    ];
+    render(<ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />);
+    expect(screen.getByText(/focus on your pauses/i)).toBeInTheDocument();
+  });
+
+  it('shows coaching summary for intonation-heavy sessions', () => {
+    const words = [
+      makeWord({ word: 'one', intonationErrorTypes: ['MonotonePitch'] }),
+      makeWord({ word: 'two', intonationErrorTypes: ['FlatPitch'] }),
+    ];
+    render(<ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />);
+    expect(screen.getByText(/focus on pitch variety/i)).toBeInTheDocument();
+  });
+
+  it('shows "sounds natural" message when no issues detected', () => {
     const words = [makeWord({ word: 'perfect' })];
     render(<ProsodyFeedback words={words} prosodyScore={10} animationDelay={0} />);
     expect(
-      screen.getByText(/no significant prosody issues detected/i),
+      screen.getByText(/rhythm and intonation sound natural/i),
     ).toBeInTheDocument();
   });
 
-  it('hides "no issues" message when words have issues', () => {
+  it('does not show "sounds natural" when issues exist', () => {
     const words = [makeWord({ word: 'bad', intonationErrorTypes: ['FlatPitch'] })];
     render(<ProsodyFeedback words={words} prosodyScore={4} animationDelay={0} />);
     expect(
-      screen.queryByText(/no significant prosody issues detected/i),
+      screen.queryByText(/rhythm and intonation sound natural/i),
     ).not.toBeInTheDocument();
   });
 
-  it('prefers intonation indicator over monotone when both present', () => {
+  it('renders issue type badges (Pause, Pitch, Rhythm)', () => {
     const words = [
-      makeWord({
-        word: 'both',
-        intonationErrorTypes: ['MonotonePitch'],
-        monotonePitchDelta: 0.1,
-      }),
+      makeWord({ word: 'a', breakErrorTypes: ['UnexpectedBreak'] }),
+      makeWord({ word: 'b', intonationErrorTypes: ['MonotonePitch'] }),
+      makeWord({ word: 'c', monotonePitchDelta: 0.1 }),
     ];
-    const { container } = render(
-      <ProsodyFeedback words={words} prosodyScore={5} animationDelay={0} />,
-    );
-    const wordSpan = container.querySelector('[aria-label="both, intonation issue, monotone pitch"]');
-    expect(wordSpan?.querySelector('.text-amber-600')).toBeInTheDocument();
-    expect(wordSpan?.querySelector('.text-blue-500')).not.toBeInTheDocument();
+    render(<ProsodyFeedback words={words} prosodyScore={4} animationDelay={0} />);
+    expect(screen.getByText('Pause')).toBeInTheDocument();
+    expect(screen.getByText('Pitch')).toBeInTheDocument();
+    expect(screen.getByText('Rhythm')).toBeInTheDocument();
   });
 });

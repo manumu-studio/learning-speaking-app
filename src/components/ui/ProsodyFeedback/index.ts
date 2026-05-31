@@ -1,3 +1,3 @@
 // Barrel export for ProsodyFeedback
 export { ProsodyFeedback } from './ProsodyFeedback';
-export type { ProsodyFeedbackProps, WordProsodyIndicator } from './ProsodyFeedback.types';
+export type { ProsodyFeedbackProps, ProsodyIssue, ProsodyIssueType } from './ProsodyFeedback.types';
