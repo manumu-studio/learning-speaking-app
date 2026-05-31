@@ -211,7 +211,11 @@ export async function processFinal(sessionId: string): Promise<void> {
   }
 
   if (analysis.metrics.length > 0) {
-    await prisma.metricSnapshot.deleteMany({ where: { sessionId } });
+    // Delete only Claude-scored metrics — preserve pronunciation metrics created by persistPronunciation
+    const claudeKeys = analysis.metrics.map((m) => m.key);
+    await prisma.metricSnapshot.deleteMany({
+      where: { sessionId, key: { in: claudeKeys } },
+    });
     await prisma.metricSnapshot.createMany({
       data: analysis.metrics.map((metric) => ({
         sessionId,
