@@ -133,3 +133,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.49.0 | [PR-0.49.0](pull-requests/PR-0.49.0.md) | 2026-05-30 | Pitch contour visualization |
 | 0.50.0 | [ENTRY-55](journal/ENTRY-55.md) | 2026-05-31 | Recording UX — fast path, prosody UI, MediaRecorder removal |
 | 0.50.0 | [PR-0.50.0](pull-requests/PR-0.50.0.md) | 2026-05-31 | Two-tier recording + progressive results |
+| 0.51.0 | [ENTRY-57](journal/ENTRY-57.md) | 2026-05-31 | Parallel chunk pipeline — per-chunk AI, stitch merge, cancel tiers |
+| 0.51.0 | [PR-0.51.0](pull-requests/PR-0.51.0.md) | 2026-05-31 | Independent chunk processing + synthesis fan-in |
