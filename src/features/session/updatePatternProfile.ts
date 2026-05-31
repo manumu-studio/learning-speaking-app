@@ -5,7 +5,7 @@ import { PatternProfilePatternsSchema } from '@/lib/schemas/jsonFields';
 interface PatternInsight {
   category: string;
   pattern: string;
-  frequency?: number | undefined;
+  frequency?: number | null | undefined;
 }
 
 // Create or update user's pattern profile with new session insights

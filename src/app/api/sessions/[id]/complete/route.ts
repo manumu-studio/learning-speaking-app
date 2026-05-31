@@ -50,6 +50,17 @@ export async function POST(
 
     const { chunkCount, durationSecs } = parsed.data;
 
+    if (durationSecs < 45) {
+      return errorResponse('Recording must be at least 45 seconds', 'VALIDATION_ERROR', 400);
+    }
+
+    if (
+      speakingSession.status === SessionStatus.DONE ||
+      speakingSession.status === SessionStatus.FAILED
+    ) {
+      return successResponse({ sessionId, chunkCount, status: 'already_finalized' });
+    }
+
     const parallelChunkCount = await prisma.chunkResult.count({
       where: { sessionId },
     });

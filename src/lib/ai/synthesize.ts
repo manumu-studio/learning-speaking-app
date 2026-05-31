@@ -30,8 +30,8 @@ const synthesisResponseSchema = z.object({
   insights: z.array(insightSchema).max(5),
   metrics: z.array(metricSchema),
   focusNext: z.string(),
-  summary: z.string().max(300),
-  intentLabel: z.string().max(50),
+  summary: z.string().max(500),
+  intentLabel: z.string().max(80),
 });
 
 function buildSynthesisPrompt(input: SynthesisInput): string {
@@ -64,13 +64,28 @@ YOUR TASK:
 
 ${focusInstruction}
 
-RESPOND WITH VALID JSON ONLY — no markdown, no commentary:
+RESPOND WITH VALID JSON ONLY — no markdown, no commentary.
+Be CONCISE: each insight detail should be 1-2 sentences max, each suggestion 1-2 sentences, summary under 200 characters.
+Use null for optional fields you want to omit (frequency, severity, examples, suggestion, confidence).
+
 {
-  "insights": [...],
-  "metrics": [...],
-  "focusNext": "...",
-  "summary": "...",
-  "intentLabel": "..."
+  "insights": [
+    {
+      "category": "grammar|vocabulary|structure",
+      "pattern": "Short label",
+      "detail": "Explanation",
+      "frequency": 2,
+      "severity": "high|medium|low",
+      "examples": ["example 1 → correction 1"],
+      "suggestion": "How to improve"
+    }
+  ],
+  "metrics": [
+    { "key": "connectorRepetition", "level": "low|medium|high", "score": 7, "note": "Brief note" }
+  ],
+  "focusNext": "One sentence recommendation",
+  "summary": "1-2 sentence session summary",
+  "intentLabel": "3-5 word topic label"
 }`;
 }
 
@@ -79,7 +94,7 @@ export async function synthesizeAnalysis(input: SynthesisInput): Promise<Synthes
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5',
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [
       {
         role: 'user',

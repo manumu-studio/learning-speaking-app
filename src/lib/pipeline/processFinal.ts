@@ -269,6 +269,7 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
       focusMetricKey: true,
       promptUsed: true,
       processedAt: true,
+      chunkCount: true,
     },
   });
 
@@ -283,6 +284,15 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     where: { sessionId },
     orderBy: { chunkIndex: 'asc' },
   });
+
+  const expectedChunkCount = session.chunkCount ?? chunkResults.length;
+  const processingChunks = chunkResults.filter((chunk) => chunk.status === 'PROCESSING');
+
+  if (chunkResults.length < expectedChunkCount || processingChunks.length > 0) {
+    throw new Error(
+      `Chunks not ready: ${chunkResults.length}/${expectedChunkCount} exist, ${processingChunks.length} still processing — QStash will retry`,
+    );
+  }
 
   if (chunkResults.length === 0) {
     throw new Error(`No ChunkResult rows found for session ${sessionId}`);
