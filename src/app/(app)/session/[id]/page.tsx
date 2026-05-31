@@ -448,6 +448,12 @@ function SessionContent({
             animationDelay={0}
           />
 
+          {session.partialResults && (
+            <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+              Partial Results
+            </span>
+          )}
+
           {hasChunkBreakdown && (
             <div
               className="mt-4 flex justify-center gap-2"

@@ -6,6 +6,7 @@ import { errorResponse, successResponse } from '@/lib/api';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { ChunkStatus, SessionStatus } from '@prisma/client';
 import { maybeEnqueueFinalProcessing } from '@/lib/pipeline/processChunk';
+import { enqueueFinalProcessing } from '@/lib/queue/qstash';
 import { z } from 'zod';
 
 const completeBodySchema = z.object({
@@ -49,6 +50,21 @@ export async function POST(
 
     const { chunkCount, durationSecs } = parsed.data;
 
+    if (durationSecs < 45) {
+      return errorResponse('Recording must be at least 45 seconds', 'VALIDATION_ERROR', 400);
+    }
+
+    if (
+      speakingSession.status === SessionStatus.DONE ||
+      speakingSession.status === SessionStatus.FAILED
+    ) {
+      return successResponse({ sessionId, chunkCount, status: 'already_finalized' });
+    }
+
+    const parallelChunkCount = await prisma.chunkResult.count({
+      where: { sessionId },
+    });
+
     await prisma.speakingSession.update({
       where: { id: sessionId },
       data: {
@@ -57,6 +73,29 @@ export async function POST(
         status: SessionStatus.CHUNKS_PROCESSING,
       },
     });
+
+    if (parallelChunkCount > 0) {
+      await prisma.speakingSession.update({
+        where: { id: sessionId },
+        data: { status: SessionStatus.AWAITING_FINAL },
+      });
+
+      const claimed = await prisma.speakingSession.updateMany({
+        where: { id: sessionId, status: SessionStatus.AWAITING_FINAL },
+        data: { status: SessionStatus.PROCESSING_FINAL },
+      });
+
+      if (claimed.count > 0) {
+        await enqueueFinalProcessing(sessionId);
+      }
+
+      return successResponse({
+        sessionId,
+        chunkCount,
+        status: 'finalizing',
+        estimatedWaitSecs: 20,
+      });
+    }
 
     const doneCount = await prisma.sessionChunk.count({
       where: { sessionId, status: ChunkStatus.CHUNK_DONE },

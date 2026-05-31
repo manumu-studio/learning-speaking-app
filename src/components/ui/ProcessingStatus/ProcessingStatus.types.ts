@@ -7,7 +7,18 @@ export interface ProcessingPartialData {
 }
 
 export interface ProcessingStatusProps {
-  status: 'CREATED' | 'UPLOADED' | 'CHUNKS_PROCESSING' | 'AWAITING_FINAL' | 'PROCESSING_FINAL' | 'TRANSCRIBING' | 'SCORING' | 'ANALYZING' | 'DONE' | 'FAILED';
+  status:
+    | 'CREATED'
+    | 'UPLOADED'
+    | 'CHUNKS_PROCESSING'
+    | 'AWAITING_FINAL'
+    | 'PROCESSING_FINAL'
+    | 'TRANSCRIBING'
+    | 'SCORING'
+    | 'ANALYZING'
+    | 'DONE'
+    | 'FAILED'
+    | 'CANCELLED';
   errorMessage?: string | null;
   onRetry?: () => void;
   partialData?: ProcessingPartialData;
