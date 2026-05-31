@@ -21,31 +21,31 @@ export function CollapsibleSection({
 
   return (
     <section
-      className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800"
       style={outerStyle}
       aria-labelledby={`${bodyId}-heading`}
     >
       <button
         type="button"
         id={`${bodyId}-heading`}
-        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50"
         onClick={toggle}
         aria-expanded={isOpen}
         aria-controls={bodyId}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             {title}
           </span>
           {count !== undefined && (
-            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
               {count}
             </span>
           )}
         </div>
         <span
           className={[
-            'shrink-0 text-gray-500 transition-transform duration-300 dark:text-gray-400',
+            'shrink-0 text-slate-500 transition-transform duration-300 dark:text-slate-400',
             isOpen ? 'rotate-180' : 'rotate-0',
           ].join(' ')}
           aria-hidden
@@ -60,7 +60,7 @@ export function CollapsibleSection({
         style={{ maxHeight: isOpen ? '10000px' : '0' }}
         hidden={!isOpen}
       >
-        <div className="border-t border-gray-100 p-4 pt-3 dark:border-gray-700">{children}</div>
+        <div className="border-t border-slate-100 p-4 pt-3 dark:border-slate-700">{children}</div>
       </div>
     </section>
   );
