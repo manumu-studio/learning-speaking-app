@@ -35,6 +35,11 @@ vi.mock('@/lib/prisma', () => ({
       deleteMany: vi.fn(),
       createMany: vi.fn(),
     },
+    vocabSuggestion: {
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   },
 }));
 

@@ -17,6 +17,8 @@ import { mergePronunciation } from '@/lib/pipeline/mergePronunciation';
 import type { ChunkPronunciationMergeInput } from '@/lib/pipeline/mergePronunciation';
 import { synthesizeAnalysis } from '@/lib/ai/synthesize';
 import type { ChunkInsightInput } from '@/lib/ai/synthesize';
+import { persistVocabSuggestions } from '@/lib/pipeline/persistVocabSuggestions';
+import { detectVocabUsage } from '@/lib/pipeline/detectVocabUsage';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 
@@ -229,6 +231,12 @@ export async function processFinal(sessionId: string): Promise<void> {
       skipDuplicates: true,
     });
   }
+
+  if (analysis.vocabularySuggestions && analysis.vocabularySuggestions.length > 0) {
+    await persistVocabSuggestions(session.userId, sessionId, analysis.vocabularySuggestions);
+  }
+
+  await detectVocabUsage(session.userId, sessionId, userTranscriptText);
 
   const totalDurationSecs = chunks.reduce(
     (sum, chunk, index) =>
@@ -451,6 +459,7 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
   });
 
   await updatePatternProfile(session.userId, nerFilterResult.kept);
+  await detectVocabUsage(session.userId, sessionId, stitchedTranscript);
 
   logPipelineStage({ sessionId, stage: 'processParallelFinal', durationMs: Date.now() - parallelFinalStart, success: true, metadata: { chunkCount: doneChunks.length, wordCount } });
 
