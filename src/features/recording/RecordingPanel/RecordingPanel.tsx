@@ -41,10 +41,16 @@ export function RecordingPanel(props: RecordingPanelProps) {
     chunkIndex,
     mediaStream,
     warnings,
+    isPaused,
     isPausedBySilence,
+    canPause,
+    silenceWarningActive,
+    secondsUntilAutoStop,
     error,
     startWithMobilePolish,
     stopWithMobilePolish,
+    pauseRecording,
+    resumeRecording,
     isCancelModalOpen,
     hasCompletedChunks,
     sessionId,
@@ -147,7 +153,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
       )}
 
       <div className="relative flex w-full items-end justify-center gap-4 sm:gap-6">
-        <SessionTimer seconds={duration} isActive={recordState === 'recording'} />
+        <SessionTimer seconds={duration} isActive={recordState === 'recording' && !isPaused} />
         <div className="h-6" aria-live="polite">
           {recordState === 'recording' && levelWarning === 'too_quiet' && (
             <p className="animate-pulse text-xs font-medium text-amber-600 dark:text-amber-400">
@@ -170,14 +176,55 @@ export function RecordingPanel(props: RecordingPanelProps) {
 
       <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center flex-1 justify-center">
         <WaveformVisualizer stream={mediaStream} />
-        <RecordButton
-          state={recordState}
-          recordingMode={recordingMode}
-          onStart={startWithMobilePolish}
-          onStop={stopWithMobilePolish}
-          disabled={recordState === 'recording' && duration < 45}
-        />
+        <div className="flex flex-col items-center gap-3">
+          <RecordButton
+            state={recordState}
+            recordingMode={recordingMode}
+            onStart={isPaused ? resumeRecording : startWithMobilePolish}
+            onStop={stopWithMobilePolish}
+            disabled={recordState === 'recording' && duration < 45}
+          />
+          {recordState === 'recording' && (
+            <button
+              type="button"
+              onClick={pauseRecording}
+              disabled={!canPause}
+              aria-label="Pause recording"
+              className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-400 dark:hover:bg-gray-800"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="h-4 w-4">
+                <rect x="6" y="5" width="4" height="14" rx="1" />
+                <rect x="14" y="5" width="4" height="14" rx="1" />
+              </svg>
+              Pause
+            </button>
+          )}
+          {isPaused && (
+            <button
+              type="button"
+              onClick={resumeRecording}
+              aria-label="Resume recording"
+              className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="h-4 w-4">
+                <path d="M8 5.14v14l11-7-11-7z" />
+              </svg>
+              Resume
+            </button>
+          )}
+        </div>
       </div>
+
+      {silenceWarningActive && secondsUntilAutoStop !== null && (
+        <div className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center dark:border-red-800 dark:bg-red-950/50">
+          <p className="text-sm font-medium text-red-800 dark:text-red-200">
+            Recording will end in {secondsUntilAutoStop} seconds
+          </p>
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+            Speak to continue recording
+          </p>
+        </div>
+      )}
 
       {completedChunks.length > 0 && (
         <div className="mt-4 w-full rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
@@ -209,7 +256,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
         </div>
       )}
 
-      {recordState === 'recording' && (
+      {(recordState === 'recording' || isPaused) && (
         <button
           type="button"
           onClick={() => {
@@ -239,12 +286,18 @@ export function RecordingPanel(props: RecordingPanelProps) {
           </p>
         )}
 
-        {!error && recordState === 'recording' && isPausedBySilence && (
+        {!error && recordState === 'recording' && isPausedBySilence && !silenceWarningActive && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/50">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              Paused — waiting for you to speak
+              Paused — no speech detected
             </p>
           </div>
+        )}
+
+        {!error && isPaused && (
+          <p className="text-emerald-600 dark:text-emerald-400 text-base sm:text-lg font-medium">
+            Tap to resume recording
+          </p>
         )}
 
         {!error && recordState === 'stopped' && (

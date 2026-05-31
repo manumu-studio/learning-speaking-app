@@ -11,7 +11,7 @@ if (!dailyPrompt) {
 }
 
 describe('PromptCard', () => {
-  it('renders prompt text', () => {
+  it('renders compact pill with truncated text by default', () => {
     render(
       <PromptCard
         prompt={dailyPrompt}
@@ -23,10 +23,11 @@ describe('PromptCard', () => {
       />,
     );
 
-    expect(screen.getByText(dailyPrompt.text)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /expand prompt/i })).toBeInTheDocument();
+    expect(screen.getByText('Daily')).toBeInTheDocument();
   });
 
-  it('calls onShuffle when shuffle is clicked', async () => {
+  it('expands to show full prompt and shuffle on pill click', async () => {
     const user = userEvent.setup();
     const onShuffle = vi.fn();
 
@@ -41,6 +42,8 @@ describe('PromptCard', () => {
       />,
     );
 
+    await user.click(screen.getByRole('button', { name: /expand prompt/i }));
+    expect(screen.getByText(dailyPrompt.text)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /shuffle prompt/i }));
     expect(onShuffle).toHaveBeenCalledOnce();
   });

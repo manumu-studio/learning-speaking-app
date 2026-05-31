@@ -35,6 +35,7 @@ export interface UseSessionHistoryReturn {
   dateFilter: DateFilter;
   setDateFilter: (filter: DateFilter) => void;
   sentinelRef: RefObject<HTMLDivElement | null>;
+  removeSession: (sessionId: string) => void;
 }
 
 /** @deprecated Use SessionListItem instead */

@@ -27,6 +27,7 @@ export type WordErrorType = (typeof WORD_ERROR_TYPES)[number];
 
 export interface WordResult {
   word: string;
+  display?: string;
   accuracyScore: number;
   errorType: WordErrorType;
   offsetMs: number;
