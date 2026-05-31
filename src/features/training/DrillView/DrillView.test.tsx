@@ -14,13 +14,13 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('./useDrill');
-vi.mock('@/features/recording/useAudioRecorder');
+vi.mock('@/features/recording/useAudioWorklet');
 
 import { useDrill } from './useDrill';
-import { useAudioRecorder } from '@/features/recording/useAudioRecorder';
+import { useAudioWorklet } from '@/features/recording/useAudioWorklet';
 
 const mockUseDrill = vi.mocked(useDrill);
-const mockUseAudioRecorder = vi.mocked(useAudioRecorder);
+const mockUseAudioWorklet = vi.mocked(useAudioWorklet);
 
 const baseDrill = {
   id: 'd1',
@@ -49,24 +49,17 @@ function drillReturn(partial: Partial<UseDrillReturn>): UseDrillReturn {
 describe('DrillView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAudioRecorder.mockReturnValue({
+    mockUseAudioWorklet.mockReturnValue({
       state: 'idle',
       duration: 0,
-      audioBlob: null,
-      mimeType: null,
+      chunkIndex: 0,
       mediaStream: null,
-      vadWarning: null,
+      captureMode: 'audioworklet',
       error: null,
-      recordingMode: 'press-to-toggle',
+      warnings: [],
       startRecording: vi.fn().mockResolvedValue(undefined),
-      stopRecording: vi.fn(),
-      completeValidation: vi.fn(),
-      failValidation: vi.fn(),
+      stopRecording: vi.fn().mockResolvedValue(undefined),
       resetRecording: vi.fn(),
-      segmentIndex: 0,
-      isAutoSegmenting: false,
-      secondsUntilSplit: null,
-      timeLimitSecs: null,
     });
   });
 

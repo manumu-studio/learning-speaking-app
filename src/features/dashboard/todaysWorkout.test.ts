@@ -49,6 +49,7 @@ function makeDashboard(overrides: Partial<DashboardData>): DashboardData {
     drillStats: EMPTY_DRILL_STATS,
     personalRecords: [],
     totalWorkoutCount: 0,
+    recentProsodyPitchPreview: [],
     ...overrides,
   };
 }
