@@ -8,15 +8,7 @@ import { generateDrill } from '@/features/training/generateDrill';
 import { logger } from '@/lib/logger';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
-
-const METRIC_LABELS: Record<string, string> = {
-  connectorRepetition: 'Connector Repetition',
-  structuralVariety: 'Structural Variety',
-  vocabularyPrecision: 'Vocabulary Precision',
-  verbAccuracy: 'Verb Accuracy',
-  argumentClosure: 'Argument Closure',
-  fillerUsage: 'Filler Usage',
-};
+import { METRIC_LABELS } from '@/features/dashboard/pillars';
 
 export async function GET() {
   try {
