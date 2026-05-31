@@ -9,15 +9,7 @@ import { withObservability } from '@/lib/observability';
 import type pino from 'pino';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
-
-const METRIC_LABELS: Record<string, string> = {
-  connectorRepetition: 'Connector Repetition',
-  structuralVariety: 'Structural Variety',
-  vocabularyPrecision: 'Vocabulary Precision',
-  verbAccuracy: 'Verb Accuracy',
-  argumentClosure: 'Argument Closure',
-  fillerUsage: 'Filler Usage',
-};
+import { METRIC_LABELS } from '@/features/dashboard/pillars';
 
 async function getHandler(_req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
   const authSession = await auth();

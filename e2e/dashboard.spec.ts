@@ -60,7 +60,10 @@ test.describe('Dashboard', () => {
   });
 
   test('navigation to training page works from main nav', async ({ authenticatedPage }) => {
-    await authenticatedPage.getByRole('link', { name: 'Training' }).click();
+    const trainingLink = authenticatedPage
+      .getByRole('navigation', { name: 'Main navigation' })
+      .getByRole('link', { name: 'Training' });
+    await trainingLink.click();
     await expect(authenticatedPage).toHaveURL(/\/drills/, { timeout: 10_000 });
   });
 

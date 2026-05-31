@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
 import { InsightExamplesSchema } from '@/lib/schemas/jsonFields';
 import type { DrillType } from '@/features/training/training.types';
+import { METRIC_LABELS } from '@/features/dashboard/pillars';
 
 type DrillState = 'prompt' | 'recording' | 'processing' | 'feedback';
 
@@ -25,18 +26,6 @@ const DRILL_TYPES: readonly DrillType[] = [
   'conclusion',
   'pronunciation',
 ];
-
-const METRIC_LABELS: Record<string, string> = {
-  connectorRepetition: 'Connector Repetition',
-  structuralVariety: 'Structural Variety',
-  vocabularyPrecision: 'Vocabulary Precision',
-  verbAccuracy: 'Verb Accuracy',
-  argumentClosure: 'Argument Closure',
-  fillerUsage: 'Filler Usage',
-  pronunciationAccuracy: 'Pronunciation Accuracy',
-  prosodyScore: 'Prosody Score',
-  speakingRate: 'Speaking Rate',
-};
 
 function isDrillType(value: string): value is DrillType {
   return (DRILL_TYPES as readonly string[]).includes(value);

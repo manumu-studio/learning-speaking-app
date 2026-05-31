@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { InsightExamplesSchema } from '@/lib/schemas/jsonFields';
 import { generateDrill } from './generateDrill';
 import type { DrillRecommendation, DrillType } from './training.types';
+import { METRIC_LABELS } from '@/features/dashboard/pillars';
 
 const METRIC_TO_DRILL: Record<string, DrillType> = {
   connectorRepetition: 'rephrase',
@@ -12,15 +13,6 @@ const METRIC_TO_DRILL: Record<string, DrillType> = {
   fillerUsage: 'precision',
   verbAccuracy: 'precision',
   argumentClosure: 'conclusion',
-};
-
-const METRIC_LABELS: Record<string, string> = {
-  connectorRepetition: 'Connector Repetition',
-  structuralVariety: 'Structural Variety',
-  vocabularyPrecision: 'Vocabulary Precision',
-  verbAccuracy: 'Verb Accuracy',
-  argumentClosure: 'Argument Closure',
-  fillerUsage: 'Filler Usage',
 };
 
 function examplesFromInsights(

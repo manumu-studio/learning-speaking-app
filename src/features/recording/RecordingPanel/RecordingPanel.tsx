@@ -167,7 +167,7 @@ export function RecordingPanel(props: RecordingPanelProps) {
   const isActive = recordState === 'recording' || isPaused;
   const waveformColor = recordState === 'recording'
     ? 'bg-sky-400 dark:bg-sky-500'
-    : 'bg-sky-300/50 dark:bg-sky-600/40';
+    : 'bg-sky-400/70 dark:bg-sky-500/50';
 
   return (
     <div className="flex flex-col items-center w-full max-w-md mx-auto h-full py-2">
