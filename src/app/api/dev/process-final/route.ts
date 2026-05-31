@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { env } from '@/lib/env';
 import { persistSessionFailedStatus } from '@/lib/pipeline';
-import { processFinal } from '@/lib/pipeline/processFinal';
+import { processFinal, processParallelFinal } from '@/lib/pipeline/processFinal';
+import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 const devProcessFinalBodySchema = z.object({
@@ -24,7 +25,32 @@ export async function POST(request: NextRequest) {
     }
 
     sessionId = parsed.data.sessionId;
-    await processFinal(parsed.data.sessionId);
+
+    const chunkResultCount = await prisma.chunkResult.count({
+      where: { sessionId: parsed.data.sessionId },
+    });
+
+    if (chunkResultCount > 0) {
+      const maxAttempts = 12;
+      const pollIntervalMs = 10_000;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          await processParallelFinal(parsed.data.sessionId);
+          break;
+        } catch (retryError) {
+          const msg = retryError instanceof Error ? retryError.message : '';
+          if (msg.includes('still processing') && attempt < maxAttempts) {
+            logger.info({ sessionId, attempt, maxAttempts }, 'Chunks still processing — polling');
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+            continue;
+          }
+          throw retryError;
+        }
+      }
+    } else {
+      await processFinal(parsed.data.sessionId);
+    }
 
     return NextResponse.json({ ok: true, sessionId });
   } catch (error) {

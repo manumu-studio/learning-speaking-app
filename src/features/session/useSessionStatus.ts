@@ -5,7 +5,20 @@ import type { SessionDetail, UseSessionStatusReturn } from '@/features/session/u
 
 const sessionDetailSchema = z.object({
   id: z.string(),
-  status: z.enum(['CREATED', 'UPLOADED', 'CHUNKS_PROCESSING', 'AWAITING_FINAL', 'PROCESSING_FINAL', 'TRANSCRIBING', 'SCORING', 'ANALYZING', 'DONE', 'FAILED']),
+  status: z.enum([
+    'CREATED',
+    'UPLOADED',
+    'CHUNKS_PROCESSING',
+    'AWAITING_FINAL',
+    'PROCESSING_FINAL',
+    'TRANSCRIBING',
+    'SCORING',
+    'ANALYZING',
+    'DONE',
+    'FAILED',
+    'CANCELLED',
+  ]),
+  partialResults: z.boolean().optional(),
   durationSecs: z.number().nullable(),
   isChunked: z.boolean().optional(),
   chunkCount: z.number().nullable().optional(),
@@ -107,6 +120,9 @@ const sessionDetailSchema = z.object({
   }
   if (val.chunks !== undefined) {
     result.chunks = val.chunks;
+  }
+  if (val.partialResults !== undefined) {
+    result.partialResults = val.partialResults;
   }
   return result;
 });

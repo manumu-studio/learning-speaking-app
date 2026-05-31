@@ -13,11 +13,11 @@ export const insightSchema = z.object({
   category: z.enum(['grammar', 'vocabulary', 'structure']),
   pattern: z.string(),
   detail: z.string(),
-  frequency: z.number().optional(),
-  severity: z.enum(['high', 'medium', 'low']).optional(),
-  examples: z.array(z.string()).optional(),
-  suggestion: z.string().optional(),
-  confidence: z.number().min(1).max(5).optional(),
+  frequency: z.number().nullish(),
+  severity: z.enum(['high', 'medium', 'low']).nullish(),
+  examples: z.array(z.string()).nullish(),
+  suggestion: z.string().nullish(),
+  confidence: z.number().min(1).max(5).nullish(),
 });
 
 // Metric scoring schema — accepts 6 Claude-scored keys + 3 Azure-computed keys (for schema completeness)
@@ -48,7 +48,7 @@ export const analysisResultSchema = z.object({
   possible_transcription_artefacts: z.array(transcriptionArtefactSchema).optional(),
   coherenceScore: z
     .object({
-      score: z.number().min(1).max(10),
+      score: z.number().min(0).max(10),
       topicDevelopment: z.string(),
       logicalFlow: z.string(),
       discourseMarkersUsed: z.array(z.string()),
@@ -77,6 +77,16 @@ export const analysisResultSchema = z.object({
         suggestion: z.string(),
       }),
     )
+    .optional(),
+  vocabularySuggestions: z
+    .array(
+      z.object({
+        word: z.string(),
+        meaning: z.string(),
+        exampleSentence: z.string(),
+      }),
+    )
+    .max(3)
     .optional(),
 });
 
@@ -171,6 +181,18 @@ Rules:
 - Only flag words that have genuinely better alternatives. Never flag proper nouns.
 - Alternatives must suit the actual context — don't suggest "optimal" when the user was talking about a meal.
 - If TTR >= 0.65 and repetitionFlags is empty, say so positively in the summary.
+`;
+
+const VOCABULARY_SUGGESTIONS_PROMPT_SECTION = `
+VOCABULARY SUGGESTIONS:
+Suggest 2-3 specific words or phrases the speaker could add to their active vocabulary to improve precision and naturalness in this session's context.
+
+Each suggestion must include:
+- word: the target word or phrase
+- meaning: a brief definition in plain English (one sentence)
+- exampleSentence: a natural example sentence using the word in a context similar to the session topic
+
+Produce a vocabularySuggestions array with exactly 2-3 items. Choose words that are genuinely useful upgrades — not obscure synonyms. Do not repeat words already flagged in vocabulary insights.
 `;
 
 const L1_INTERFERENCE_PROMPT_SECTION = `
@@ -315,6 +337,13 @@ const JSON_OUTPUT_SCHEMA = `Schema:
       "explanation": "string",
       "suggestion": "string"
     }
+  ],
+  "vocabularySuggestions": [
+    {
+      "word": "string",
+      "meaning": "string",
+      "exampleSentence": "string"
+    }
   ]
 }`;
 
@@ -420,6 +449,7 @@ function buildUserPrompt(
     COT_INSTRUCTIONS,
     COHERENCE_PROMPT_SECTION.trim(),
     VOCABULARY_DIVERSITY_PROMPT_SECTION.trim(),
+    VOCABULARY_SUGGESTIONS_PROMPT_SECTION.trim(),
     L1_INTERFERENCE_PROMPT_SECTION.trim(),
     PATTERN_ANALYSIS_SECTION,
   );
