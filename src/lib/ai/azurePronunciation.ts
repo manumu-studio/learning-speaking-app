@@ -112,9 +112,9 @@ export async function assessPronunciation(
         const prosodyRaw = word.PronunciationAssessment?.Feedback?.Prosody;
         const prosodyFeedback: ProsodyFeedback | undefined = prosodyRaw
           ? {
-              breakErrorTypes: prosodyRaw.Break?.ErrorTypes ?? [],
+              breakErrorTypes: (prosodyRaw.Break?.ErrorTypes ?? []).filter(t => t !== 'None'),
               breakLengthMs: prosodyRaw.Break?.BreakLength ?? 0,
-              intonationErrorTypes: prosodyRaw.Intonation?.ErrorTypes ?? [],
+              intonationErrorTypes: (prosodyRaw.Intonation?.ErrorTypes ?? []).filter(t => t !== 'None'),
               ...(prosodyRaw.Intonation?.MonotoneSyllablePitchDeltaConfidence !== undefined
                 ? { monotoneSyllablePitchDeltaConfidence: prosodyRaw.Intonation.MonotoneSyllablePitchDeltaConfidence }
                 : {}),

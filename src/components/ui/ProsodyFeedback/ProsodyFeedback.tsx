@@ -1,17 +1,36 @@
-// ProsodyFeedback — per-word intonation/break indicators and overall prosody score gauge
+// ProsodyFeedback — coach-style prosody section with plain-English tips per issue
 'use client';
 
 import React from 'react';
 import { mapAzureScoreToDisplay } from '@/components/ui/PronunciationSection';
 import type { ProsodyFeedbackProps } from './ProsodyFeedback.types';
+import type { ProsodyIssueType } from './ProsodyFeedback.types';
 import { useProsodyFeedback } from './useProsodyFeedback';
+
+const ISSUE_STYLE: Record<ProsodyIssueType, { icon: string; label: string; badgeClass: string }> = {
+  break: {
+    icon: '⏸',
+    label: 'Pause',
+    badgeClass: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  },
+  intonation: {
+    icon: '🎵',
+    label: 'Pitch',
+    badgeClass: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  },
+  monotone: {
+    icon: '📏',
+    label: 'Rhythm',
+    badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  },
+};
 
 export function ProsodyFeedback({
   words,
   prosodyScore,
   animationDelay,
 }: ProsodyFeedbackProps): React.JSX.Element {
-  const { wordIndicators, wordsWithIssues, hasMonotonePattern } =
+  const { topIssues, totalIssueCount, coachingSummary, hasIssues } =
     useProsodyFeedback(words);
 
   const displayScore = mapAzureScoreToDisplay(prosodyScore);
@@ -30,7 +49,7 @@ export function ProsodyFeedback({
           id="prosody-feedback-heading"
           className="text-sm font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200"
         >
-          Prosody Feedback
+          Rhythm & Intonation
         </h3>
         <div className="flex flex-col items-end">
           <span className="text-2xl font-bold text-violet-700 dark:text-violet-300">
@@ -40,90 +59,54 @@ export function ProsodyFeedback({
         </div>
       </div>
 
-      {hasMonotonePattern && (
-        <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-          Some words sound monotone — try varying pitch on stressed syllables for more natural
-          English rhythm.
+      {coachingSummary && (
+        <p className="rounded-lg bg-violet-100/60 px-3 py-2 text-sm font-medium text-violet-900 dark:bg-violet-900/30 dark:text-violet-200">
+          {coachingSummary}
         </p>
       )}
 
-      <div
-        className="flex flex-wrap gap-x-4 gap-y-2 rounded-lg border border-violet-200 bg-white/60 px-3 py-2 text-xs text-violet-800 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200"
-        aria-label="Prosody indicator legend"
-      >
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-4 border-b border-dashed border-orange-500" aria-hidden />
-          Pause / break issue
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-amber-600 dark:text-amber-400" aria-hidden>
-            ↕
-          </span>
-          Intonation issue
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-blue-500" aria-hidden>
-            ~
-          </span>
-          Monotone pitch
-        </span>
-      </div>
-
-      <div className="flex flex-wrap gap-x-1 gap-y-2" aria-label="Word prosody indicators">
-        {wordIndicators.map((item) => {
-          const hasIssue =
-            item.hasIntonationIssue || item.hasBreakIssue || item.isMonotone;
-          const ariaLabel = [
-            item.word,
-            item.hasBreakIssue ? 'pause or break issue' : null,
-            item.hasIntonationIssue ? 'intonation issue' : null,
-            item.isMonotone ? 'monotone pitch' : null,
-          ]
-            .filter(Boolean)
-            .join(', ');
-
-          return (
-            <span
-              key={`${item.word}-${item.index}`}
-              aria-label={ariaLabel}
-              className={[
-                'relative inline-block rounded px-1 py-0.5 text-base font-medium',
-                hasIssue
-                  ? 'text-violet-900 dark:text-violet-100'
-                  : 'text-gray-700 dark:text-gray-300',
-              ].join(' ')}
-            >
-              {item.word}
-              {item.hasIntonationIssue && (
+      {hasIssues && (
+        <ul className="space-y-2" aria-label="Prosody coaching tips">
+          {topIssues.map((issue) => {
+            const style = ISSUE_STYLE[issue.type];
+            return (
+              <li
+                key={`${issue.word}-${issue.index}`}
+                className="flex items-start gap-3 rounded-lg border border-violet-100 bg-white/60 px-3 py-2.5 dark:border-violet-800 dark:bg-violet-950/30"
+              >
                 <span
-                  className="absolute -top-1 -right-0.5 text-[10px] text-amber-600 dark:text-amber-400"
-                  aria-hidden
+                  className={[
+                    'inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                    style.badgeClass,
+                  ].join(' ')}
+                  aria-label={`${style.label} issue`}
                 >
-                  ↕
+                  <span aria-hidden>{style.icon}</span>
+                  {style.label}
                 </span>
-              )}
-              {item.hasBreakIssue && (
-                <span
-                  className="absolute -bottom-1 left-0 right-0 border-b border-dashed border-orange-500"
-                  aria-hidden
-                />
-              )}
-              {item.isMonotone && !item.hasIntonationIssue && (
-                <span
-                  className="absolute -top-1 -right-0.5 text-[10px] text-blue-500"
-                  aria-hidden
-                >
-                  ~
-                </span>
-              )}
-            </span>
-          );
-        })}
-      </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">
+                    &ldquo;{issue.word}&rdquo;
+                  </span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {issue.tip}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
-      {wordsWithIssues.length === 0 && (
+      {totalIssueCount > topIssues.length && (
+        <p className="text-xs text-violet-600 dark:text-violet-400">
+          + {totalIssueCount - topIssues.length} more minor issues not shown
+        </p>
+      )}
+
+      {!hasIssues && (
         <p className="text-sm text-green-700 dark:text-green-400">
-          No significant prosody issues detected on individual words.
+          Your rhythm and intonation sound natural — keep it up!
         </p>
       )}
     </section>
