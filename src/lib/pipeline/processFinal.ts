@@ -280,18 +280,34 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     return;
   }
 
-  const chunkResults = await prisma.chunkResult.findMany({
+  const expectedChunkCount = session.chunkCount ?? 0;
+  const maxPollAttempts = 12;
+  const pollIntervalMs = 10_000;
+
+  let chunkResults = await prisma.chunkResult.findMany({
     where: { sessionId },
     orderBy: { chunkIndex: 'asc' },
   });
 
-  const expectedChunkCount = session.chunkCount ?? chunkResults.length;
-  const processingChunks = chunkResults.filter((chunk) => chunk.status === 'PROCESSING');
+  for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
+    const stillProcessing = chunkResults.filter((c) => c.status === 'PROCESSING');
+    const allPresent = expectedChunkCount === 0 || chunkResults.length >= expectedChunkCount;
 
-  if (chunkResults.length < expectedChunkCount || processingChunks.length > 0) {
-    throw new Error(
-      `Chunks not ready: ${chunkResults.length}/${expectedChunkCount} exist, ${processingChunks.length} still processing — QStash will retry`,
-    );
+    if (allPresent && stillProcessing.length === 0) break;
+
+    if (attempt === maxPollAttempts) {
+      logger.warn(
+        { sessionId, found: chunkResults.length, expected: expectedChunkCount, processing: stillProcessing.length },
+        'Chunks did not settle after max poll attempts',
+      );
+      break;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    chunkResults = await prisma.chunkResult.findMany({
+      where: { sessionId },
+      orderBy: { chunkIndex: 'asc' },
+    });
   }
 
   if (chunkResults.length === 0) {
