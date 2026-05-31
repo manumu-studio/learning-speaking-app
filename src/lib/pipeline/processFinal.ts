@@ -414,7 +414,11 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
   }
 
   if (synthesis.metrics.length > 0) {
-    await prisma.metricSnapshot.deleteMany({ where: { sessionId } });
+    // Delete only synthesis-scored metrics — preserve pronunciation metrics created by persistPronunciation
+    const synthesisKeys = synthesis.metrics.map((m) => m.key);
+    await prisma.metricSnapshot.deleteMany({
+      where: { sessionId, key: { in: synthesisKeys } },
+    });
     await prisma.metricSnapshot.createMany({
       data: synthesis.metrics.map((metric) => ({
         sessionId,
