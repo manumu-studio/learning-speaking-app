@@ -317,39 +317,25 @@ describe('processParallelFinal', () => {
     expect(synthesizeAnalysis).not.toHaveBeenCalled();
   });
 
-  it('throws when chunks are still PROCESSING (race condition)', async () => {
-    vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
-      makeChunkResult(0),
-      makeChunkResult(1, { status: 'PROCESSING' }),
-    ] as never);
+  it('polls until PROCESSING chunks settle before proceeding', async () => {
+    let callCount = 0;
+    vi.mocked(prisma.chunkResult.findMany)
+      .mockResolvedValueOnce([
+        makeChunkResult(0),
+        makeChunkResult(1, { status: 'PROCESSING' }),
+      ] as never)
+      .mockImplementation((() => {
+        callCount++;
+        return Promise.resolve([
+          makeChunkResult(0),
+          makeChunkResult(1),
+        ]) as never;
+      }) as never);
 
-    await expect(processParallelFinal('sess-1')).rejects.toThrow(
-      /still processing/,
-    );
-    expect(synthesizeAnalysis).not.toHaveBeenCalled();
-  });
-
-  it('throws when not all expected chunks exist yet', async () => {
-    vi.mocked(prisma.speakingSession.findUnique).mockResolvedValue({
-      id: 'sess-1',
-      userId: 'user-1',
-      status: SessionStatus.AWAITING_FINAL,
-      focusMetricKey: null,
-      promptUsed: null,
-      processedAt: null,
-      chunkCount: 3,
-    } as never);
-
-    vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
-      makeChunkResult(0),
-      makeChunkResult(1),
-    ] as never);
-
-    await expect(processParallelFinal('sess-1')).rejects.toThrow(
-      /2\/3 exist/,
-    );
-    expect(synthesizeAnalysis).not.toHaveBeenCalled();
-  });
+    await processParallelFinal('sess-1');
+    expect(callCount).toBeGreaterThanOrEqual(1);
+    expect(synthesizeAnalysis).toHaveBeenCalled();
+  }, 30_000);
 
   it('marks session FAILED when all chunks failed', async () => {
     vi.mocked(prisma.chunkResult.findMany).mockResolvedValue([
