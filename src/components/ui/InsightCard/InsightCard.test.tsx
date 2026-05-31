@@ -22,9 +22,9 @@ describe('InsightCard', () => {
     expect(screen.getByText(/Missing articles/)).toBeInTheDocument();
   });
 
-  it('renders severity badge when severity is set', () => {
+  it('does not render severity badge (removed per No-Red system)', () => {
     render(<InsightCard {...baseProps} />);
-    expect(screen.getByText('medium')).toBeInTheDocument();
+    expect(screen.queryByText('medium')).not.toBeInTheDocument();
   });
 
   it('lists examples and suggestion when provided', () => {
@@ -32,6 +32,20 @@ describe('InsightCard', () => {
     expect(screen.getByText(/I have car/)).toBeInTheDocument();
     expect(screen.getByText(/Use a\/an before/)).toBeInTheDocument();
     expect(screen.getByText(/Appeared ~3 times/)).toBeInTheDocument();
+  });
+
+  it('renders grammar mistakes in you-said arrow format', () => {
+    render(
+      <InsightCard
+        {...baseProps}
+        examples={['I was very capable to do → I was very able to do']}
+        suggestion="Use able before an infinitive, not capable to."
+      />,
+    );
+    expect(screen.getByText(/You said:/)).toBeInTheDocument();
+    expect(screen.getByText(/I was very capable to do/)).toBeInTheDocument();
+    expect(screen.getByText(/I was very able to do/)).toBeInTheDocument();
+    expect(screen.getByText(/Use able before an infinitive/)).toBeInTheDocument();
   });
 
   it('has no axe accessibility violations', async () => {

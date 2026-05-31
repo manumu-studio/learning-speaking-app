@@ -27,4 +27,6 @@ export interface AnnotatedTranscriptProps {
   highlightedMetricKey?: string | null | undefined;
   /** Animation delay in ms for entrance */
   animationDelay?: number | undefined;
+  /** When true, renders content only — parent provides collapsible wrapper */
+  embedded?: boolean | undefined;
 }

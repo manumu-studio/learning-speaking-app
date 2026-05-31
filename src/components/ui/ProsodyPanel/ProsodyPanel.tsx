@@ -47,18 +47,12 @@ export function ProsodyPanel({
       </div>
 
       <div>
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
+        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
           Speaking rate
         </p>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {Math.round(speakingRateWpm)} wpm
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
           <ScoreChip score={rateChip.score} scale="ten" label={rateChip.label} />
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-          Ideal range: 110-140 words per minute
-        </p>
       </div>
 
       {hasSyllableTimedRhythm && (

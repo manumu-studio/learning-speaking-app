@@ -47,22 +47,45 @@ export function ProsodyFeedback({
         </p>
       )}
 
+      <div
+        className="flex flex-wrap gap-x-4 gap-y-2 rounded-lg border border-violet-200 bg-white/60 px-3 py-2 text-xs text-violet-800 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200"
+        aria-label="Prosody indicator legend"
+      >
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4 border-b border-dashed border-orange-500" aria-hidden />
+          Pause / break issue
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-amber-600 dark:text-amber-400" aria-hidden>
+            ↕
+          </span>
+          Intonation issue
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-blue-500" aria-hidden>
+            ~
+          </span>
+          Monotone pitch
+        </span>
+      </div>
+
       <div className="flex flex-wrap gap-x-1 gap-y-2" aria-label="Word prosody indicators">
         {wordIndicators.map((item) => {
           const hasIssue =
             item.hasIntonationIssue || item.hasBreakIssue || item.isMonotone;
-          const title = [
-            ...item.intonationLabels,
-            ...item.breakLabels,
-            item.isMonotone ? 'Monotone pitch' : null,
+          const ariaLabel = [
+            item.word,
+            item.hasBreakIssue ? 'pause or break issue' : null,
+            item.hasIntonationIssue ? 'intonation issue' : null,
+            item.isMonotone ? 'monotone pitch' : null,
           ]
             .filter(Boolean)
-            .join('; ');
+            .join(', ');
 
           return (
             <span
               key={`${item.word}-${item.index}`}
-              title={title || undefined}
+              aria-label={ariaLabel}
               className={[
                 'relative inline-block rounded px-1 py-0.5 text-base font-medium',
                 hasIssue
