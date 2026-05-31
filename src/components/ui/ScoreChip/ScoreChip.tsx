@@ -14,7 +14,7 @@ const TIER_CONFIG = {
   },
   sharpen: {
     label: 'Sharpen',
-    classes: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+    classes: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
   },
 } as const satisfies Record<ChipVariant, { label: string; classes: string }>;
 

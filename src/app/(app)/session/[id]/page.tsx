@@ -152,9 +152,9 @@ function PillarHeroRow({ metrics }: PillarHeroRowProps) {
         return (
           <div
             key={pillarKey}
-            className="flex flex-col items-center gap-1 rounded-xl border border-slate-100 bg-white p-3 text-center dark:border-neutral-800 dark:bg-neutral-900"
+            className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-800/60"
           >
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-medium text-slate-500 dark:text-sky-300/70">
               {config.label}
             </span>
             <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
@@ -204,7 +204,7 @@ function CategoryInsightsSection({ title, insights, baseDelay }: CategoryInsight
   return (
     <CollapsibleSection title={title} count={insights.length}>
       {insights.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No issues detected</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">No issues detected</p>
       ) : (
         <div className="space-y-4">
           {insights.map((insight, index) => (
@@ -241,7 +241,7 @@ export default function SessionResultsPage({
 function SessionSkeleton() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+      <div className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
         Loading session…
       </div>
     </div>
@@ -316,7 +316,7 @@ function SessionContent({
           aria-live="polite"
           role="status"
         >
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-500 dark:border-gray-700" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-sky-500 dark:border-slate-700" />
           <span className="sr-only">Loading workout</span>
         </div>
       </Container>
@@ -341,7 +341,7 @@ function SessionContent({
 
     return (
       <Container>
-        <h1 className="mb-6 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="mb-6 text-center text-2xl font-bold text-slate-900 dark:text-slate-100">
           Processing Your Workout
         </h1>
         <ProcessingStatus
@@ -395,7 +395,7 @@ function SessionContent({
   if (isFailed && session) {
     return (
       <Container>
-        <h1 className="mb-6 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="mb-6 text-center text-2xl font-bold text-slate-900 dark:text-slate-100">
           Workout Results
         </h1>
         <ProcessingStatus
@@ -492,8 +492,8 @@ function SessionContent({
                 aria-selected={resultsView === 'overall'}
                 className={`rounded-full px-4 py-2 text-sm font-medium ${
                   resultsView === 'overall'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    ? 'bg-sky-600 text-white'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                 }`}
                 onClick={() => setResultsView('overall')}
               >
@@ -505,8 +505,8 @@ function SessionContent({
                 aria-selected={resultsView === 'segments'}
                 className={`rounded-full px-4 py-2 text-sm font-medium ${
                   resultsView === 'segments'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    ? 'bg-sky-600 text-white'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                 }`}
                 onClick={() => setResultsView('segments')}
               >
@@ -681,7 +681,7 @@ function SessionContent({
 
   return (
     <Container>
-      <p className="py-20 text-center text-gray-500 dark:text-gray-400">Workout not found.</p>
+      <p className="py-20 text-center text-slate-500 dark:text-slate-400">Workout not found.</p>
     </Container>
   );
 }
