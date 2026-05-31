@@ -73,10 +73,10 @@ test.describe('history delete flow', () => {
     const cardContainer = authenticatedPage.locator('.group', { hasText: 'session to be deleted' }).first();
     await cardContainer.hover();
 
-    // Delete button becomes visible on hover
-    const deleteButton = authenticatedPage.getByRole('button', {
+    // Delete button within this specific card becomes visible on hover
+    const deleteButton = cardContainer.getByRole('button', {
       name: /delete session/i,
-    }).first();
+    });
     await expect(deleteButton).toBeVisible({ timeout: 5_000 });
 
     // Click delete to open modal
@@ -102,13 +102,13 @@ test.describe('history delete flow', () => {
     const sessionLabel = authenticatedPage.getByText('session to be deleted', { exact: true });
     await expect(sessionLabel).toBeVisible({ timeout: 10_000 });
 
-    // Hover to reveal and click delete
+    // Hover to reveal and click delete — scoped to the correct card
     const cardContainer = authenticatedPage.locator('.group', { hasText: 'session to be deleted' }).first();
     await cardContainer.hover();
 
-    const deleteButton = authenticatedPage.getByRole('button', {
+    const deleteButton = cardContainer.getByRole('button', {
       name: /delete session/i,
-    }).first();
+    });
     await expect(deleteButton).toBeVisible({ timeout: 5_000 });
     await deleteButton.click();
 

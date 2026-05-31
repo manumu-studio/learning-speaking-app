@@ -325,6 +325,62 @@ describe('useSilenceDetector', () => {
     expect(audioContextInstance._source.disconnect).toHaveBeenCalledOnce();
   });
 
+  // --- Tier 2: Warning beep at 30s ---
+
+  it('activates silenceWarningActive and calls onWarningBeep after 30s of silence', () => {
+    const stream = makeStream();
+    const onWarningBeep = vi.fn();
+    analyser._setDataCallback(fillSilent);
+
+    const { result } = renderHook(() =>
+      useSilenceDetector({ stream, isRecording: true, onWarningBeep }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(30_200);
+    });
+
+    expect(result.current.silenceWarningActive).toBe(true);
+    expect(result.current.secondsUntilAutoStop).toBeLessThanOrEqual(15);
+    expect(onWarningBeep).toHaveBeenCalledOnce();
+  });
+
+  it('calls onWarningBeep only once even after continued silence past 30s', () => {
+    const stream = makeStream();
+    const onWarningBeep = vi.fn();
+    analyser._setDataCallback(fillSilent);
+
+    renderHook(() =>
+      useSilenceDetector({ stream, isRecording: true, onWarningBeep }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(35_000);
+    });
+
+    expect(onWarningBeep).toHaveBeenCalledOnce();
+  });
+
+  // --- Tier 3: Auto-stop at 45s ---
+
+  it('calls onAutoStop after 45s of silence and resets state', () => {
+    const stream = makeStream();
+    const onAutoStop = vi.fn();
+    analyser._setDataCallback(fillSilent);
+
+    const { result } = renderHook(() =>
+      useSilenceDetector({ stream, isRecording: true, onAutoStop }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(45_200);
+    });
+
+    expect(onAutoStop).toHaveBeenCalledOnce();
+    expect(result.current.isPausedBySilence).toBe(false);
+    expect(result.current.silenceWarningActive).toBe(false);
+  });
+
   // --- Return value guard when inactive ---
 
   it('returns false from isPausedBySilence when isRecording is false regardless of internal state', () => {
