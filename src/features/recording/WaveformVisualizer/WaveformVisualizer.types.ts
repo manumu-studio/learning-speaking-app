@@ -1,7 +1,7 @@
 // WaveformVisualizer component and hook prop types
 
 export interface WaveformVisualizerProps {
-  /** Live MediaStream from useAudioRecorder. Null when not recording. */
+  /** Live MediaStream from audio capture. Null when not recording. */
   stream: MediaStream | null;
   /** Number of frequency bars to render. Default: 24 */
   barCount?: number;

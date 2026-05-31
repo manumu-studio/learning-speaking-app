@@ -30,7 +30,7 @@ export function useOnboardingRecorder(): UseOnboardingRecorderReturn {
     setError(null);
 
     try {
-      const ext = blob.type.split('/')[1]?.split(';')[0] ?? 'webm';
+      const ext = blob.type.includes('wav') ? 'wav' : blob.type.split('/')[1]?.split(';')[0] ?? 'webm';
       const formData = new FormData();
       formData.append('audio', blob, `onboarding.${ext}`);
       formData.append('duration', durationSecs.toString());

@@ -30,6 +30,11 @@ const completeSchema = z.object({
   status: z.string(),
 });
 
+const fastUploadResultSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+});
+
 export type ChunkUploadStatus = 'pending' | 'uploading' | 'completed' | 'failed';
 
 export interface ChunkUploadState {
@@ -65,6 +70,43 @@ async function parseError(response: Response): Promise<string> {
   }
 }
 
+async function uploadSingleChunkFastPath(
+  event: ChunkReadyEvent,
+  config: ChunkUploaderConfig,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append('audio', event.wavBlob, 'recording.wav');
+  formData.append('duration', Math.max(1, Math.round(event.durationSecs)).toString());
+  formData.append('language', 'en');
+
+  if (config.focus) {
+    formData.append('focusMetricKey', config.focus.focusKey);
+    formData.append('topic', config.focus.focusLabel);
+  } else if (config.topic) {
+    formData.append('topic', config.topic);
+  }
+
+  if (config.promptUsed) {
+    formData.append('promptUsed', config.promptUsed);
+  }
+
+  if (config.isOnboarding) {
+    formData.append('isOnboarding', 'true');
+  }
+
+  const response = await fetch('/api/sessions', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+
+  const data = fastUploadResultSchema.parse(await response.json());
+  return data.id;
+}
+
 export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUploaderReturn {
   const [chunks, setChunks] = useState<ChunkUploadState[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -77,6 +119,7 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
   const activeUploadsRef = useRef(0);
   const sessionInitRef = useRef<Promise<string> | null>(null);
   const maxChunkIndexRef = useRef(-1);
+  const isFastPathRef = useRef(false);
 
   useEffect(() => {
     configRef.current = config;
@@ -137,6 +180,23 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
 
     queueRef.current = queueRef.current.then(async () => {
       try {
+        const useFastPath = event.isFinal && event.chunkIndex === 0;
+
+        if (useFastPath) {
+          isFastPathRef.current = true;
+          const fastSessionId = await uploadSingleChunkFastPath(event, configRef.current);
+          sessionIdRef.current = fastSessionId;
+          setSessionId(fastSessionId);
+          setChunks((prev) =>
+            prev.map((chunk) =>
+              chunk.chunkIndex === event.chunkIndex
+                ? { ...chunk, status: 'completed' }
+                : chunk,
+            ),
+          );
+          return;
+        }
+
         const currentSessionId = await ensureSession();
 
         const presignResponse = await fetch(`/api/sessions/${currentSessionId}/presign`, {
@@ -209,12 +269,16 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
   }, [ensureSession]);
 
   const completeSession = useCallback(async (totalDurationSecs: number): Promise<string | null> => {
+    await queueRef.current;
+
     const currentSessionId = sessionIdRef.current;
     if (!currentSessionId) {
       return null;
     }
 
-    await queueRef.current;
+    if (isFastPathRef.current) {
+      return currentSessionId;
+    }
 
     const chunkCount = Math.max(1, maxChunkIndexRef.current + 1);
 
@@ -245,6 +309,7 @@ export function useChunkUploader(config: ChunkUploaderConfig = {}): UseChunkUplo
     setIsUploading(false);
     activeUploadsRef.current = 0;
     maxChunkIndexRef.current = -1;
+    isFastPathRef.current = false;
     queueRef.current = Promise.resolve();
   }, []);
 

@@ -68,11 +68,20 @@ describe('validateRecording', () => {
     });
   });
 
-  it('rejects unsupported MIME types', () => {
+  it('accepts audio/wav from AudioWorklet recordings', () => {
     const result = validateRecording({
       durationSeconds: 5,
       blob: validBlob,
       mimeType: 'audio/wav',
+    });
+    expect(result).toEqual({ valid: true });
+  });
+
+  it('rejects unsupported MIME types', () => {
+    const result = validateRecording({
+      durationSeconds: 5,
+      blob: validBlob,
+      mimeType: 'audio/mpeg',
     });
     expect(result).toMatchObject({
       valid: false,

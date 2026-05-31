@@ -14,4 +14,6 @@ export interface MetricCardProps {
   lastTrainedToday?: boolean | undefined;
   /** Completed drills targeting this metric */
   drillCount?: number | undefined;
+  /** Optional pitch contour mini-preview (prosody card) */
+  pitchPreview?: number[] | undefined;
 }
