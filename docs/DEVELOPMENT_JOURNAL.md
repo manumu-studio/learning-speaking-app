@@ -136,4 +136,6 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.51.0 | [ENTRY-57](journal/ENTRY-57.md) | 2026-05-31 | Parallel chunk pipeline — per-chunk AI, stitch merge, cancel tiers |
 | 0.51.0 | [PR-0.51.0](pull-requests/PR-0.51.0.md) | 2026-05-31 | Independent chunk processing + synthesis fan-in |
 | 0.52.0 | [ENTRY-58](journal/ENTRY-58.md) | 2026-05-31 | Session results overhaul — collapsible mobile layout |
+| 0.53.0 | [ENTRY-59](journal/ENTRY-59.md) | 2026-05-31 | Recording & navigation UX — mobile bottom nav, hero layout |
 | 0.52.0 | [PR-0.52.0](pull-requests/PR-0.52.0.md) | 2026-05-31 | Language/pronunciation split, grammar cards, prosody legend |
+| 0.53.0 | [PR-0.53.0](pull-requests/PR-0.53.0.md) | 2026-05-31 | Mobile bottom nav, collapsible prompts, hero recording |
