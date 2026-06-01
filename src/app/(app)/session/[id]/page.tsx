@@ -24,6 +24,7 @@ import { PillarTooltip, usePillarTooltip } from '@/components/ui/PillarTooltip';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
 import { FocusHighlight } from '@/components/ui/FocusHighlight';
 import { AnnotatedTranscript } from '@/components/ui/AnnotatedTranscript';
+import { TranscriptToggle } from '@/components/ui/TranscriptToggle';
 import {
   PronunciationSection,
   PronunciationReportSchema,
@@ -683,14 +684,24 @@ function SessionContent({
 
           {session.transcript && (
             <CollapsibleSection title="Annotated Transcript" defaultOpen={false} animationDelay={transcriptDelay}>
-              <AnnotatedTranscript
-                text={session.transcript.text}
-                wordCount={session.transcript.wordCount}
-                insights={session.insights}
-                metrics={session.metrics ?? []}
-                animationDelay={transcriptDelay}
-                embedded
-              />
+              {session.transcript.improvedText && session.transcript.wordsUsed.length > 0 ? (
+                <TranscriptToggle
+                  originalText={session.transcript.text}
+                  improvedText={session.transcript.improvedText}
+                  wordsUsed={session.transcript.wordsUsed}
+                  wordCount={session.transcript.wordCount}
+                  animationDelay={transcriptDelay}
+                />
+              ) : (
+                <AnnotatedTranscript
+                  text={session.transcript.text}
+                  wordCount={session.transcript.wordCount}
+                  insights={session.insights}
+                  metrics={session.metrics ?? []}
+                  animationDelay={transcriptDelay}
+                  embedded
+                />
+              )}
             </CollapsibleSection>
           )}
             </>

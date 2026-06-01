@@ -26,6 +26,7 @@ vi.mock('@/lib/prisma', () => ({
     },
     transcript: {
       upsert: vi.fn(),
+      update: vi.fn(),
     },
     insight: {
       deleteMany: vi.fn(),
@@ -71,6 +72,10 @@ vi.mock('@/lib/ai/polishTranscript', () => ({
   polishTranscript: vi.fn((text: string) => Promise.resolve(text)),
 }));
 
+vi.mock('@/lib/ai/rewriteTranscript', () => ({
+  rewriteTranscript: vi.fn(() => Promise.resolve(null)),
+}));
+
 vi.mock('@/lib/ai/synthesize', () => ({
   synthesizeAnalysis: vi.fn(),
 }));
@@ -90,6 +95,7 @@ vi.mock('@/lib/observability', () => ({
 
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';
+import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { synthesizeAnalysis } from '@/lib/ai/synthesize';
 import { processFinal, processParallelFinal } from '@/lib/pipeline/processFinal';
 
@@ -241,6 +247,37 @@ describe('processFinal', () => {
     ] as never);
 
     await expect(processFinal('session-1')).rejects.toThrow('Not all chunks are processed yet');
+  });
+
+  it('calls rewriteTranscript and persists improvedText when vocab suggestions exist', async () => {
+    vi.mocked(analyzeTranscript).mockResolvedValue({
+      focusNext: 'Keep going',
+      summary: JSON.stringify({ wordCount: 2 }),
+      intentLabel: 'Practice',
+      insights: [],
+      metrics: [],
+      possible_transcription_artefacts: [],
+      vocabularySuggestions: [
+        { word: 'eloquent', meaning: 'fluent and persuasive', exampleSentence: 'She gave an eloquent speech.' },
+      ],
+    });
+
+    vi.mocked(rewriteTranscript).mockResolvedValue({
+      improvedText: 'hello eloquent world',
+      wordsUsed: ['eloquent'],
+    });
+
+    await processFinal('session-1');
+
+    expect(rewriteTranscript).toHaveBeenCalledWith(
+      'hello world',
+      [{ word: 'eloquent', meaning: 'fluent and persuasive', exampleSentence: 'She gave an eloquent speech.' }],
+    );
+
+    expect(prisma.transcript.update).toHaveBeenCalledWith({
+      where: { sessionId: 'session-1' },
+      data: { improvedText: 'hello eloquent world', wordsUsed: ['eloquent'] },
+    });
   });
 });
 

@@ -5,11 +5,11 @@ import { useWaveformVisualizer } from './useWaveformVisualizer';
 import type { WaveformVisualizerProps } from './WaveformVisualizer.types';
 
 const DEFAULT_BAR_COUNT = 24;
-const LARGE_BAR_COUNT = 80;
+const LARGE_BAR_COUNT = 50;
 
 const SIZE_CONFIG = {
   default: { barWidth: 4, maxHeight: 48, minHeight: 4, gap: 2, containerHeight: 'h-12' },
-  large: { barWidth: 2, maxHeight: 120, minHeight: 4, gap: 2, containerHeight: 'h-32' },
+  large: { barWidth: 2, maxHeight: 160, minHeight: 4, gap: 2, containerHeight: 'h-40' },
 } as const;
 
 export function WaveformVisualizer({

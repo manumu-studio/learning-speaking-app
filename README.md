@@ -53,7 +53,7 @@ Intelligence ← Phoneme patterns + vocab tracking (suggest → detect adoption)
 4. **Results** — Nine scored dimensions: 6 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, and L1 interference coaching
 5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
-7. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions and detects when you use them in future sessions; Reading Practice generates text targeting your weak sounds
+7. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions and detects when you use them in future sessions; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
 8. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
 
 ## Documentation
