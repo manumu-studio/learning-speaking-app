@@ -50,7 +50,17 @@ function parseVerboseResponse(raw: unknown): WhisperVerboseResult {
   };
 }
 
-/** Transcribes audio using Whisper and returns full text with per-segment confidence signals. */
+/**
+ * Transcribes an audio buffer using OpenAI Whisper (`whisper-1`) and returns the full text
+ * alongside per-segment confidence signals.
+ *
+ * Uses `verbose_json` response format with temperature 0 and a domain-specific prompt to
+ * reduce hallucination on software-engineering vocabulary.
+ *
+ * @param audioBuffer - Raw audio data (any Whisper-supported format; typically WebM).
+ * @param filename - Filename hint passed to the OpenAI API (used for MIME inference).
+ * @returns A `WhisperVerboseResult` with `text`, `language`, and `segments`.
+ */
 export async function transcribeAudio(
   audioBuffer: Buffer,
   filename: string
@@ -81,7 +91,17 @@ function parseVerboseWithWordsResponse(raw: unknown): WhisperVerboseResult {
   };
 }
 
-/** Transcribe a PCM WAV chunk with word-level timestamps for overlap dedup. */
+/**
+ * Transcribes a PCM WAV chunk with word-level timestamps for use in overlap deduplication.
+ *
+ * Requests both `word` and `segment` timestamp granularities so the returned
+ * `words` array can be used by {@link concatenateChunkTranscripts} to strip
+ * overlapping words at chunk boundaries.
+ *
+ * @param audioBuffer - Raw WAV audio data for a single recording chunk.
+ * @param filename - Filename hint for the OpenAI multipart upload.
+ * @returns A `WhisperVerboseResult` with `text`, `language`, `segments`, and `words`.
+ */
 export async function transcribeWavChunk(
   audioBuffer: Buffer,
   filename: string,

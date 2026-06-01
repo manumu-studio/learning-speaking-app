@@ -59,7 +59,16 @@ function estimateOverlapWordCount(overlapSecs: number): number {
   return Math.round((overlapSecs / 60) * AVG_WPM);
 }
 
-/** Combines per-chunk Azure pronunciation reports into a single duration-weighted result, deduplicating overlap words. */
+/**
+ * Combines per-chunk Azure pronunciation reports into a single duration-weighted result.
+ *
+ * Each chunk's `pronunciationReport` is validated with Zod before merging — invalid chunks
+ * are silently skipped. Overlap words are removed by estimating word count from the overlap
+ * duration at 120 WPM. Speaking rate is derived from non-Insertion/Omission words.
+ *
+ * @param chunks - Per-chunk inputs with raw pronunciation report JSON and timing metadata.
+ * @returns A `MergedPronunciationResult` with weighted scores and merged word list, or `null` if no chunk validates.
+ */
 export function mergePronunciation(
   chunks: ChunkPronunciationMergeInput[],
 ): MergedPronunciationResult | null {
@@ -99,7 +108,7 @@ export function mergePronunciation(
       continue;
     }
 
-    // Words are validated by wordResultSchema.passthrough() — safe to treat as WordResult
+    // Words validated by wordResultSchema.passthrough() — safe to treat as WordResult
     let words = entry.report.words as unknown as WordResult[];
 
     if (i > 0) {

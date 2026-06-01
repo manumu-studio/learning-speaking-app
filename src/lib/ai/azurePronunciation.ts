@@ -10,12 +10,13 @@ import { WORD_ERROR_TYPES } from './azurePronunciation.types';
 // runtime-populated fields (Offset, Duration, Feedback) that appear in JSON.
 // ---------------------------------------------------------------------------
 
+function isWordErrorType(value: string): value is WordErrorType {
+  return (WORD_ERROR_TYPES as readonly string[]).includes(value);
+}
+
 function toWordErrorType(raw: string | undefined): WordErrorType {
   const candidate = raw ?? 'None';
-  if ((WORD_ERROR_TYPES as readonly string[]).includes(candidate)) {
-    return candidate as WordErrorType;
-  }
-  return 'None';
+  return isWordErrorType(candidate) ? candidate : 'None';
 }
 
 interface SdkWordDetail {
@@ -45,7 +46,19 @@ interface SdkWordDetail {
   };
 }
 
-/** Runs Azure Speech SDK pronunciation assessment on a WAV buffer against a reference text. */
+/**
+ * Runs Azure Speech SDK pronunciation assessment on a WAV audio buffer against a reference text.
+ *
+ * Uses continuous recognition with phoneme-granularity scoring, prosody assessment, and
+ * 5-best phoneme alternatives. Client-side miscue detection (Insertion / Mispronunciation /
+ * Omission tagging) is applied via `difflib.SequenceMatcher` after recognition completes.
+ *
+ * @param wavBuffer - PCM WAV audio buffer of the utterance to assess.
+ * @param referenceText - The expected text the speaker was reading (used for miscue alignment).
+ * @param azureKey - Azure Speech resource subscription key.
+ * @param azureRegion - Azure Speech resource region (e.g. `'eastus'`).
+ * @returns A `PronunciationResult` with per-word accuracy, phoneme details, and aggregate scores.
+ */
 export async function assessPronunciation(
   wavBuffer: Buffer,
   referenceText: string,
@@ -91,8 +104,9 @@ export async function assessPronunciation(
       const assessment = sdk.PronunciationAssessmentResult.fromResult(event.result);
       utterances.push(event.result);
 
-      // Cast to extended interface to access runtime-populated fields not in SDK types
-      const sdkWords = assessment.detailResult.Words as unknown as SdkWordDetail[];
+      // Azure SDK types omit runtime fields (Offset, Duration, Feedback) — bridge via unknown
+      const rawWords: unknown = assessment.detailResult.Words;
+      const sdkWords: SdkWordDetail[] = Array.isArray(rawWords) ? rawWords : [];
 
       for (const word of sdkWords) {
         const phonemes: PhonemeResult[] = (word.Phonemes ?? []).map((p) => {

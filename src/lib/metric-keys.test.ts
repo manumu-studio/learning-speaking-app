@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { SPEAKING_METRIC_KEYS, isSpeakingMetricKey } from './metric-keys';
 
 describe('metric-keys', () => {
-  it('lists ten canonical keys', () => {
-    expect(SPEAKING_METRIC_KEYS).toHaveLength(10);
+  it('lists eleven canonical keys', () => {
+    expect(SPEAKING_METRIC_KEYS).toHaveLength(11);
     expect(SPEAKING_METRIC_KEYS).toContain('verbAccuracy');
     expect(SPEAKING_METRIC_KEYS).toContain('lexicalSophistication');
+    expect(SPEAKING_METRIC_KEYS).toContain('registerPragmatics');
   });
 
   it('isSpeakingMetricKey returns true for known keys', () => {

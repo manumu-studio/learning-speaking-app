@@ -169,7 +169,19 @@ function getFilterReason(
   return null;
 }
 
-/** Removes insights that reference proper nouns, acronyms, or low-frequency words that are likely transcription artefacts. */
+/**
+ * Removes Claude insights that reference proper nouns, acronyms, tech-term shapes, or low-frequency
+ * words that are likely transcription artefacts rather than genuine learner errors.
+ *
+ * Uses `compromise` NLP to extract proper noun and acronym entities from the transcript,
+ * then inspects each insight's example words against those entity sets plus heuristics
+ * (capitalized words, camelCase / PascalCase shapes). Insights whose example tokens appear
+ * fewer than 2 times in the transcript are also filtered.
+ *
+ * @param insights - Insight array (post `applyInsightGuardrails`) to filter further.
+ * @param fullTranscript - The full session transcript used for NER entity extraction and frequency counting.
+ * @returns A `FilterResult` with `kept`, `filtered`, and `filterReasons` arrays.
+ */
 export function filterTranscriptionArtefacts(
   insights: Insight[],
   fullTranscript: string

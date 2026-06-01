@@ -51,16 +51,28 @@ export const SAPI_TO_IPA: Record<string, string> = {
 // ─── Helper functions ─────────────────────────────────────────────────────────
 
 /**
- * Map a single SAPI code to its IPA symbol.
- * Returns the original SAPI code if no mapping exists (fail-safe for unknown codes).
+ * Maps a single SAPI phoneme code to its IPA symbol.
+ *
+ * Falls back to the original SAPI code when no mapping exists (fail-safe for future Azure additions).
+ *
+ * @param sapi - A lowercase SAPI code, e.g. `'ae'`, `'ih'`, `'sh'`.
+ * @returns The corresponding IPA symbol, e.g. `'æ'`, `'ɪ'`, `'ʃ'`, or `sapi` if unmapped.
+ * @example
+ * sapiToIpa('ae') // => 'æ'
+ * sapiToIpa('sh') // => 'ʃ'
+ * sapiToIpa('xx') // => 'xx'  (unknown code — returned as-is)
  */
 export function sapiToIpa(sapi: string): string {
   return SAPI_TO_IPA[sapi] ?? sapi;
 }
 
 /**
- * Concatenate the IPA symbols for an array of phonemes into a full IPA transcription.
- * Example: [{phoneme:'eh'},{phoneme:'n'},{phoneme:'iy'}] → "ɛniː"
+ * Concatenates the IPA symbols for an array of phonemes into a full IPA transcription string.
+ *
+ * @param phonemes - Ordered phoneme objects from the Azure Pronunciation Assessment result.
+ * @returns A single IPA string, e.g. `'ɛniː'` for `[{phoneme:'eh'},{phoneme:'n'},{phoneme:'iy'}]`.
+ * @example
+ * wordToIpa([{ phoneme: 'eh' }, { phoneme: 'n' }, { phoneme: 'iy' }]) // => 'ɛniː'
  */
 export function wordToIpa(phonemes: ReadonlyArray<{ readonly phoneme: string }>): string {
   return phonemes.map((p) => sapiToIpa(p.phoneme)).join('');

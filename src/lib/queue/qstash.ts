@@ -46,7 +46,13 @@ async function publishDevJob(
   });
 }
 
-/** Enqueues a full-session processing job; calls the local dev worker in development mode. */
+/**
+ * Enqueues a full-session processing job via QStash (or calls the local dev worker in development).
+ *
+ * In production, publishes to `/api/internal/process` with 3 automatic retries.
+ *
+ * @param sessionId - The speaking session ID to process.
+ */
 export async function enqueueProcessing(sessionId: string): Promise<void> {
   if (env.NODE_ENV === 'development') {
     await publishDevJob('/api/dev/process', { sessionId });
@@ -61,7 +67,15 @@ export async function enqueueProcessing(sessionId: string): Promise<void> {
   });
 }
 
-/** Enqueues a chunk processing job with failure callback support. */
+/**
+ * Enqueues a per-chunk processing job with a failure callback for orphan detection.
+ *
+ * In production, publishes to `/api/internal/process-chunk` with 3 retries and
+ * a `failureCallback` pointing to `/api/internal/chunk-failed`.
+ *
+ * @param sessionId - The speaking session ID.
+ * @param chunkIndex - Zero-based index of the chunk to process.
+ */
 export async function enqueueChunkProcessing(
   sessionId: string,
   chunkIndex: number,
@@ -82,7 +96,14 @@ export async function enqueueChunkProcessing(
   });
 }
 
-/** Enqueues the final aggregation job for a session, deduplicated by session ID. */
+/**
+ * Enqueues the final aggregation job for a session, deduplicated by session ID.
+ *
+ * Uses QStash `deduplicationId: 'final-<sessionId>'` to prevent duplicate fan-in jobs
+ * when multiple chunks complete in rapid succession.
+ *
+ * @param sessionId - The speaking session ID to finalize.
+ */
 export async function enqueueFinalProcessing(sessionId: string): Promise<void> {
   const body = { sessionId };
 
@@ -100,7 +121,14 @@ export async function enqueueFinalProcessing(sessionId: string): Promise<void> {
   });
 }
 
-/** Enqueues an independent per-chunk pipeline job with full chunk metadata. */
+/**
+ * Enqueues an independent per-chunk pipeline job carrying full chunk metadata.
+ *
+ * Unlike `enqueueChunkProcessing`, this variant is self-contained: the chunk worker
+ * receives all timing and storage data it needs without fetching from the DB first.
+ *
+ * @param payload - Chunk job data: `sessionId`, `chunkIndex`, `storageKey`, `durationSecs`, `overlapSecs`.
+ */
 export async function enqueueChunkIndependent(payload: {
   sessionId: string;
   chunkIndex: number;

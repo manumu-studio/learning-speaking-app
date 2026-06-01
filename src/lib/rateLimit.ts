@@ -5,7 +5,15 @@ import { env } from '@/lib/env';
 
 let rateLimiterInstance: Ratelimit | null = null;
 
-/** Returns the singleton Upstash rate limiter, or null if Redis credentials are missing. */
+/**
+ * Returns the singleton Upstash sliding-window rate limiter, or `null` when Redis credentials are absent.
+ *
+ * Configured with a 60-request-per-minute sliding window under the `lsa:api` prefix.
+ * Returns `null` gracefully when `UPSTASH_REDIS_REST_URL` or `UPSTASH_REDIS_REST_TOKEN` are
+ * not set, allowing callers to skip rate limiting in environments without Redis.
+ *
+ * @returns The `Ratelimit` singleton, or `null` if credentials are missing or Redis init fails.
+ */
 export function getRateLimiter(): Ratelimit | null {
   if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
     return null;

@@ -48,7 +48,16 @@ function reindexWords(words: WordResult[], offsetMs: number): WordResult[] {
   }));
 }
 
-/** Combines chunk-level Azure scores and word rows into one session-level result. */
+/**
+ * Combines chunk-level Azure pronunciation scores and word rows into a single session-level result.
+ *
+ * Each score (pronScore, accuracyScore, fluencyScore, completenessScore, prosodyScore, speakingRate)
+ * is computed as a duration-weighted average where weight = max(1, durationSecs - overlapSecs).
+ * Word timestamps are reindexed so they reflect absolute session offsets.
+ *
+ * @param chunks - Array of per-chunk pronunciation data; chunks with any null score are skipped.
+ * @returns An `AggregatedPronunciation` covering all scored chunks, or `null` if no chunks have scores.
+ */
 export function aggregatePronunciation(
   chunks: ChunkPronunciationInput[],
 ): AggregatedPronunciation | null {
@@ -124,7 +133,15 @@ export function aggregatePronunciation(
   };
 }
 
-/** Converts aggregated pronunciation into the Azure client result shape. */
+/**
+ * Converts an `AggregatedPronunciation` into the canonical `PronunciationResult` shape.
+ *
+ * Strips the internal `speakingRateWpm` field (not part of `PronunciationResult`) and
+ * re-maps all score fields, producing the shape expected by downstream persist helpers.
+ *
+ * @param aggregated - Duration-weighted aggregate from {@link aggregatePronunciation}.
+ * @returns A `PronunciationResult` compatible with the Azure client output format.
+ */
 export function toPronunciationResult(
   aggregated: AggregatedPronunciation,
 ): PronunciationResult {
