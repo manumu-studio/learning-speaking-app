@@ -470,6 +470,18 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     },
   });
 
+  if (synthesis.vocabularySuggestions && synthesis.vocabularySuggestions.length > 0) {
+    await persistVocabSuggestions(session.userId, sessionId, synthesis.vocabularySuggestions);
+
+    const rewriteResult = await rewriteTranscript(stitchedTranscript, synthesis.vocabularySuggestions);
+    if (rewriteResult) {
+      await prisma.transcript.update({
+        where: { sessionId },
+        data: { improvedText: rewriteResult.improvedText, wordsUsed: rewriteResult.wordsUsed },
+      });
+    }
+  }
+
   await updatePatternProfile(session.userId, nerFilterResult.kept);
   await detectVocabUsage(session.userId, sessionId, stitchedTranscript);
 
