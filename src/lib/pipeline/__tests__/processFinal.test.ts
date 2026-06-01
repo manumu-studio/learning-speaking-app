@@ -329,6 +329,7 @@ describe('processParallelFinal', () => {
       focusNext: 'Work on connectors',
       summary: 'Good session overall',
       intentLabel: 'Practice session',
+      vocabularySuggestions: [],
     });
   });
 
