@@ -50,7 +50,7 @@ function parseVerboseResponse(raw: unknown): WhisperVerboseResult {
   };
 }
 
-// Transcribe audio using Whisper API — returns full text and per-segment confidence signals
+/** Transcribes audio using Whisper and returns full text with per-segment confidence signals. */
 export async function transcribeAudio(
   audioBuffer: Buffer,
   filename: string

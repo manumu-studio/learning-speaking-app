@@ -5,6 +5,7 @@ import { env } from '@/lib/env';
 
 let rateLimiterInstance: Ratelimit | null = null;
 
+/** Returns the singleton Upstash rate limiter, or null if Redis credentials are missing. */
 export function getRateLimiter(): Ratelimit | null {
   if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
     return null;

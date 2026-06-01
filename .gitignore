@@ -80,6 +80,9 @@ FETCH_HEAD
 # cursor-task-reports
 /docs/cursor-task-reports/
 
+# Incidents (private investigation logs)
+/docs/incidents/
+
 # Internal process docs (build packets, API specs, deployment notes)
 /docs/build-packets/
 /docs/build-packet-reports/

@@ -6,6 +6,7 @@ import { extractContour } from '@/lib/praat';
 import { computeChunkTimeRange } from '@/lib/pipeline/chunkTiming';
 import { generatePresignedGetUrl } from '@/lib/storage/r2';
 
+/** Extracts F0/intensity contour for a single chunk via the Praat microservice and persists it as a ChunkFeature row. */
 export async function extractChunkFeatures(
   sessionId: string,
   chunkIndex: number,

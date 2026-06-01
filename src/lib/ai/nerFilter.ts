@@ -169,6 +169,7 @@ function getFilterReason(
   return null;
 }
 
+/** Removes insights that reference proper nouns, acronyms, or low-frequency words that are likely transcription artefacts. */
 export function filterTranscriptionArtefacts(
   insights: Insight[],
   fullTranscript: string

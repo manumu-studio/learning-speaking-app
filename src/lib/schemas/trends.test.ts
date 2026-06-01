@@ -20,12 +20,13 @@ describe('MetricKeySchema', () => {
     'verbAccuracy',
     'argumentClosure',
     'fillerUsage',
+    'lexicalSophistication',
     'pronunciationAccuracy',
     'prosodyScore',
     'speakingRate',
   ] as const;
 
-  it('accepts all 9 valid metric keys', () => {
+  it('accepts all 10 valid metric keys', () => {
     for (const key of validKeys) {
       expect(() => MetricKeySchema.parse(key)).not.toThrow();
     }
@@ -78,6 +79,7 @@ const validScores = {
   verbAccuracy: 9,
   argumentClosure: 5,
   fillerUsage: 4,
+  lexicalSophistication: 6,
   pronunciationAccuracy: 8,
   prosodyScore: 7,
   speakingRate: 6,

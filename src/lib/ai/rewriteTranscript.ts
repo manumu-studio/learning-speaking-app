@@ -16,6 +16,7 @@ export interface RewriteResult {
   wordsUsed: string[];
 }
 
+/** Rewrites a transcript to naturally incorporate vocabulary suggestions, preserving the speaker's original meaning. */
 export async function rewriteTranscript(
   originalText: string,
   vocabularySuggestions: VocabWord[],

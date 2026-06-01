@@ -131,8 +131,8 @@ describe('Analysis result schema', () => {
     const withVocab = {
       ...baseValidResult,
       vocabularySuggestions: [
-        { word: 'establish', meaning: 'To set up formally.', exampleSentence: 'We need to establish clear goals.' },
-        { word: 'demonstrate', meaning: 'To show clearly.', exampleSentence: 'This example demonstrates the pattern.' },
+        { word: 'establish', meaning: 'To set up formally.', exampleSentence: 'We need to establish clear goals.', type: 'word', domain: 'general', frequencyBand: 'mid' },
+        { word: 'demonstrate', meaning: 'To show clearly.', exampleSentence: 'This example demonstrates the pattern.', type: 'word', domain: 'general', frequencyBand: 'mid' },
       ],
     };
     expect(analysisResultSchema.parse(withVocab)).toEqual(withVocab);

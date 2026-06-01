@@ -258,7 +258,7 @@ describe('processFinal', () => {
       metrics: [],
       possible_transcription_artefacts: [],
       vocabularySuggestions: [
-        { word: 'eloquent', meaning: 'fluent and persuasive', exampleSentence: 'She gave an eloquent speech.' },
+        { word: 'eloquent', meaning: 'fluent and persuasive', exampleSentence: 'She gave an eloquent speech.', type: 'word', domain: 'general', frequencyBand: 'low' },
       ],
     });
 
@@ -271,7 +271,7 @@ describe('processFinal', () => {
 
     expect(rewriteTranscript).toHaveBeenCalledWith(
       'hello world',
-      [{ word: 'eloquent', meaning: 'fluent and persuasive', exampleSentence: 'She gave an eloquent speech.' }],
+      [{ word: 'eloquent', meaning: 'fluent and persuasive', exampleSentence: 'She gave an eloquent speech.', type: 'word', domain: 'general', frequencyBand: 'low' }],
     );
 
     expect(prisma.transcript.update).toHaveBeenCalledWith({

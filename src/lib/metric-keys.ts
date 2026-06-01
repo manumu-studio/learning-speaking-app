@@ -6,6 +6,7 @@ export const SPEAKING_METRIC_KEYS = [
   'verbAccuracy',
   'argumentClosure',
   'fillerUsage',
+  'lexicalSophistication',
   'pronunciationAccuracy',
   'prosodyScore',
   'speakingRate',
@@ -13,6 +14,7 @@ export const SPEAKING_METRIC_KEYS = [
 
 export type SpeakingMetricKey = (typeof SPEAKING_METRIC_KEYS)[number];
 
+/** Type guard — returns true if value is a valid SpeakingMetricKey. */
 export function isSpeakingMetricKey(value: string | null | undefined): value is SpeakingMetricKey {
   return (
     value !== null &&
