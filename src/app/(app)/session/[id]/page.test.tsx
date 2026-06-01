@@ -95,7 +95,7 @@ function buildDoneSession(overrides: Partial<SessionDetail> = {}): SessionDetail
       },
     ],
     metrics: [],
-    transcript: { text: 'I have car and need to make the process better.', wordCount: 10 },
+    transcript: { text: 'I have car and need to make the process better.', improvedText: null, wordsUsed: [], wordCount: 10 },
     pronunciationReport: {
       pronScore: 80,
       accuracyScore: 85,

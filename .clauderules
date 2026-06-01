@@ -1,0 +1,123 @@
+# Learning Speaking App — Claude Code Project Rules
+
+## Project Identity
+- **Name**: Learning Speaking App (LSA)
+- **Purpose**: AI-powered English speaking coach — record, transcribe, analyze, improve
+- **Stack**: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, Prisma, Neon Postgres
+
+## Feature Build Workflow
+
+When building a feature (the user says "build", "continue building", or similar):
+
+### Step 1 — Build the code
+- Read the spec/requirements first
+- Follow all TypeScript standards and component patterns from `.cursorrules`
+- Run quality gates after every significant change:
+  ```bash
+  npx tsc --noEmit
+  npm run build
+  npm run lint
+  npm test
+  ```
+
+### Step 2 — Audit (when requested)
+- Use `/audit-packet` skill if the user asks to audit
+
+### Step 3 — Create documentation
+
+Create these files. **All documentation must read as if a human developer did the work.**
+
+1. **Journal entry** — `docs/journal/ENTRY-N.md` (next sequential number)
+2. **PR doc** — `docs/pull-requests/PR-X.Y.Z.md` (matching version)
+3. **Update README.md** if the feature warrants it
+4. **Bump version** in `package.json` (semver)
+
+### Step 4 — Ship (when user is in remote control mode)
+
+When the user has activated remote control mode ("remote control" / "I'm on my phone"):
+
+1. **Check state first — always:**
+   ```bash
+   git status
+   ```
+   Review the output. Identify which files belong to the feature and which don't.
+
+2. **Stage files explicitly** — never use `git add -A` or `git add .` blindly:
+   ```bash
+   git add [specific files]
+   git status  # verify staging is correct
+   ```
+
+3. **Commit with a clean message:**
+   ```bash
+   git commit -m "feat(scope): what changed and why"
+   ```
+
+4. **Push and create PR:**
+   ```bash
+   git push -u origin [branch-name]
+   ```
+   Then create a PR using `gh pr create`. The PR body MUST be the full content of the PR report (`docs/pull-requests/PR-X.Y.Z.md`). Use a HEREDOC to pass the body:
+   ```bash
+   gh pr create --title "feat(scope): brief description" --body "$(cat docs/pull-requests/PR-X.Y.Z.md)"
+   ```
+
+## Golden Goose Rule — ABSOLUTE
+
+**No public-facing content may EVER reference internal development tooling.** This applies to:
+
+### What counts as public-facing:
+- Commit messages
+- PR titles and bodies
+- Journal entries (`docs/journal/`)
+- PR docs (`docs/pull-requests/`)
+- README.md
+- Any `.md` file that could be seen on GitHub
+
+### What must NEVER appear in public content:
+- "Claude Code", "Claude", "Cursor", "AI assistant", "AI-generated", "AI-supervised"
+- "packet", "PACKET-NN", "build packet", "cursor task", "TASK-NNN"
+- "subagent", "sub-agent", "automation A/B/C/D"
+- `.cursorrules`, `.clauderules`, `DEVELOPMENT_PLAYBOOK.md`
+- `docs/build-packets/`, `docs/cursor-tasks/`, `docs/cursor-task-reports/`
+- `docs/build-packet-reports/`, `docs/session-prompts/`, `docs/continuation-prompts/`
+- Any reference to AI tools writing, supervising, reviewing, or generating the code
+- "Co-Authored-By" lines referencing AI
+
+### Write as if a solo developer shipped the feature.
+
+## Commit Message Format
+
+```
+type(scope): what changed
+
+- bullet 1
+- bullet 2
+```
+
+Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
+
+**Never include:**
+- Co-Authored-By lines
+- References to AI assistance
+- Internal tooling references (packets, tasks)
+
+## TypeScript Standards (inherited from .cursorrules)
+- No `any` — use `unknown` + type guards
+- No `as` assertions (except `as const` and `as never` in test mocks)
+- No non-null assertions (`!`)
+- Union types over enums
+- Named exports only (except Next.js framework files)
+- `@/` path alias for all imports
+- File header comments on every code file
+- 4-file component pattern for all new components
+- Zod validation at all external data boundaries
+- Env vars only via `lib/env.ts`
+
+## Quality Gates (must pass before shipping)
+```bash
+npx tsc --noEmit       # Zero type errors
+npm run build          # Clean build
+npm run lint           # Zero warnings
+npm test               # All passing
+```
