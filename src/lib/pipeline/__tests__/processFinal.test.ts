@@ -67,6 +67,10 @@ vi.mock('@/lib/pipeline/persistPronunciation', () => ({
   persistPronunciation: vi.fn(),
 }));
 
+vi.mock('@/lib/ai/polishTranscript', () => ({
+  polishTranscript: vi.fn((text: string) => Promise.resolve(text)),
+}));
+
 vi.mock('@/lib/ai/synthesize', () => ({
   synthesizeAnalysis: vi.fn(),
 }));

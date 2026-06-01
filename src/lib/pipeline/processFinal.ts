@@ -19,6 +19,7 @@ import { synthesizeAnalysis } from '@/lib/ai/synthesize';
 import type { ChunkInsightInput } from '@/lib/ai/synthesize';
 import { persistVocabSuggestions } from '@/lib/pipeline/persistVocabSuggestions';
 import { detectVocabUsage } from '@/lib/pipeline/detectVocabUsage';
+import { polishTranscript } from '@/lib/ai/polishTranscript';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 
@@ -151,7 +152,8 @@ export async function processFinal(sessionId: string): Promise<void> {
   }));
 
   const unified = concatenateChunkTranscripts(transcriptInput);
-  const userTranscriptText = unified.text;
+  const rawText = unified.text;
+  const userTranscriptText = await polishTranscript(rawText);
   const wordCount = userTranscriptText.split(/\s+/).filter(Boolean).length;
 
   await prisma.transcript.upsert({
@@ -353,7 +355,8 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     overlapSecs: chunk.overlapSecs,
   }));
 
-  const stitchedTranscript = stitchTranscripts(transcriptInputs);
+  const rawStitched = stitchTranscripts(transcriptInputs);
+  const stitchedTranscript = await polishTranscript(rawStitched);
   const wordCount = stitchedTranscript.split(/\s+/).filter(Boolean).length;
 
   await prisma.transcript.upsert({
