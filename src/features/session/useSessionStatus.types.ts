@@ -64,6 +64,8 @@ export interface SessionDetail {
   createdAt: string;
   transcript?: {
     text: string;
+    improvedText: string | null;
+    wordsUsed: string[];
     wordCount: number | null;
   };
   insights: Array<{

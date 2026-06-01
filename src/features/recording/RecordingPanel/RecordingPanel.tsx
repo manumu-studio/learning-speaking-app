@@ -205,6 +205,13 @@ export function RecordingPanel(props: RecordingPanelProps) {
       {/* Center stage — waveform + timer + button + controls */}
       <div className="flex flex-col items-center justify-center flex-1 min-h-0 w-full gap-4">
 
+        {/* Idle hint — blinks above waveform when not recording */}
+        {recordState !== 'recording' && !isPaused && (
+          <p className="animate-pulse text-xs text-slate-400 dark:text-slate-500">
+            Tap the mic to start
+          </p>
+        )}
+
         {/* Large waveform — the hero */}
         <WaveformVisualizer
           stream={mediaStream}

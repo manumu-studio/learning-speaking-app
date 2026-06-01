@@ -180,11 +180,13 @@ model ChunkFeature {
 }
 
 model Transcript {
-  id        String          @id @default(cuid())
-  sessionId String          @unique
-  text      String          @db.Text
-  wordCount Int?
-  session   SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id           String          @id @default(cuid())
+  sessionId    String          @unique
+  text         String          @db.Text
+  improvedText String?         @db.Text
+  wordsUsed    String[]        @default([])
+  wordCount    Int?
+  session      SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   @@map("transcripts")
 }
 

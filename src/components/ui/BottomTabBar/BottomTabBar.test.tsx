@@ -12,7 +12,7 @@ describe('BottomTabBar', () => {
   it('renders 4 navigation items (3 tabs + More button)', () => {
     render(<BottomTabBar onMorePress={vi.fn()} />);
 
-    expect(screen.getByText('Record')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /record/iu })).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
     expect(screen.getByText('More')).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('BottomTabBar', () => {
   it('has correct nav links', () => {
     render(<BottomTabBar onMorePress={vi.fn()} />);
 
-    expect(screen.getByText('Record').closest('a')).toHaveAttribute('href', '/session/new');
+    expect(screen.getByRole('link', { name: 'Record' })).toHaveAttribute('href', '/session/new');
     expect(screen.getByText('Dashboard').closest('a')).toHaveAttribute('href', '/dashboard');
     expect(screen.getByText('History').closest('a')).toHaveAttribute('href', '/history');
   });

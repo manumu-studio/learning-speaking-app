@@ -30,6 +30,8 @@ const sessionDetailSchema = z.object({
   createdAt: z.string(),
   transcript: z.object({
     text: z.string(),
+    improvedText: z.string().nullable(),
+    wordsUsed: z.array(z.string()),
     wordCount: z.number().nullable(),
   }).nullable().optional(),
   insights: z.array(z.object({

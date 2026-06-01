@@ -20,6 +20,7 @@ import type { ChunkInsightInput } from '@/lib/ai/synthesize';
 import { persistVocabSuggestions } from '@/lib/pipeline/persistVocabSuggestions';
 import { detectVocabUsage } from '@/lib/pipeline/detectVocabUsage';
 import { polishTranscript } from '@/lib/ai/polishTranscript';
+import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 
@@ -236,6 +237,14 @@ export async function processFinal(sessionId: string): Promise<void> {
 
   if (analysis.vocabularySuggestions && analysis.vocabularySuggestions.length > 0) {
     await persistVocabSuggestions(session.userId, sessionId, analysis.vocabularySuggestions);
+
+    const rewriteResult = await rewriteTranscript(userTranscriptText, analysis.vocabularySuggestions);
+    if (rewriteResult) {
+      await prisma.transcript.update({
+        where: { sessionId },
+        data: { improvedText: rewriteResult.improvedText, wordsUsed: rewriteResult.wordsUsed },
+      });
+    }
   }
 
   await detectVocabUsage(session.userId, sessionId, userTranscriptText);

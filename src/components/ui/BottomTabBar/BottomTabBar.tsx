@@ -61,9 +61,12 @@ export function BottomTabBar({ onMorePress }: BottomTabBarProps) {
                   ? 'text-sky-600 dark:text-sky-400'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
+              {...(icon === 'mic' ? { 'aria-label': 'Record' } : {})}
             >
-              <TabIcon icon={icon} className="h-5 w-5" />
-              <span className="text-[10px] font-medium">{label}</span>
+              <TabIcon icon={icon} className={icon === 'mic' ? 'h-6 w-6' : 'h-5 w-5'} />
+              {icon !== 'mic' && (
+                <span className="text-[10px] font-medium">{label}</span>
+              )}
             </Link>
           );
         })}
