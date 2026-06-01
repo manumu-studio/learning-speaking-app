@@ -1,4 +1,4 @@
-// Pillar config and score computation — groups 9 metrics into Delivery, Language, Pronunciation
+// Pillar config and score computation — groups 11 metrics into Delivery, Language, Pronunciation
 
 import type { DashboardMetric, MetricKey } from './dashboard.types';
 
@@ -20,7 +20,7 @@ export const PILLAR_CONFIG = {
   },
   language: {
     label: 'Language',
-    metricKeys: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'lexicalSophistication'],
+    metricKeys: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'lexicalSophistication', 'registerPragmatics'],
     color: 'violet',
     icon: 'BookOpen',
   },
@@ -45,6 +45,7 @@ export const METRIC_LABELS: Record<string, string> = {
   pronunciationAccuracy: 'Pronunciation Accuracy',
   prosodyScore: 'Prosody & Rhythm',
   lexicalSophistication: 'Lexical Sophistication',
+  registerPragmatics: 'Register & Pragmatics',
   speakingRate: 'Speaking Rate',
 };
 

@@ -8,7 +8,14 @@ interface SentryRequestContextOptions {
   route: string;
 }
 
-/** Attaches userId, requestId, route, and sessionId to the current Sentry scope. */
+/**
+ * Attaches user, request, route, and session identifiers to the current Sentry scope.
+ *
+ * Should be called once per request, inside the `withObservability` wrapper, after
+ * authentication resolves. Values appear in Sentry issues under Tags and Context.
+ *
+ * @param options - Identifiers to attach; `userId` and `sessionId` are optional for public routes.
+ */
 export function setSentryRequestContext(options: SentryRequestContextOptions): void {
   const { userId, sessionId, requestId, route } = options;
 

@@ -28,6 +28,7 @@ const METRIC_LABELS: Record<string, string> = {
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Words',
   lexicalSophistication: 'Lexical Sophistication',
+  registerPragmatics: 'Register & Pragmatics',
   pronunciationAccuracy: 'Pronunciation',
   prosodyScore: 'Prosody',
   speakingRate: 'Speaking Rate',
@@ -49,7 +50,7 @@ const PILLAR_COLOR_MAP: Record<PillarKey, string> = {
 
 function computePillarSeries(data: TrendsResponse): PillarTrendSeries[] {
   return data.pillarTrends.map((pillarTrend) => {
-    const pillarKey = pillarTrend.pillarKey as PillarKey;
+    const pillarKey: PillarKey = pillarTrend.pillarKey;
     const config = PILLAR_CONFIG[pillarKey];
 
     // Pillar-level series: aggregate dataPoints → TrendDataItem[]
@@ -114,7 +115,7 @@ export function useTrends() {
             errorBody !== null &&
             'error' in errorBody
           ) {
-            const errorValue = (errorBody as Record<string, unknown>).error;
+            const errorValue = (errorBody as { error: unknown }).error;
             if (typeof errorValue === 'string') {
               message = errorValue;
             }

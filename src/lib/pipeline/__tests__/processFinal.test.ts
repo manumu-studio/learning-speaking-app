@@ -35,6 +35,10 @@ vi.mock('@/lib/prisma', () => ({
     metricSnapshot: {
       deleteMany: vi.fn(),
       createMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    user: {
+      update: vi.fn(),
     },
     vocabSuggestion: {
       createMany: vi.fn().mockResolvedValue({ count: 0 }),

@@ -21,7 +21,7 @@ export default function Error({
         Something went wrong
       </h2>
       <p className="text-center text-gray-600 dark:text-gray-400">
-        {error.message || 'An unexpected error occurred'}
+        An unexpected error occurred. Please try again.
       </p>
       <button
         type="button"

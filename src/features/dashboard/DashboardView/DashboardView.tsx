@@ -3,6 +3,8 @@
 'use client';
 
 import { IdentitySummary } from '../IdentitySummary';
+import { SkillRadar } from '../SkillRadar';
+import { CefrBadge } from '../CefrBadge';
 import { PersonalRecordStrip } from '../PersonalRecordStrip';
 import { MetricCard } from '../MetricCard';
 import { FocusSelector } from '../FocusSelector';
@@ -195,6 +197,13 @@ export function DashboardView({ className }: DashboardViewProps) {
       />
 
       <PersonalRecordStrip personalRecords={data.personalRecords ?? []} />
+
+      {showMetrics && data.radarScores.length > 0 && (
+        <section aria-label="Skill overview" className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start">
+          <SkillRadar scores={data.radarScores} />
+          <CefrBadge estimate={data.cefrEstimate} />
+        </section>
+      )}
 
       {showMetrics ? (
         <section aria-label="Speaking metrics by pillar" className="mt-6 flex flex-col gap-4">

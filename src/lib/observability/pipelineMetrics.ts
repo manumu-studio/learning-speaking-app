@@ -10,7 +10,15 @@ interface PipelineStageOptions {
   metadata?: Record<string, unknown>;
 }
 
-/** Logs a pipeline stage result (duration + success) to Pino and adds a Sentry breadcrumb. */
+/**
+ * Logs a pipeline stage result to Pino and adds a Sentry breadcrumb for timeline tracing.
+ *
+ * The Pino log is emitted at `info` level with `event: 'pipeline.stage'` and the
+ * Sentry breadcrumb category is `'pipeline'` so all stages appear in the Sentry
+ * issue timeline in order.
+ *
+ * @param options - Stage metadata: `sessionId`, `stage` name, `durationMs`, `success` flag, and optional `metadata`.
+ */
 export function logPipelineStage(options: PipelineStageOptions): void {
   const { sessionId, stage, durationMs, success, metadata } = options;
 

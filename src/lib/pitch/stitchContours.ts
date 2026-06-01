@@ -10,7 +10,16 @@ export interface ChunkFeatureSegment {
   voiced: boolean[];
 }
 
-/** Merges ordered per-chunk F0/intensity segments into a single session-level contour array. */
+/**
+ * Merges ordered per-chunk F0/intensity segments into a single session-level pitch contour.
+ *
+ * Segments are sorted by `startMs` and placed into pre-allocated arrays sized to the
+ * total session duration at the first chunk's frame rate. Frames beyond the contour
+ * boundary are silently ignored.
+ *
+ * @param segments - Ordered `ChunkFeatureSegment` objects from the `ChunkFeature` DB rows.
+ * @returns A `ContourData` object with `frameMs`, `f0Hz`, `intensityDb`, `voiced`, and `durationMs`, or `null` if `segments` is empty or total duration is zero.
+ */
 export function stitchContours(segments: ChunkFeatureSegment[]): ContourData | null {
   if (segments.length === 0) {
     return null;

@@ -140,6 +140,8 @@ function setupHappyPath(sessionOverride?: Partial<typeof mockSession>): void {
   prismaMock.insight.createMany.mockResolvedValue({ count: 1 } as never);
   prismaMock.metricSnapshot.deleteMany.mockResolvedValue({ count: 0 } as never);
   prismaMock.metricSnapshot.createMany.mockResolvedValue({ count: 1 } as never);
+  prismaMock.metricSnapshot.findMany.mockResolvedValue([]);
+  prismaMock.user.update.mockResolvedValue({} as never);
   (updatePatternProfile as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 }
 

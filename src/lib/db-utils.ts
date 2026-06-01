@@ -34,7 +34,15 @@ const DEFAULT_CONSENTS: Array<
 ];
 
 /**
- * Find or create a user by external ID (from OAuth provider)
+ * Finds an existing user by OAuth external ID, or creates a new one with default consents.
+ *
+ * If the user already exists, `ensureConsents` is called to backfill any missing consent flags
+ * introduced since account creation. Default consents: `AUDIO_STORAGE`, `TRANSCRIPT_STORAGE`,
+ * `PATTERN_TRACKING`.
+ *
+ * @param externalId - The provider's stable user identifier (e.g. from the OIDC `sub` claim).
+ * @param data - Optional `email` and `displayName` for new user creation.
+ * @returns The Prisma `User` record (existing or newly created).
  */
 export async function findOrCreateUser(
   externalId: string,
@@ -78,7 +86,12 @@ async function ensureConsents(userId: string): Promise<void> {
 }
 
 /**
- * Get user's recent sessions with pagination
+ * Returns a paginated list of the user's speaking sessions, ordered newest-first.
+ *
+ * @param userId - Internal user ID.
+ * @param limit - Maximum number of sessions to return (defaults to 10).
+ * @param offset - Number of sessions to skip for pagination (defaults to 0).
+ * @returns An array of `UserSessionListItem` objects (may be empty).
  */
 export async function getUserSessions(
   userId: string,
@@ -95,7 +108,11 @@ export async function getUserSessions(
 }
 
 /**
- * Check if user has granted a specific consent
+ * Returns `true` if the user has an active (non-revoked) consent for the given flag.
+ *
+ * @param userId - Internal user ID.
+ * @param flag - The consent flag to check.
+ * @returns `true` when the consent row exists, `granted` is `true`, and `revokedAt` is `null`.
  */
 export async function hasConsent(
   userId: string,
