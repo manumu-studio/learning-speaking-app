@@ -47,6 +47,8 @@ const FALLBACK_TIPS: Record<MetricKey, string> = {
     'End each point with a one-sentence summary before moving on — tie the argument closed.',
   fillerUsage:
     "Pause instead of filling silence. A half-second pause sounds more confident than 'um' or 'like'.",
+  lexicalSophistication:
+    'Swap one common word per sentence for a more precise alternative — "important" → "pivotal".',
   pronunciationAccuracy: 'Slow down on consonant clusters. Precision beats speed.',
   prosodyScore: 'Vary your pitch on stressed syllables to sound more expressive.',
   speakingRate:

@@ -28,6 +28,7 @@ Rules:
 - If accuracy >= 80 everywhere, give 1 positive tip and 1 refinement tip
 - Respond ONLY with valid JSON matching: { "tips": [{ "focus": "...", "instruction": "..." }] }`;
 
+/** Converts Azure pronunciation scores into 2-3 actionable coaching tips via Claude Haiku. */
 export async function generatePronunciationTips(
   input: PronunciationTipsInput
 ): Promise<PronunciationTip[]> {

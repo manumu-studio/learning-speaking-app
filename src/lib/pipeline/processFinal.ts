@@ -98,6 +98,7 @@ function parsePronWords(value: Prisma.JsonValue | null): WordResult[] | null {
   return results.length === value.length ? results : null;
 }
 
+/** Fan-in worker for chunked sessions: deduplicates transcripts, aggregates pronunciation, runs Claude analysis, and marks the session DONE. */
 export async function processFinal(sessionId: string): Promise<void> {
   const finalStart = Date.now();
   const session = await prisma.speakingSession.findUnique({
@@ -286,6 +287,7 @@ function isJsonArray(value: Prisma.JsonValue | null): value is Prisma.JsonArray 
   return Array.isArray(value);
 }
 
+/** Fan-in worker for the parallel chunk pipeline: polls until all ChunkResult rows settle, merges transcripts and pronunciation, synthesizes insights, and marks the session DONE. */
 export async function processParallelFinal(sessionId: string): Promise<void> {
   const parallelFinalStart = Date.now();
   const session = await prisma.speakingSession.findUnique({

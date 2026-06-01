@@ -29,9 +29,15 @@ async function getHandler(_req: Request, { logger: _logger }: { logger: pino.Log
     word: s.word,
     meaning: s.meaning,
     exampleSentence: s.exampleSentence,
+    type: s.type,
+    domain: s.domain,
+    frequencyBand: s.frequencyBand,
     suggestedInSessionId: s.suggestedInSessionId,
     firstUsedInSessionId: s.firstUsedInSessionId,
     firstUsedAt: s.firstUsedAt?.toISOString() ?? null,
+    nextReviewAt: s.nextReviewAt?.toISOString() ?? null,
+    interval: s.interval,
+    reviewCount: s.reviewCount,
     createdAt: s.createdAt.toISOString(),
   }));
 

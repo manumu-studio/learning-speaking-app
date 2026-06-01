@@ -46,7 +46,7 @@ async function publishDevJob(
   });
 }
 
-// Enqueue session processing job via QStash
+/** Enqueues a full-session processing job; calls the local dev worker in development mode. */
 export async function enqueueProcessing(sessionId: string): Promise<void> {
   if (env.NODE_ENV === 'development') {
     await publishDevJob('/api/dev/process', { sessionId });
@@ -61,6 +61,7 @@ export async function enqueueProcessing(sessionId: string): Promise<void> {
   });
 }
 
+/** Enqueues a chunk processing job with failure callback support. */
 export async function enqueueChunkProcessing(
   sessionId: string,
   chunkIndex: number,
@@ -81,6 +82,7 @@ export async function enqueueChunkProcessing(
   });
 }
 
+/** Enqueues the final aggregation job for a session, deduplicated by session ID. */
 export async function enqueueFinalProcessing(sessionId: string): Promise<void> {
   const body = { sessionId };
 
@@ -98,7 +100,7 @@ export async function enqueueFinalProcessing(sessionId: string): Promise<void> {
   });
 }
 
-// Enqueue independent per-chunk pipeline job via QStash
+/** Enqueues an independent per-chunk pipeline job with full chunk metadata. */
 export async function enqueueChunkIndependent(payload: {
   sessionId: string;
   chunkIndex: number;

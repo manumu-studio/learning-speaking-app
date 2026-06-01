@@ -45,6 +45,7 @@ interface SdkWordDetail {
   };
 }
 
+/** Runs Azure Speech SDK pronunciation assessment on a WAV buffer against a reference text. */
 export async function assessPronunciation(
   wavBuffer: Buffer,
   referenceText: string,

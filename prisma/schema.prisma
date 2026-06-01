@@ -316,9 +316,20 @@ model VocabSuggestion {
   word                 String
   meaning              String           @db.Text
   exampleSentence      String           @db.Text
+  type                 String           @default("word")
+  domain               String           @default("general")
+  frequencyBand        String           @default("mid")
   suggestedInSessionId String
   firstUsedInSessionId String?
   firstUsedAt          DateTime?
+
+  // SRS scheduling fields
+  nextReviewAt         DateTime?
+  interval             Int              @default(1)
+  easeFactor           Float            @default(2.5)
+  reviewCount          Int              @default(0)
+  lastReviewedAt       DateTime?
+
   createdAt            DateTime         @default(now())
   user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   suggestedInSession   SpeakingSession  @relation("suggestedVocab", fields: [suggestedInSessionId], references: [id], onDelete: Cascade)
@@ -326,5 +337,6 @@ model VocabSuggestion {
 
   @@unique([userId, word])
   @@index([userId, firstUsedInSessionId])
+  @@index([userId, nextReviewAt])
   @@map("vocab_suggestions")
 }

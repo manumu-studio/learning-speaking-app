@@ -20,7 +20,7 @@ export const PILLAR_CONFIG = {
   },
   language: {
     label: 'Language',
-    metricKeys: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy'],
+    metricKeys: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'lexicalSophistication'],
     color: 'violet',
     icon: 'BookOpen',
   },
@@ -44,6 +44,7 @@ export const METRIC_LABELS: Record<string, string> = {
   fillerUsage: 'Filler Usage',
   pronunciationAccuracy: 'Pronunciation Accuracy',
   prosodyScore: 'Prosody & Rhythm',
+  lexicalSophistication: 'Lexical Sophistication',
   speakingRate: 'Speaking Rate',
 };
 

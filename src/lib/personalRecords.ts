@@ -11,6 +11,7 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   verbAccuracy: 'Verb Accuracy',
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Usage',
+  lexicalSophistication: 'Lexical Sophistication',
   pronunciationAccuracy: 'Pronunciation Accuracy',
   prosodyScore: 'Prosody & Rhythm',
   speakingRate: 'Speaking Rate',

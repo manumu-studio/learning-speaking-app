@@ -107,6 +107,7 @@ Use null for optional fields you want to omit (frequency, severity, examples, su
 }`;
 }
 
+/** Merges per-chunk insights into a single deduplicated session-level analysis using Claude Haiku. */
 export async function synthesizeAnalysis(input: SynthesisInput): Promise<SynthesisResult> {
   const client = getAnthropicClient();
 

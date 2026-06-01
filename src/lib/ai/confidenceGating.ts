@@ -78,6 +78,7 @@ function joinSegmentTexts(parts: string[]): string {
   return parts.filter((part) => part.length > 0).join(' ').replace(/\s+/g, ' ').trim();
 }
 
+/** Classifies Whisper segments by confidence, dropping silence and wrapping low-confidence text in suspect markers. */
 export function gateSegments(segments: WhisperSegment[]): AnnotatedTranscript {
   if (segments.length === 0) {
     return {
