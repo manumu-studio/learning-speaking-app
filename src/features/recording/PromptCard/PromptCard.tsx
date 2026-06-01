@@ -41,7 +41,7 @@ export function PromptCard({
   useEffect(() => {
     if (!isOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (dropdownRef.current && e.target instanceof Node && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
       }
     }

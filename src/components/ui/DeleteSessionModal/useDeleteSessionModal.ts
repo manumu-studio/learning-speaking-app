@@ -17,6 +17,7 @@ export function useDeleteSessionModal(): UseDeleteSessionModalReturn {
       try {
         const response = await fetch(`/api/sessions/${sessionId}`, {
           method: 'DELETE',
+          signal: AbortSignal.timeout(15_000),
         });
 
         if (!response.ok) {

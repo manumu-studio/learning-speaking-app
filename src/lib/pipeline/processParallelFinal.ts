@@ -18,7 +18,8 @@ import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 import { estimateCefr } from '@/lib/cefr/estimateCefr';
-import { isJsonArray } from './processFinalHelpers';
+import { isJsonArray, invalidateDailySummary } from './processFinalHelpers';
+import { insightSchema } from '@/lib/ai/analyze';
 
 /** Fan-in worker for the parallel chunk pipeline: polls until all ChunkResult rows settle, merges transcripts and pronunciation, synthesizes insights, and marks the session DONE. */
 export async function processParallelFinal(sessionId: string): Promise<void> {
@@ -32,6 +33,7 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
       focusMetricKey: true,
       promptUsed: true,
       processedAt: true,
+      createdAt: true,
       chunkCount: true,
     },
   });
@@ -139,7 +141,11 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
       chunkIndex: chunk.chunkIndex,
       startSecs,
       endSecs: cumulativeSecs,
-      insights: isJsonArray(chunk.insights) ? [...chunk.insights] : [],
+      // Validate each insight entry from the DB Json column against the canonical schema.
+      // Entries that fail (e.g. from an older schema version) are dropped gracefully.
+      insights: isJsonArray(chunk.insights)
+        ? chunk.insights.filter((entry) => insightSchema.safeParse(entry).success)
+        : [],
     };
   });
 
@@ -218,6 +224,7 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
 
   await updatePatternProfile(session.userId, nerFilterResult.kept);
   await detectVocabUsage(session.userId, sessionId, stitchedTranscript);
+  await invalidateDailySummary(session.userId, session.createdAt);
 
   // CEFR estimation from scored metrics
   const cefrEstimate = estimateCefr(

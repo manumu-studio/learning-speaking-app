@@ -1,13 +1,8 @@
 // Persists Azure pronunciation assessment results to the database.
 // Writes PronunciationReport, WordPronunciation rows, and MetricSnapshots atomically.
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
-
-// Typed helper — wraps the double-cast required for Prisma's opaque Json field type.
-function toJson(value: unknown): Prisma.InputJsonValue {
-  return value as Prisma.InputJsonValue;
-}
+import { toInputJson } from '@/lib/prismaJson';
 
 // Map Azure 0-100 score to app 1-10 using an intelligibility-first non-linear curve.
 // The curve is lenient at the low end (accent != unintelligible) and rewards
@@ -85,7 +80,7 @@ export async function persistPronunciation(
       prosodyScore: result.prosodyScore,
       speakingRateWpm,
       azureSdkVersion: AZURE_SDK_VERSION,
-      rawJson: toJson(result.rawUtterances),
+      rawJson: toInputJson(result.rawUtterances),
     };
 
     // Upsert PronunciationReport (idempotent for QStash retries)
@@ -112,7 +107,7 @@ export async function persistPronunciation(
         breakErrorTypes: w.prosodyFeedback?.breakErrorTypes ?? [],
         intonationErrorTypes: w.prosodyFeedback?.intonationErrorTypes ?? [],
         monotonePitchDelta: w.prosodyFeedback?.monotoneSyllablePitchDeltaConfidence ?? null,
-        phonemes: toJson(w.phonemes),
+        phonemes: toInputJson(w.phonemes),
         l1Tags: w.l1Tags ?? [],
       })),
     });

@@ -2,6 +2,20 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.60.0] — 2026-06-01
+
+- **feat:** Prompt Library v2 — expanded from 28 to 60+ prompts with 6 format types (opinion, monologue, image, retell, summarize, impromptu) and C2-level content
+- **feat:** Multi-filter system — pill-style AND-combined filters for category, format, and CEFR level replacing single category tabs
+- **feat:** 4-3-2 Timed Fluency training — research-backed 3-round exercise (4→3→2 min) with countdown timer, auto-stop, grace period, and WPM comparison view
+- **feat:** Fluency data model — `TimedFluencySession` + `TimedFluencyRound` Prisma models with status tracking and metric backfill
+- **feat:** 3 fluency API routes (create/list sessions, session detail, submit rounds with auto-completion)
+- **feat:** `LibraryPromptCard` updated with format badges, collapsible source text, dual action buttons (Quick Record + Start 4-3-2)
+- **feat:** Fluency Training added to MoreSheet navigation with clock icon
+- **feat:** 8 retell source passages and 8 image prompt metadata entries
+- **feat:** Daily Summary cards — past days in history and reading practice show pillar averages, new vocab, and AI coaching feedback (Claude Haiku)
+- **feat:** `DailySummary` Prisma model with on-demand compute + cache invalidation on session completion
+- **feat:** History and reading practice day groups collapsed by default for past days with expand/collapse toggle
+
 ## [0.59.0] — 2026-06-01
 
 - **feat:** Register & Pragmatics analysis — 11th metric scoring formality, hedging, and politeness strategies with coaching suggestions

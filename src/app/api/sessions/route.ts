@@ -11,6 +11,7 @@ import type pino from 'pino';
 import { SPEAKING_METRIC_KEYS } from '@/lib/metric-keys';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { z } from 'zod';
+import { isRecord } from '@/lib/typeGuards';
 
 const MAX_AUDIO_BYTES = 8 * 1024 * 1024; // 8 MB — ~6 minutes of webm/opus at ~20 KB/s
 
@@ -59,12 +60,11 @@ function extractWordCount(summary: string | null): number | null {
   try {
     const parsed: unknown = JSON.parse(summary);
     if (
-      typeof parsed === 'object' &&
-      parsed !== null &&
+      isRecord(parsed) &&
       'wordCount' in parsed &&
-      typeof (parsed as Record<string, unknown>)['wordCount'] === 'number'
+      typeof parsed['wordCount'] === 'number'
     ) {
-      return (parsed as Record<string, unknown>)['wordCount'] as number;
+      return parsed['wordCount'];
     }
     return null;
   } catch {

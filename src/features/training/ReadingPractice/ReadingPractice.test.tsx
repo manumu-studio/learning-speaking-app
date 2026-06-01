@@ -22,6 +22,12 @@ vi.mock('@/components/ui/Container', () => ({
   }) => <div className={className}>{children}</div>,
 }));
 
+vi.mock('@/features/history/DailySummaryCard', () => ({
+  DailySummaryCard: ({ dateKey }: { dateKey: string }) => (
+    <div data-testid="daily-summary-card" data-date={dateKey} />
+  ),
+}));
+
 vi.mock('@/features/recording/useAudioWorklet', () => ({
   useAudioWorklet: vi.fn().mockReturnValue({
     state: 'idle',
@@ -209,16 +215,22 @@ describe('ReadingPractice', () => {
       expect(screen.getByText('nuanced')).toBeInTheDocument();
     });
 
-    it('renders session cards', async () => {
+    it('renders session cards after expanding day group', async () => {
       render(<ReadingPractice />);
       await waitFor(() =>
-        expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
       );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
+      expect(screen.getByText('Healthcare systems')).toBeInTheDocument();
       expect(screen.getByText('#42')).toBeInTheDocument();
     });
 
     it('renders session pronScore chip', async () => {
       render(<ReadingPractice />);
+      await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
       await waitFor(() => expect(screen.getAllByTestId('score-chip').length).toBeGreaterThan(0));
       const chips = screen.getAllByTestId('score-chip');
       expect(chips.some((c) => c.textContent === '72')).toBe(true);
@@ -226,6 +238,10 @@ describe('ReadingPractice', () => {
 
     it('renders weak phoneme tags inside session card', async () => {
       render(<ReadingPractice />);
+      await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
       // /θ/ appears in both GlobalSummary and the session card
       await waitFor(() =>
         expect(screen.getAllByText('/θ/').length).toBeGreaterThanOrEqual(1),
@@ -235,6 +251,10 @@ describe('ReadingPractice', () => {
     it('renders mispronounced word tags inside session card', async () => {
       render(<ReadingPractice />);
       await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
+      await waitFor(() =>
         expect(screen.getByText('through')).toBeInTheDocument(),
       );
     });
@@ -242,7 +262,18 @@ describe('ReadingPractice', () => {
     it('renders unadopted vocab tags inside session card', async () => {
       render(<ReadingPractice />);
       await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
+      await waitFor(() =>
         expect(screen.getAllByText('eloquent').length).toBeGreaterThanOrEqual(1),
+      );
+    });
+
+    it('renders DailySummaryCard for past day groups', async () => {
+      render(<ReadingPractice />);
+      await waitFor(() =>
+        expect(screen.getByTestId('daily-summary-card')).toBeInTheDocument(),
       );
     });
 
@@ -315,11 +346,19 @@ describe('ReadingPractice', () => {
   // 5. Session card click → practice view
   // ──────────────────────────────────────────────────────────────
   describe('session card click → practice view', () => {
-    it('switches to practice view on session card click', async () => {
-      render(<ReadingPractice />);
+    async function expandDayGroup() {
+      await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
       await waitFor(() =>
         expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
       );
+    }
+
+    it('switches to practice view on session card click', async () => {
+      render(<ReadingPractice />);
+      await expandDayGroup();
 
       fireEvent.click(screen.getByRole('button', { name: /Healthcare systems/i }));
 
@@ -330,9 +369,7 @@ describe('ReadingPractice', () => {
 
     it('shows session title in practice view header', async () => {
       render(<ReadingPractice />);
-      await waitFor(() =>
-        expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
-      );
+      await expandDayGroup();
 
       fireEvent.click(screen.getByRole('button', { name: /Healthcare systems/i }));
 
@@ -343,9 +380,7 @@ describe('ReadingPractice', () => {
 
     it('renders difficulty selector buttons in practice view', async () => {
       render(<ReadingPractice />);
-      await waitFor(() =>
-        expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
-      );
+      await expandDayGroup();
 
       fireEvent.click(screen.getByRole('button', { name: /Healthcare systems/i }));
 
@@ -358,9 +393,7 @@ describe('ReadingPractice', () => {
 
     it('renders initial prompt when no text generated yet', async () => {
       render(<ReadingPractice />);
-      await waitFor(() =>
-        expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
-      );
+      await expandDayGroup();
 
       fireEvent.click(screen.getByRole('button', { name: /Healthcare systems/i }));
 
@@ -373,9 +406,7 @@ describe('ReadingPractice', () => {
 
     it('back button returns to library view', async () => {
       render(<ReadingPractice />);
-      await waitFor(() =>
-        expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
-      );
+      await expandDayGroup();
 
       fireEvent.click(screen.getByRole('button', { name: /Healthcare systems/i }));
 
@@ -398,6 +429,10 @@ describe('ReadingPractice', () => {
   describe('generate text', () => {
     async function renderAndNavigateToPractice() {
       render(<ReadingPractice />);
+      await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
       await waitFor(() =>
         expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
       );
@@ -557,6 +592,10 @@ describe('ReadingPractice', () => {
 
       render(<ReadingPractice />);
       await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
+      await waitFor(() =>
         expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
       );
 
@@ -690,6 +729,10 @@ describe('ReadingPractice', () => {
       };
       mockFetch.mockResolvedValue(makeOkResponse(data));
       render(<ReadingPractice />);
+      await waitFor(() =>
+        expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByText(/Show 1 session/i));
       await waitFor(() =>
         expect(
           screen.getByText('No pronunciation issues found'),
