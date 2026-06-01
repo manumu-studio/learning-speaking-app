@@ -55,7 +55,7 @@ describe('getDashboardData', () => {
     expect(result.workoutWeeks).toBe(0);
     expect(result.personalRecords).toEqual([]);
     expect(result.totalWorkoutCount).toBe(0);
-    expect(result.metrics).toHaveLength(10);
+    expect(result.metrics).toHaveLength(11);
     expect(result.metrics.every((m) => m.currentScore === 0)).toBe(true);
   });
 

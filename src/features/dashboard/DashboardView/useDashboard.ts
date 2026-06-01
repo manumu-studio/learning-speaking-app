@@ -14,6 +14,7 @@ const focusStateSchema = z.object({
     'argumentClosure',
     'fillerUsage',
     'lexicalSophistication',
+    'registerPragmatics',
     'pronunciationAccuracy',
     'prosodyScore',
     'speakingRate',
@@ -37,6 +38,7 @@ const dashboardDataSchema = z.object({
       'argumentClosure',
       'fillerUsage',
       'lexicalSophistication',
+      'registerPragmatics',
       'pronunciationAccuracy',
       'prosodyScore',
       'speakingRate',
@@ -66,6 +68,7 @@ const dashboardDataSchema = z.object({
       argumentClosure: z.number(),
       fillerUsage: z.number(),
       lexicalSophistication: z.number(),
+      registerPragmatics: z.number(),
       pronunciationAccuracy: z.number(),
       prosodyScore: z.number(),
       speakingRate: z.number(),
@@ -81,6 +84,7 @@ const dashboardDataSchema = z.object({
         'argumentClosure',
         'fillerUsage',
         'lexicalSophistication',
+        'registerPragmatics',
         'pronunciationAccuracy',
         'prosodyScore',
         'speakingRate',
@@ -94,6 +98,21 @@ const dashboardDataSchema = z.object({
   ),
   totalWorkoutCount: z.number(),
   recentProsodyPitchPreview: z.array(z.number()).default([]),
+  cefrEstimate: z.object({
+    level: z.enum(['below-c1', 'c1-low', 'c1-mid', 'c1-high', 'c2']),
+    weightedAverage: z.number(),
+    pillarBreakdown: z.object({
+      delivery: z.number(),
+      language: z.number(),
+      pronunciation: z.number(),
+    }),
+  }).nullable(),
+  radarScores: z.array(z.object({
+    key: z.string(),
+    label: z.string(),
+    score: z.number(),
+    c2Threshold: z.number(),
+  })),
 });
 
 const FOCUS_STORAGE_KEY = 'lsa-focus';

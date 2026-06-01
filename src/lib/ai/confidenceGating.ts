@@ -78,7 +78,19 @@ function joinSegmentTexts(parts: string[]): string {
   return parts.filter((part) => part.length > 0).join(' ').replace(/\s+/g, ' ').trim();
 }
 
-/** Classifies Whisper segments by confidence, dropping silence and wrapping low-confidence text in suspect markers. */
+/**
+ * Classifies Whisper segments by confidence, producing a clean and an annotated transcript.
+ *
+ * Three classification outcomes per segment:
+ * - **Dropped** (`reason: 'silence'`) — `no_speech_prob > 0.6` AND `avg_logprob < −1.0`; text becomes `''`.
+ * - **Suspect** — repetition loop (`compression_ratio > 2.4`) or low confidence (`avg_logprob < −0.8`); text wrapped in `⟨?...?⟩`.
+ * - **Clean** — all other segments; included in both `cleanText` and `annotatedText`.
+ *
+ * `cleanText` contains only clean segments; `annotatedText` includes clean + suspect (for coaching display).
+ *
+ * @param segments - Whisper verbose_json segment array with confidence signals.
+ * @returns An `AnnotatedTranscript` with `cleanText`, `annotatedText`, `segments`, and classification `stats`.
+ */
 export function gateSegments(segments: WhisperSegment[]): AnnotatedTranscript {
   if (segments.length === 0) {
     return {

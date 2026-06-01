@@ -53,8 +53,10 @@ model User {
   drills           DrillAttempt[]
   consents         UserConsent[]
   vocabSuggestions VocabSuggestion[]
+  lexicon          UserWord[]
   patternProfile   PatternProfile?
   settings         UserSettings?
+  estimatedCefrLevel String?
   onboardedAt    DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -89,6 +91,7 @@ model SpeakingSession {
   summary        String?       @db.Text
   intentLabel    String?       @db.Text
   location       String?
+  registerFeedback Json?
   isOnboarding   Boolean       @default(false)
   isChunked      Boolean       @default(false)
   partialResults Boolean       @default(false)
@@ -104,6 +107,7 @@ model SpeakingSession {
   pronunciationReport PronunciationReport?
   suggestedVocab      VocabSuggestion[] @relation("suggestedVocab")
   usedVocab           VocabSuggestion[] @relation("usedVocab")
+  newWords            UserWord[]        @relation("lexiconFirstSeen")
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -339,4 +343,23 @@ model VocabSuggestion {
   @@index([userId, firstUsedInSessionId])
   @@index([userId, nextReviewAt])
   @@map("vocab_suggestions")
+}
+
+model UserWord {
+  id                 String          @id @default(cuid())
+  userId             String
+  word               String
+  cefrLevel          String          @default("b2")
+  firstSeenAt        DateTime        @default(now())
+  lastSeenAt         DateTime        @default(now())
+  sessionCount       Int             @default(1)
+  firstSeenSessionId String?
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstSeenSession SpeakingSession? @relation("lexiconFirstSeen", fields: [firstSeenSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, word])
+  @@index([userId, cefrLevel])
+  @@index([userId, firstSeenAt])
+  @@map("user_words")
 }

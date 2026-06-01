@@ -91,6 +91,14 @@ export interface SessionDetail {
     pronScore: number | null;
     status: string;
   }>;
+  registerFeedback?: {
+    register: 'formal' | 'neutral' | 'informal';
+    appropriateness: 'appropriate' | 'slightly-off' | 'mismatch';
+    hedgingLevel: 'adequate' | 'under-hedged' | 'over-hedged';
+    directnessLevel: 'appropriately-direct' | 'too-direct' | 'too-indirect';
+    suggestions: Array<{ original: string; issue: string; alternative: string }>;
+    note: string;
+  } | null;
   workoutNumber?: number;
 }
 

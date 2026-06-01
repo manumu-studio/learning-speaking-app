@@ -12,8 +12,17 @@ export interface TranscriptSentence {
 }
 
 /**
- * Splits a transcript into sentences using period/question/exclamation boundaries.
- * Returns an empty array for blank input.
+ * Splits a transcript string into sentence objects with character offsets.
+ *
+ * Tokenizes on `.`, `!`, `?` boundaries (including trailing punctuation-free fragments).
+ * Each result preserves the original `start`/`end` character positions for annotation
+ * mapping and is assigned a 0-based `index`.
+ *
+ * @param text - Raw transcript string to split.
+ * @returns An array of `TranscriptSentence` objects, or `[]` for blank input.
+ * @example
+ * splitSentences('Hello world. How are you?')
+ * // => [{ text: 'Hello world.', start: 0, end: 12, index: 0 }, { text: 'How are you?', start: 13, end: 25, index: 1 }]
  */
 export function splitSentences(text: string): TranscriptSentence[] {
   if (text.trim().length === 0) return [];

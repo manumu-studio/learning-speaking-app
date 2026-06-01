@@ -5,42 +5,20 @@ import { transcribeAudio } from '@/lib/ai/whisper';
 import { gateSegments } from '@/lib/ai/confidenceGating';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
-import type { PronunciationSummary } from '@/lib/ai/analyze';
-import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
-import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
 import { toPcm16kMonoWav } from '@/lib/audio/transcode';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
-import { AZURE_SDK_VERSION } from '@/lib/pipeline/persistPronunciation';
+import {
+  buildPronunciationSummary,
+  estimateCefrAndPersist,
+  runAzurePronunciation,
+} from '@/lib/pipeline/pipelineHelpers';
 
 type PipelineMode = 'production' | 'dev';
-
-// Build a lean pronunciation summary for Claude from the full Azure result.
-// Returns null when Azure was skipped or failed.
-function buildPronunciationSummary(
-  result: PronunciationResult | null,
-): PronunciationSummary | null {
-  if (result == null) return null;
-
-  const weakPhonemes = result.words
-    .flatMap((w) => w.phonemes)
-    .filter((p) => p.accuracyScore < 60)
-    .map((p) => p.phoneme)
-    .slice(0, 5);
-
-  const l1Tags = [...new Set(result.words.flatMap((w) => w.l1Tags ?? []))];
-
-  return {
-    topWeakPhonemes: weakPhonemes,
-    l1Tags,
-    accuracyScore: result.accuracyScore,
-    prosodyScore: result.prosodyScore,
-  };
-}
 
 /** Runs the full session processing pipeline: Whisper transcription, Azure pronunciation scoring, Claude analysis, and metric persistence. */
 export async function executePipeline(
@@ -148,49 +126,14 @@ export async function executePipeline(
     // Step 9: Azure pronunciation assessment (optional — skipped when credentials are absent)
     const scoringStart = Date.now();
     if (env.AZURE_SPEECH_KEY !== undefined && env.AZURE_SPEECH_REGION !== undefined) {
-      try {
-        pronunciationResult = await assessPronunciation(
-          pcmBuffer,
-          userTranscriptText,
-          env.AZURE_SPEECH_KEY,
-          env.AZURE_SPEECH_REGION,
-        );
-        pronunciationResult = {
-          ...pronunciationResult,
-          words: tagSpanishL1(pronunciationResult.words),
-        };
-      } catch (azureError) {
-        const failureMessage =
-          azureError instanceof Error ? azureError.message : 'Unknown error';
-
-        logger.warn(
-          {
-            sessionId: id,
-            userId: session.userId,
-            err: new Error(failureMessage),
-          },
-          'Pronunciation assessment failed — continuing without it',
-        );
-
-        await prisma.pronunciationReport.upsert({
-          where: { sessionId: id },
-          create: {
-            sessionId: id,
-            pronScore: 0,
-            accuracyScore: 0,
-            fluencyScore: 0,
-            completenessScore: 0,
-            prosodyScore: 0,
-            speakingRateWpm: 0,
-            azureSdkVersion: AZURE_SDK_VERSION,
-            rawJson: Prisma.JsonNull,
-            failureReason: failureMessage,
-          },
-          update: {
-            failureReason: failureMessage,
-          },
-        });
-      }
+      pronunciationResult = await runAzurePronunciation({
+        sessionId: id,
+        userId: session.userId,
+        pcmBuffer,
+        transcript: userTranscriptText,
+        azureKey: env.AZURE_SPEECH_KEY,
+        azureRegion: env.AZURE_SPEECH_REGION,
+      });
     } else {
       logger.info(
         { sessionId: id, userId: session.userId },
@@ -302,20 +245,26 @@ export async function executePipeline(
       });
     }
 
-    // Step 15: Store focusNext, summary, and intentLabel on the session
+    // Step 15: Store focusNext, summary, intentLabel, and registerFeedback on the session
     await prisma.speakingSession.update({
       where: { id },
       data: {
         focusNext: analysis.focusNext,
         summary: analysis.summary,
         intentLabel: analysis.intentLabel,
+        registerFeedback: analysis.registerFeedback != null
+          ? JSON.parse(JSON.stringify(analysis.registerFeedback))
+          : Prisma.JsonNull,
       },
     });
 
     // Step 16: Aggregate insights into user's long-term pattern profile
     await updatePatternProfile(session.userId, insightsForStorage);
 
-    // Step 17: Mark DONE
+    // Step 17: Estimate CEFR level from scored metrics and update user profile
+    await estimateCefrAndPersist(session.userId, analysis.metrics);
+
+    // Step 18: Mark DONE
     await prisma.speakingSession.update({
       where: { id },
       data: { status: SessionStatus.DONE },

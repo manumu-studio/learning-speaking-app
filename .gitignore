@@ -14,13 +14,9 @@
 # Production
 /build
 
-# Environment files
-.env
-.env*.local
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment files (catch-all — any .env variant, e.g. .env.staging)
+.env*
+!.env.example
 
 # Vercel
 .vercel

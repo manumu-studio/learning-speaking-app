@@ -30,8 +30,14 @@ type PhonemeAccumulator = {
 };
 
 /**
- * Parse word pronunciation data from the session's pronunciation report.
- * The `phonemes` field is stored as Json in Prisma, so we validate at runtime.
+ * Aggregates per-phoneme accuracy scores across all words in a pronunciation report.
+ *
+ * The `phonemes` field is a Prisma `Json` column, so each entry is validated with Zod at runtime.
+ * Only phonemes with an average accuracy below 70 are included in the output.
+ * Results are sorted ascending by `averageScore` (weakest first) and capped at 5.
+ *
+ * @param words - Raw word+phonemes data from the DB; `phonemes` may be any unknown JSON value.
+ * @returns Up to 5 `AggregatedPhoneme` entries for the weakest phonemes, sorted weakest-first.
  */
 export function aggregatePhonemes(
   words: ReadonlyArray<{ word: string; phonemes: unknown }>,

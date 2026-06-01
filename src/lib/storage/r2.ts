@@ -37,7 +37,12 @@ function getR2Client(): { client: S3Client; bucketName: string } {
 }
 
 /**
- * Upload audio file to R2 bucket
+ * Uploads an audio buffer to the R2 bucket under the given key.
+ *
+ * @param key - Storage key (path) within the bucket.
+ * @param body - Raw audio data to upload.
+ * @param contentType - MIME type, e.g. `'audio/webm'` or `'audio/wav'`.
+ * @returns The storage `key` on success (unchanged).
  */
 export async function uploadAudio(
   key: string,
@@ -57,7 +62,11 @@ export async function uploadAudio(
 }
 
 /**
- * Retrieve audio file from R2 bucket
+ * Retrieves an audio file from the R2 bucket as a `Buffer`.
+ *
+ * @param key - Storage key of the object to fetch.
+ * @returns The audio data as a `Buffer`.
+ * @throws If R2 returns no body for the given key.
  */
 export async function getAudio(key: string): Promise<Buffer> {
   const { client, bucketName } = getR2Client();
@@ -77,7 +86,9 @@ export async function getAudio(key: string): Promise<Buffer> {
 }
 
 /**
- * Delete audio file from R2 bucket
+ * Deletes an audio file from the R2 bucket.
+ *
+ * @param key - Storage key of the object to delete.
  */
 export async function deleteAudio(key: string): Promise<void> {
   const { client, bucketName } = getR2Client();
@@ -90,7 +101,14 @@ export async function deleteAudio(key: string): Promise<void> {
 }
 
 /**
- * Generate R2 storage key for session audio
+ * Generates the R2 storage key for a session's full audio file.
+ *
+ * @param userId - The user's internal ID.
+ * @param sessionId - The speaking session ID.
+ * @param extension - Audio file extension (defaults to `'webm'`).
+ * @returns A key in the form `sessions/<userId>/<sessionId>/audio.<extension>`.
+ * @example
+ * generateAudioKey('u1', 's1') // => 'sessions/u1/s1/audio.webm'
  */
 export function generateAudioKey(
   userId: string,
@@ -101,7 +119,12 @@ export function generateAudioKey(
 }
 
 /**
- * Generate R2 storage key for a chunked session WAV segment
+ * Generates the R2 storage key for a single WAV chunk within a chunked recording session.
+ *
+ * @param userId - The user's internal ID.
+ * @param sessionId - The speaking session ID.
+ * @param chunkIndex - Zero-based chunk index.
+ * @returns A key in the form `sessions/<userId>/<sessionId>/chunks/<chunkIndex>.wav`.
  */
 export function generateChunkAudioKey(
   userId: string,
@@ -112,7 +135,12 @@ export function generateChunkAudioKey(
 }
 
 /**
- * Generate a time-limited pre-signed PUT URL for direct browser upload to R2
+ * Generates a time-limited pre-signed PUT URL for direct browser-to-R2 upload.
+ *
+ * @param key - Destination storage key.
+ * @param contentType - MIME type to enforce on the upload.
+ * @param expiresInSecs - URL validity in seconds (defaults to 300 / 5 minutes).
+ * @returns A signed HTTPS URL the browser can PUT directly.
  */
 export async function generatePresignedPutUrl(
   key: string,
@@ -130,7 +158,11 @@ export async function generatePresignedPutUrl(
 }
 
 /**
- * Generate a time-limited pre-signed GET URL for Praat service audio download
+ * Generates a time-limited pre-signed GET URL for server-side audio download (e.g. Praat service).
+ *
+ * @param key - Storage key of the object to expose.
+ * @param expiresInSecs - URL validity in seconds (defaults to 300 / 5 minutes).
+ * @returns A signed HTTPS URL that allows a single GET within the expiry window.
  */
 export async function generatePresignedGetUrl(
   key: string,

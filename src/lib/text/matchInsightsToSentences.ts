@@ -55,7 +55,21 @@ function wordOverlapMatch(sentence: string, example: string): boolean {
   return matchCount / exampleWords.length >= 0.6;
 }
 
-/** Fuzzy-matches insight examples to transcript sentences, returning an AnnotationMap keyed by sentence index. */
+/**
+ * Fuzzy-matches insight examples to transcript sentences, returning an `AnnotationMap` keyed by sentence index.
+ *
+ * Two matching strategies are tried in order for each (insight, example) pair:
+ * 1. **Substring match** — the example appears verbatim (case-insensitive) within the sentence.
+ * 2. **Word-overlap match** — ≥ 60 % of the example's content words appear in the sentence.
+ *
+ * The `pinVariant` (strength / building / sharpen) is derived from the metric score
+ * associated with the insight's category.
+ *
+ * @param insights - Insight objects with `examples` to match.
+ * @param sentences - Tokenized transcript sentences from {@link splitSentences}.
+ * @param metrics - Current session metric snapshots used to resolve `pinVariant`.
+ * @returns A `Map<sentenceIndex, SentenceAnnotation[]>` for use in `AnnotatedTranscript`.
+ */
 export function matchInsightsToSentences(
   insights: MatchableInsight[],
   sentences: TranscriptSentence[],

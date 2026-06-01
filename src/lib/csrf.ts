@@ -2,10 +2,13 @@
 import { env } from '@/lib/env';
 
 /**
- * Validates that the request origin matches the app URL.
- * Returns true if the request is safe, false if it should be rejected.
+ * Validates that the request `Origin` (or `Referer`) matches the configured `APP_URL`.
  *
- * Exempt: requests with valid QStash signatures (checked separately in webhook routes).
+ * Requests without an `Origin` or `Referer` header are allowed through (server-to-server calls).
+ * QStash webhook routes check signatures separately and should not use this guard.
+ *
+ * @param request - The incoming HTTP request.
+ * @returns `true` if the origin matches `APP_URL` or is absent; `false` if it mismatches.
  */
 export function validateOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
@@ -21,7 +24,11 @@ export function validateOrigin(request: Request): boolean {
   return requestOrigin === appOrigin;
 }
 
-/** Standard 403 response for CSRF failures */
+/**
+ * Returns a standard 403 JSON response for CSRF origin mismatch failures.
+ *
+ * @returns A `Response` with status 403 and JSON body `{ error, code: 'CSRF_REJECTED' }`.
+ */
 export function csrfForbiddenResponse(): Response {
   return Response.json(
     { error: 'Forbidden — origin mismatch', code: 'CSRF_REJECTED' },
