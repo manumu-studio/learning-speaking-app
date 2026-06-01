@@ -2,10 +2,13 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockCreateMany, mockFindMany, mockUpdateMany } = vi.hoisted(() => ({
+const { mockCreateMany, mockFindMany, mockUpdateMany, mockUpdate, mockSessionCount, mockTransaction } = vi.hoisted(() => ({
   mockCreateMany: vi.fn(),
   mockFindMany: vi.fn(),
   mockUpdateMany: vi.fn(),
+  mockUpdate: vi.fn(),
+  mockSessionCount: vi.fn(),
+  mockTransaction: vi.fn(),
 }));
 
 vi.mock('@/lib/env', () => ({
@@ -22,7 +25,12 @@ vi.mock('@/lib/prisma', () => ({
       createMany: mockCreateMany,
       findMany: mockFindMany,
       updateMany: mockUpdateMany,
+      update: mockUpdate,
     },
+    speakingSession: {
+      count: mockSessionCount,
+    },
+    $transaction: mockTransaction,
   },
 }));
 
@@ -115,37 +123,39 @@ describe('persistVocabSuggestions', () => {
 // ─── detectVocabUsage ───────────────────────────────────────────────────────
 
 describe('detectVocabUsage', () => {
+  const baseSuggestion = { firstUsedInSessionId: null, reviewCount: 0, interval: 1, easeFactor: 2.5, createdAt: new Date() };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSessionCount.mockResolvedValue(5);
+    mockUpdate.mockResolvedValue({});
   });
 
-  it('returns 0 when no pending suggestions exist', async () => {
+  it('returns 0 when no suggestions exist', async () => {
     mockFindMany.mockResolvedValue([]);
     const result = await detectVocabUsage('user1', 'session2', 'I walked to the store');
     expect(result).toBe(0);
-    expect(mockUpdateMany).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it('detects exact word match in transcript', async () => {
     mockFindMany.mockResolvedValue([
-      { id: 'vs1', word: 'eloquent' },
+      { id: 'vs1', word: 'eloquent', ...baseSuggestion },
     ]);
-    mockUpdateMany.mockResolvedValue({ count: 1 });
 
     const result = await detectVocabUsage('user1', 'session2', 'She gave an eloquent speech');
     expect(result).toBe(1);
-    expect(mockUpdateMany).toHaveBeenCalledWith(
+    expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: { in: ['vs1'] } },
+        where: { id: 'vs1' },
       }),
     );
   });
 
   it('detects morphological variants', async () => {
     mockFindMany.mockResolvedValue([
-      { id: 'vs1', word: 'walk' },
+      { id: 'vs1', word: 'walk', ...baseSuggestion },
     ]);
-    mockUpdateMany.mockResolvedValue({ count: 1 });
 
     const result = await detectVocabUsage('user1', 'session2', 'I was walking down the street');
     expect(result).toBe(1);
@@ -153,9 +163,8 @@ describe('detectVocabUsage', () => {
 
   it('is case-insensitive', async () => {
     mockFindMany.mockResolvedValue([
-      { id: 'vs1', word: 'elaborate' },
+      { id: 'vs1', word: 'elaborate', ...baseSuggestion },
     ]);
-    mockUpdateMany.mockResolvedValue({ count: 1 });
 
     const result = await detectVocabUsage('user1', 'session2', 'She ELABORATED on the topic');
     expect(result).toBe(1);
@@ -163,22 +172,20 @@ describe('detectVocabUsage', () => {
 
   it('returns 0 when no words match', async () => {
     mockFindMany.mockResolvedValue([
-      { id: 'vs1', word: 'eloquent' },
-      { id: 'vs2', word: 'verbose' },
+      { id: 'vs1', word: 'eloquent', ...baseSuggestion },
+      { id: 'vs2', word: 'verbose', ...baseSuggestion },
     ]);
 
     const result = await detectVocabUsage('user1', 'session2', 'The weather was nice today');
     expect(result).toBe(0);
-    expect(mockUpdateMany).not.toHaveBeenCalled();
   });
 
   it('matches multiple suggestions in one transcript', async () => {
     mockFindMany.mockResolvedValue([
-      { id: 'vs1', word: 'elaborate' },
-      { id: 'vs2', word: 'concise' },
-      { id: 'vs3', word: 'verbose' },
+      { id: 'vs1', word: 'elaborate', ...baseSuggestion },
+      { id: 'vs2', word: 'concise', ...baseSuggestion },
+      { id: 'vs3', word: 'verbose', ...baseSuggestion },
     ]);
-    mockUpdateMany.mockResolvedValue({ count: 2 });
 
     const result = await detectVocabUsage(
       'user1',
@@ -186,10 +193,5 @@ describe('detectVocabUsage', () => {
       'I tried to be concise but ended up being too elaborate',
     );
     expect(result).toBe(2);
-    expect(mockUpdateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: { in: ['vs1', 'vs2'] } },
-      }),
-    );
   });
 });

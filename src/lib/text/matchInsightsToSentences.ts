@@ -55,6 +55,7 @@ function wordOverlapMatch(sentence: string, example: string): boolean {
   return matchCount / exampleWords.length >= 0.6;
 }
 
+/** Fuzzy-matches insight examples to transcript sentences, returning an AnnotationMap keyed by sentence index. */
 export function matchInsightsToSentences(
   insights: MatchableInsight[],
   sentences: TranscriptSentence[],

@@ -13,6 +13,7 @@ export function isQstashFinalFailureAttempt(request: NextRequest): boolean {
   return retried === null || maxRetries === null || retried >= maxRetries - 1;
 }
 
+/** Updates the session status to FAILED and stores the error message; swallows DB errors to avoid masking the original failure. */
 export async function persistSessionFailedStatus(
   sessionId: string,
   errorMessage: string,

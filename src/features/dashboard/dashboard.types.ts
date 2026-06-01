@@ -1,7 +1,7 @@
 // Dashboard feature type definitions
 import type { PersonalRecord } from '@/lib/personalRecords.types';
 
-/** One of nine metric dimensions tracked per session: 6 Claude-scored + 3 Azure-computed (see Prisma `MetricSnapshot.key`). */
+/** One of ten metric dimensions tracked per session: 7 Claude-scored + 3 Azure-computed (see Prisma `MetricSnapshot.key`). */
 export type MetricKey =
   | 'connectorRepetition'
   | 'structuralVariety'
@@ -9,6 +9,7 @@ export type MetricKey =
   | 'verbAccuracy'
   | 'argumentClosure'
   | 'fillerUsage'
+  | 'lexicalSophistication'
   | 'pronunciationAccuracy'
   | 'prosodyScore'
   | 'speakingRate';

@@ -10,6 +10,7 @@ interface PipelineStageOptions {
   metadata?: Record<string, unknown>;
 }
 
+/** Logs a pipeline stage result (duration + success) to Pino and adds a Sentry breadcrumb. */
 export function logPipelineStage(options: PipelineStageOptions): void {
   const { sessionId, stage, durationMs, success, metadata } = options;
 

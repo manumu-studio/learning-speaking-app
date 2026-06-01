@@ -10,6 +10,7 @@ export interface AudioContextCompatState {
 
 const SCRIPT_PROCESSOR_BUFFER_SIZE = 4096;
 
+/** Returns whether the browser supports AudioWorklet, ScriptProcessor, or neither. */
 export function detectAudioCaptureMode(): AudioCaptureMode {
   if (typeof window === 'undefined') {
     return 'unsupported';
@@ -26,6 +27,7 @@ export function detectAudioCaptureMode(): AudioCaptureMode {
   return 'unsupported';
 }
 
+/** Creates a cross-browser AudioContext (with webkit fallback) at the given sample rate. */
 export async function createAudioContext(sampleRate: number): Promise<AudioContext> {
   const AudioContextCtor =
     window.AudioContext ??
@@ -38,12 +40,14 @@ export async function createAudioContext(sampleRate: number): Promise<AudioConte
   return new AudioContextCtor({ sampleRate });
 }
 
+/** Resumes a suspended AudioContext (required after user-gesture gating in some browsers). */
 export async function resumeAudioContext(audioContext: AudioContext): Promise<void> {
   if (audioContext.state === 'suspended') {
     await audioContext.resume();
   }
 }
 
+/** Listens for tab visibility changes and calls onWarning if the context suspends while hidden. Returns a cleanup function. */
 export function attachVisibilityWarning(
   audioContext: AudioContext,
   onWarning: (message: string) => void,
@@ -58,6 +62,7 @@ export function attachVisibilityWarning(
   return () => document.removeEventListener('visibilitychange', handler);
 }
 
+/** Attaches mute/unmute event listeners to all audio tracks in a stream. Returns a cleanup function. */
 export function attachTrackMuteHandlers(
   stream: MediaStream,
   onWarning: (message: string) => void,
@@ -89,6 +94,7 @@ export function attachTrackMuteHandlers(
   };
 }
 
+/** Wires a legacy ScriptProcessor node into the audio graph, converting float32 PCM to int16 and forwarding chunks via onPcm. */
 export function connectScriptProcessorCapture(
   audioContext: AudioContext,
   source: MediaStreamAudioSourceNode,
@@ -119,6 +125,7 @@ export function connectScriptProcessorCapture(
   return processor;
 }
 
+/** Returns the initial capture mode and any browser-specific warnings for display on mount. */
 export function getInitialCompatState(): AudioContextCompatState {
   const mode = detectAudioCaptureMode();
   const warnings: string[] = [];

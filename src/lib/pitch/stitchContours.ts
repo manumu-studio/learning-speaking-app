@@ -10,6 +10,7 @@ export interface ChunkFeatureSegment {
   voiced: boolean[];
 }
 
+/** Merges ordered per-chunk F0/intensity segments into a single session-level contour array. */
 export function stitchContours(segments: ChunkFeatureSegment[]): ContourData | null {
   if (segments.length === 0) {
     return null;

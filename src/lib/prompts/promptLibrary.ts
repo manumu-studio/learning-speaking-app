@@ -271,10 +271,12 @@ export const PROMPT_LIBRARY = [
   },
 ] as const satisfies readonly LibraryPrompt[];
 
+/** Returns all prompts in the library that belong to the given category. */
 export function getLibraryByCategory(category: LibraryCategory): LibraryPrompt[] {
   return PROMPT_LIBRARY.filter((prompt) => prompt.category === category);
 }
 
+/** Finds a prompt by its unique ID, returning null if not found. */
 export function findPromptById(id: string): LibraryPrompt | null {
   return PROMPT_LIBRARY.find((prompt) => prompt.id === id) ?? null;
 }

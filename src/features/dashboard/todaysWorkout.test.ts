@@ -14,6 +14,7 @@ const EMPTY_DRILL_STATS: DashboardData['drillStats'] = {
     verbAccuracy: 0,
     argumentClosure: 0,
     fillerUsage: 0,
+    lexicalSophistication: 0,
     pronunciationAccuracy: 0,
     prosodyScore: 0,
     speakingRate: 0,

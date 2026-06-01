@@ -1,4 +1,5 @@
 // Sanitises user content before injection into AI prompt templates
+/** Strips or escapes characters that could inject unwanted content into AI prompt templates. */
 export function sanitizePromptInput(input: string): string {
   return input
     .replace(/`/g, "'")

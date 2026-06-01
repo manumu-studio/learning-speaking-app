@@ -59,6 +59,7 @@ const allScores = {
   vocabularyPrecision: 8.0,
   verbAccuracy: 7.0,
   argumentClosure: 6.0,
+  lexicalSophistication: 6.0,
   pronunciationAccuracy: 8.5,
   prosodyScore: 7.5,
 };
@@ -71,6 +72,7 @@ const allScores2 = {
   vocabularyPrecision: 8.5,
   verbAccuracy: 7.5,
   argumentClosure: 6.5,
+  lexicalSophistication: 6.5,
   pronunciationAccuracy: 9.0,
   prosodyScore: 8.0,
 };

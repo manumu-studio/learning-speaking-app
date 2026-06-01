@@ -21,6 +21,7 @@ function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
 }
 
+/** Runs the full Whisper + Azure + Claude pipeline on a single chunk and stores the result in ChunkResult for later fan-in aggregation. */
 export async function processChunkIndependent(input: ChunkIndependentInput): Promise<void> {
   const { sessionId, chunkIndex, storageKey, durationSecs, overlapSecs } = input;
 

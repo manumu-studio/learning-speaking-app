@@ -22,6 +22,7 @@ type RouteHandler = {
   (req: Request): Promise<Response>;
 };
 
+/** Wraps a Next.js route handler with request ID propagation, structured logging, Sentry context, and error capture. */
 export function withObservability(
   handler: (req: Request, ctx: ObservabilityContext) => Promise<Response>,
   options?: ObservabilityOptions,

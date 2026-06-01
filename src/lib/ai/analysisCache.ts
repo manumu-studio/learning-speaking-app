@@ -39,10 +39,12 @@ function buildCacheKey(transcriptHash: string): string {
   return `lsa:analysis:${CACHE_VERSION}:${transcriptHash}`;
 }
 
+/** Returns a SHA-256 hex digest of a transcript string for use as a cache key. */
 export function hashTranscript(transcript: string): string {
   return createHash('sha256').update(transcript).digest('hex');
 }
 
+/** Fetches a previously cached analysis result for the given transcript hash, or null on miss/error. */
 export async function getCachedAnalysis(
   transcriptHash: string,
 ): Promise<AnalysisResult | null> {
@@ -75,6 +77,7 @@ export async function getCachedAnalysis(
   }
 }
 
+/** Stores an analysis result in Redis keyed by transcript hash with a 7-day TTL. */
 export async function setCachedAnalysis(
   transcriptHash: string,
   result: AnalysisResult,

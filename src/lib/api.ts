@@ -1,4 +1,6 @@
 // Shared API response helpers and validation utilities
+
+/** Returns a JSON error response with the given message, error code, and HTTP status. */
 export function errorResponse(
   message: string,
   code: string,
@@ -7,6 +9,7 @@ export function errorResponse(
   return Response.json({ error: message, code }, { status });
 }
 
+/** Returns a JSON success response with optional custom headers. */
 export function successResponse<T>(
   data: T,
   status = 200,

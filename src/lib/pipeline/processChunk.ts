@@ -15,6 +15,7 @@ function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
 }
 
+/** Checks whether all chunks for a session are done and, if so, atomically enqueues the final fan-in job exactly once. */
 export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
   const session = await prisma.speakingSession.findUnique({
     where: { id: sessionId },
@@ -56,6 +57,7 @@ export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<vo
   await enqueueFinalProcessing(sessionId);
 }
 
+/** Transcribes and pronunciation-scores a single audio chunk, persists results, deletes chunk audio from R2, and triggers final fan-in when all chunks are complete. */
 export async function processChunk(
   sessionId: string,
   chunkIndex: number,
