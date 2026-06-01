@@ -44,6 +44,12 @@ enum ConsentFlag {
   AI_DISCLOSURE
 }
 
+enum TimedFluencyStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
 model User {
   id             String           @id @default(cuid())
   externalId     String           @unique
@@ -52,9 +58,11 @@ model User {
   sessions         SpeakingSession[]
   drills           DrillAttempt[]
   consents         UserConsent[]
-  vocabSuggestions VocabSuggestion[]
-  lexicon          UserWord[]
-  patternProfile   PatternProfile?
+  vocabSuggestions  VocabSuggestion[]
+  lexicon           UserWord[]
+  fluencySessions   TimedFluencySession[]
+  dailySummaries    DailySummary[]
+  patternProfile    PatternProfile?
   settings         UserSettings?
   estimatedCefrLevel String?
   onboardedAt    DateTime?
@@ -108,6 +116,7 @@ model SpeakingSession {
   suggestedVocab      VocabSuggestion[] @relation("suggestedVocab")
   usedVocab           VocabSuggestion[] @relation("usedVocab")
   newWords            UserWord[]        @relation("lexiconFirstSeen")
+  fluencyRound        TimedFluencyRound?
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -362,4 +371,55 @@ model UserWord {
   @@index([userId, cefrLevel])
   @@index([userId, firstSeenAt])
   @@map("user_words")
+}
+
+model TimedFluencySession {
+  id        String             @id @default(cuid())
+  userId    String
+  promptId  String
+  status    TimedFluencyStatus @default(IN_PROGRESS)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  rounds    TimedFluencyRound[]
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("timed_fluency_sessions")
+}
+
+model TimedFluencyRound {
+  id                String              @id @default(cuid())
+  fluencySessionId  String
+  fluencySession    TimedFluencySession @relation(fields: [fluencySessionId], references: [id], onDelete: Cascade)
+  roundNumber       Int
+  targetMinutes     Int
+  speakingSessionId String?             @unique
+  speakingSession   SpeakingSession?    @relation(fields: [speakingSessionId], references: [id], onDelete: SetNull)
+  speechRateWpm     Float?
+  fillerCount       Int?
+  hesitationCount   Int?
+  completedAt       DateTime?
+  createdAt         DateTime            @default(now())
+
+  @@unique([fluencySessionId, roundNumber])
+  @@index([fluencySessionId])
+  @@map("timed_fluency_rounds")
+}
+
+model DailySummary {
+  id                String   @id @default(cuid())
+  userId            String
+  date              DateTime @db.Date
+  deliveryAvg       Float
+  languageAvg       Float
+  pronunciationAvg  Float
+  newWords          String[]
+  feedback          String   @db.Text
+  sessionCount      Int
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_summaries")
 }

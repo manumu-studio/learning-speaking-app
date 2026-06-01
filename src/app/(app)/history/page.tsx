@@ -125,15 +125,20 @@ function HistoryContent() {
 
       {!isLoading && error === null && dayGroups.length > 0 && (
         <>
-          {dayGroups.map((group, groupIndex) => (
-            <HistoryDayGroup
-              key={group.dateKey}
-              dayLabel={group.dayLabel}
-              sessions={group.sessions}
-              baseDelay={groupIndex * 100}
-              onDeleteSession={handleDeleteRequest}
-            />
-          ))}
+          {dayGroups.map((group, groupIndex) => {
+            const today = new Date().toISOString().split('T')[0];
+            return (
+              <HistoryDayGroup
+                key={group.dateKey}
+                dayLabel={group.dayLabel}
+                dateKey={group.dateKey}
+                sessions={group.sessions}
+                isToday={group.dateKey === today}
+                baseDelay={groupIndex * 100}
+                onDeleteSession={handleDeleteRequest}
+              />
+            );
+          })}
 
           <div ref={sentinelRef} aria-hidden="true" className="h-4" />
 

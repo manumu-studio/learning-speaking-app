@@ -1,6 +1,25 @@
 // Merges per-chunk Azure pronunciation reports into a single weighted-average result
 import { z } from 'zod';
-import { WORD_ERROR_TYPES, type WordResult } from '@/lib/ai/azurePronunciation.types';
+import {
+  WORD_ERROR_TYPES,
+  type PhonemeResult,
+  type ProsodyFeedback,
+  type WordResult,
+} from '@/lib/ai/azurePronunciation.types';
+
+// Mirrors PhonemeResult from azurePronunciation.types — keep field list in sync with that interface.
+const phonemeResultSchema = z.object({
+  phoneme: z.string(),
+  accuracyScore: z.number(),
+  nBest: z.array(z.object({ phoneme: z.string(), score: z.number() })).optional(),
+});
+
+const prosodyFeedbackSchema = z.object({
+  breakErrorTypes: z.array(z.string()),
+  breakLengthMs: z.number(),
+  intonationErrorTypes: z.array(z.string()),
+  monotoneSyllablePitchDeltaConfidence: z.number().optional(),
+});
 
 const wordResultSchema = z.object({
   word: z.string(),
@@ -8,15 +27,54 @@ const wordResultSchema = z.object({
   errorType: z.enum(WORD_ERROR_TYPES),
   offsetMs: z.number(),
   durationMs: z.number(),
-  phonemes: z.array(z.unknown()),
-  prosodyFeedback: z.object({
-    breakErrorTypes: z.array(z.string()),
-    breakLengthMs: z.number(),
-    intonationErrorTypes: z.array(z.string()),
-    monotoneSyllablePitchDeltaConfidence: z.number().optional(),
-  }).optional(),
+  // Matches PhonemeResult; .catch([]) tolerates malformed phoneme arrays from older recordings.
+  phonemes: z.array(phonemeResultSchema).catch([]),
+  prosodyFeedback: prosodyFeedbackSchema.optional(),
   l1Tags: z.array(z.string()).optional(),
-}).passthrough();
+});
+
+type ParsedPhoneme = z.infer<typeof phonemeResultSchema>;
+type ParsedProsody = z.infer<typeof prosodyFeedbackSchema>;
+type ParsedWord = z.infer<typeof wordResultSchema>;
+
+/** Maps a Zod-parsed word (where optional fields may be `| undefined`) to the strict WordResult interface. */
+function toWordResult(w: ParsedWord): WordResult {
+  const phonemes: PhonemeResult[] = w.phonemes.map((p: ParsedPhoneme) => {
+    const base: PhonemeResult = { phoneme: p.phoneme, accuracyScore: p.accuracyScore };
+    if (p.nBest !== undefined) {
+      base.nBest = p.nBest;
+    }
+    return base;
+  });
+
+  const result: WordResult = {
+    word: w.word,
+    accuracyScore: w.accuracyScore,
+    errorType: w.errorType,
+    offsetMs: w.offsetMs,
+    durationMs: w.durationMs,
+    phonemes,
+  };
+
+  if (w.prosodyFeedback !== undefined) {
+    const pf: ParsedProsody = w.prosodyFeedback;
+    const prosody: ProsodyFeedback = {
+      breakErrorTypes: pf.breakErrorTypes,
+      breakLengthMs: pf.breakLengthMs,
+      intonationErrorTypes: pf.intonationErrorTypes,
+    };
+    if (pf.monotoneSyllablePitchDeltaConfidence !== undefined) {
+      prosody.monotoneSyllablePitchDeltaConfidence = pf.monotoneSyllablePitchDeltaConfidence;
+    }
+    result.prosodyFeedback = prosody;
+  }
+
+  if (w.l1Tags !== undefined) {
+    result.l1Tags = w.l1Tags;
+  }
+
+  return result;
+}
 
 const pronunciationReportSchema = z.object({
   pronScore: z.number(),
@@ -108,8 +166,7 @@ export function mergePronunciation(
       continue;
     }
 
-    // Words validated by wordResultSchema.passthrough() — safe to treat as WordResult
-    let words = entry.report.words as unknown as WordResult[];
+    let words: WordResult[] = entry.report.words.map(toWordResult);
 
     if (i > 0) {
       const overlapWordCount = estimateOverlapWordCount(entry.overlapSecs);

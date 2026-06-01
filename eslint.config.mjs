@@ -11,6 +11,24 @@ const eslintConfig = [
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
       }],
+      'max-lines': ['error', { max: 1000, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['error', { max: 80, skipBlankLines: true, skipComments: true }],
+      'complexity': ['error', 15],
+      'max-depth': ['error', 3],
+      'max-params': ['error', 4],
+    },
+  },
+  {
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      'e2e/**/*.ts',
+      'scripts/**/*.ts',
+    ],
+    rules: {
+      'max-lines': 'off',
+      'max-lines-per-function': 'off',
     },
   },
 ];

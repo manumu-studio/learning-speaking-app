@@ -104,7 +104,16 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 
 ## TypeScript Standards (inherited from .cursorrules)
 - No `any` — use `unknown` + type guards
-- No `as` assertions (except `as const` and `as never` in test mocks)
+- No `as` assertions except these documented boundary exceptions:
+  - `as const` — always allowed
+  - `as never` — test mocks only
+  - `req as NextRequest` — QStash/cron route bridges (SDK typing gap)
+  - `as Prisma.InputJsonValue` — Prisma JSON field boundaries (validated data → JSON column)
+  - `as Record<string, unknown>` — inside type guard functions after `typeof === 'object'` check
+  - `as unknown as WordResult[]` — Zod `.passthrough()` → domain type bridge (validated by schema)
+  - `e.target as Node` — DOM event target narrowing
+  - `globalThis as Record` — test mock setup only
+  - Every other `as` is a BLOCKER. New code must use type guards, `satisfies`, Zod parse, or generics instead.
 - No non-null assertions (`!`)
 - Union types over enums
 - Named exports only (except Next.js framework files)

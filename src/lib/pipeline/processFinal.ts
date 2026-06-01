@@ -15,7 +15,7 @@ import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 import { estimateCefr } from '@/lib/cefr/estimateCefr';
-import { buildPronunciationSummary, parseWords, parsePronWords } from './processFinalHelpers';
+import { buildPronunciationSummary, parseWords, parsePronWords, invalidateDailySummary } from './processFinalHelpers';
 
 export { processParallelFinal } from './processParallelFinal';
 
@@ -33,6 +33,7 @@ export async function processFinal(sessionId: string): Promise<void> {
       focusMetricKey: true,
       promptUsed: true,
       processedAt: true,
+      createdAt: true,
     },
   });
 
@@ -189,6 +190,7 @@ export async function processFinal(sessionId: string): Promise<void> {
   });
 
   await updatePatternProfile(session.userId, nerFilterResult.kept);
+  await invalidateDailySummary(session.userId, session.createdAt);
 
   // CEFR estimation from scored metrics
   const cefrEstimate = estimateCefr(
