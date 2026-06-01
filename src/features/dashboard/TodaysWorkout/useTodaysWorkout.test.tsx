@@ -29,6 +29,8 @@ function makeDashboardData(overrides: Partial<DashboardData> = {}): DashboardDat
     currentFocus: 'fillerUsage',
     personalRecords: [],
     recentProsodyPitchPreview: [],
+    cefrEstimate: null,
+    radarScores: [],
     recentSessions: [],
     workoutWeeks: 2,
     totalWorkoutCount: 12,

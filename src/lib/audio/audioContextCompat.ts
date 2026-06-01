@@ -10,7 +10,14 @@ export interface AudioContextCompatState {
 
 const SCRIPT_PROCESSOR_BUFFER_SIZE = 4096;
 
-/** Returns whether the browser supports AudioWorklet, ScriptProcessor, or neither. */
+/**
+ * Detects which audio capture API the current browser supports.
+ *
+ * Returns `'audioworklet'` (preferred), `'scriptprocessor'` (legacy Safari fallback),
+ * or `'unsupported'` when neither API is available or the code runs server-side.
+ *
+ * @returns The best available `AudioCaptureMode` for this browser.
+ */
 export function detectAudioCaptureMode(): AudioCaptureMode {
   if (typeof window === 'undefined') {
     return 'unsupported';
@@ -27,11 +34,19 @@ export function detectAudioCaptureMode(): AudioCaptureMode {
   return 'unsupported';
 }
 
-/** Creates a cross-browser AudioContext (with webkit fallback) at the given sample rate. */
+/**
+ * Creates a cross-browser `AudioContext` at the specified sample rate, falling back to
+ * the webkit-prefixed constructor on older Safari versions.
+ *
+ * @param sampleRate - Desired sample rate in Hz (e.g. `16000` for Whisper).
+ * @returns A new `AudioContext` instance.
+ * @throws If the Web Audio API is not supported at all in this environment.
+ */
 export async function createAudioContext(sampleRate: number): Promise<AudioContext> {
-  const AudioContextCtor =
-    window.AudioContext ??
-    (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+   
+  const webkitCtor = 'webkitAudioContext' in window ? (window as never)['webkitAudioContext'] : undefined;
+  const AudioContextCtor: typeof AudioContext | undefined =
+    window.AudioContext ?? (typeof webkitCtor === 'function' ? webkitCtor : undefined);
 
   if (!AudioContextCtor) {
     throw new Error('Web Audio API is not supported in this browser');

@@ -6,8 +6,16 @@ import { autoRate } from '@/lib/srs/autoRate';
 import { computeNextReview } from '@/lib/srs/sm2';
 
 /**
- * Generate common English word form variants for matching.
- * Handles: plurals, past tense, progressive, comparative.
+ * Generates common English word form variants for fuzzy vocabulary matching.
+ *
+ * Handles: plurals (`-s`, `-es`, `-ies`), past tense (`-ed`, `-ied`), progressive (`-ing`),
+ * and comparatives/superlatives (`-er`, `-est`). Rules are applied based on the word's ending.
+ *
+ * @param word - The base vocabulary word (case-insensitive; trimmed internally).
+ * @returns An array of variant forms including the lowercase base form.
+ * @example
+ * wordForms('study') // => ['study', 'studies', 'studied']
+ * wordForms('run')   // => ['run', 'runs', 'ran', 'running', 'runner', 'runnest']
  */
 export function wordForms(word: string): string[] {
   const base = word.toLowerCase().trim();
@@ -48,8 +56,20 @@ function matchesTranscript(word: string, transcriptWords: Set<string>, transcrip
 }
 
 /**
- * Check a transcript against the user's vocab suggestions.
- * Marks first usage and auto-rates SRS for items the user has reviewed.
+ * Checks a transcript against the user's vocabulary suggestions and updates SRS state.
+ *
+ * For each `VocabSuggestion`:
+ * - If the word (or any of its forms) appears in the transcript and hasn't been used before,
+ *   `firstUsedInSessionId` and `firstUsedAt` are set.
+ * - If the suggestion has been reviewed at least once, an automatic SM-2 rating is derived
+ *   via `autoRate()` and the next interval is computed and persisted.
+ *
+ * All DB updates are batched in a single `$transaction`.
+ *
+ * @param userId - Internal user ID.
+ * @param sessionId - The current session's ID (used for `firstUsedInSessionId`).
+ * @param transcript - The full session transcript to search for vocabulary matches.
+ * @returns The number of vocabulary words detected as newly used in this session.
  */
 export async function detectVocabUsage(
   userId: string,

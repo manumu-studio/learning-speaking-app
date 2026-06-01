@@ -15,6 +15,7 @@ const EMPTY_DRILL_STATS: DashboardData['drillStats'] = {
     argumentClosure: 0,
     fillerUsage: 0,
     lexicalSophistication: 0,
+    registerPragmatics: 0,
     pronunciationAccuracy: 0,
     prosodyScore: 0,
     speakingRate: 0,
@@ -51,6 +52,8 @@ function makeDashboard(overrides: Partial<DashboardData>): DashboardData {
     personalRecords: [],
     totalWorkoutCount: 0,
     recentProsodyPitchPreview: [],
+    cefrEstimate: null,
+    radarScores: [],
     ...overrides,
   };
 }

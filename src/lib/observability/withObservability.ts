@@ -22,12 +22,23 @@ type RouteHandler = {
   (req: Request): Promise<Response>;
 };
 
-/** Wraps a Next.js route handler with request ID propagation, structured logging, Sentry context, and error capture. */
+/**
+ * Wraps a Next.js App Router handler with full observability: request ID propagation,
+ * structured Pino logging, Sentry user/request context, and unhandled error capture.
+ *
+ * The wrapped handler receives an `ObservabilityContext` with a child logger (pre-seeded
+ * with `requestId` and `route`) and the `requestId` string. Uncaught errors are sent to
+ * Sentry and converted to a generic 500 JSON response.
+ *
+ * @param handler - The route logic receiving the request and observability context.
+ * @param options - Optional `route` override for the Pino/Sentry `route` tag (defaults to `pathname`).
+ * @returns A Next.js-compatible route handler accepting optional `params`.
+ */
 export function withObservability(
   handler: (req: Request, ctx: ObservabilityContext) => Promise<Response>,
   options?: ObservabilityOptions,
 ): RouteHandler {
-  const fn = async (req: Request) => {
+  const fn: RouteHandler = async (req: Request) => {
     const requestId = getRequestId(req);
     const route = options?.route ?? new URL(req.url).pathname;
     const childLogger = logger.child({ requestId, route });
@@ -62,5 +73,5 @@ export function withObservability(
     }
   };
 
-  return fn as RouteHandler;
+  return fn;
 }

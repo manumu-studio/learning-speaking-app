@@ -11,9 +11,16 @@ function normalise(word: string): string {
 }
 
 /**
- * Finds the length of the longest suffix of `tail` that equals a prefix of `head`
- * (word-level comparison, case-insensitive, punctuation-stripped).
- * Scans from longest possible overlap down to 1.
+ * Finds the length of the longest suffix of `tail` that matches a prefix of `head`
+ * at the word level (case-insensitive, punctuation stripped, capped at 15 words).
+ *
+ * Used to detect and remove overlapping transcript text at chunk boundaries.
+ *
+ * @param tail - Word array representing the end of the previously accumulated transcript.
+ * @param head - Word array representing the start of the next chunk.
+ * @returns The number of overlapping words (0 if no overlap found).
+ * @example
+ * findOverlapLength(['hello', 'world'], ['world', 'foo']) // => 1
  */
 export function findOverlapLength(tail: string[], head: string[]): number {
   const maxLen = Math.min(tail.length, head.length, 15);
@@ -33,8 +40,14 @@ export function findOverlapLength(tail: string[], head: string[]): number {
 }
 
 /**
- * Given an ordered array of chunk transcripts, stitches them into a single
- * clean string by stripping the overlapping prefix from each subsequent chunk.
+ * Stitches an ordered array of chunk transcripts into a single clean string
+ * by detecting and removing the overlapping prefix from each subsequent chunk.
+ *
+ * Chunks are sorted by `chunkIndex` before stitching so insertion order does not matter.
+ * Returns an empty string for an empty input array.
+ *
+ * @param chunks - Chunk transcript objects with `chunkIndex`, `text`, and `overlapSecs`.
+ * @returns The full session transcript as a single space-separated string.
  */
 export function stitchTranscripts(chunks: ChunkTranscriptInput[]): string {
   if (chunks.length === 0) {

@@ -33,7 +33,17 @@ function findLongestOverlap(
   return bestOverlap;
 }
 
-/** Removes duplicated prefix words from the next chunk using overlap duration. */
+/**
+ * Removes duplicated prefix words from the next chunk's word array.
+ *
+ * Uses `overlapSecs` to identify candidate overlap words by timestamp, then
+ * removes the longest matching suffix/prefix pair via word-level comparison.
+ *
+ * @param previousWords - Word array accumulated so far.
+ * @param nextWords - Incoming chunk words (may repeat the tail of `previousWords`).
+ * @param overlapSecs - Configured overlap duration in seconds used by the chunked recorder.
+ * @returns The de-duplicated slice of `nextWords` ready to append.
+ */
 export function deduplicateChunkWords(
   previousWords: TranscriptWord[],
   nextWords: TranscriptWord[],
@@ -57,7 +67,16 @@ export function deduplicateChunkWords(
   return candidateHead.slice(overlapLength);
 }
 
-/** Concatenates chunk word arrays into one unified transcript with overlap dedup. */
+/**
+ * Concatenates chunk word arrays into one unified, de-duplicated transcript.
+ *
+ * Applies {@link deduplicateChunkWords} between consecutive chunks to remove
+ * any words repeated at overlap boundaries. Returns both the plain text and
+ * the merged word array with original timestamps.
+ *
+ * @param chunks - Ordered array of `{ words, overlapSecs }` objects; first chunk is used as-is.
+ * @returns An object with `text` (space-joined) and `words` (merged with timestamps).
+ */
 export function concatenateChunkTranscripts(
   chunks: Array<{ words: TranscriptWord[]; overlapSecs: number }>,
 ): { text: string; words: TranscriptWord[] } {
@@ -85,7 +104,16 @@ export function concatenateChunkTranscripts(
   return { text, words: mergedWords };
 }
 
-/** Builds plain text from words when only transcript strings are available. */
+/**
+ * Builds a de-duplicated plain-text transcript when only string-level chunk data is available.
+ *
+ * Converts each chunk's `transcriptText` into synthetic `TranscriptWord` objects (with
+ * index-based timestamps) when `words` is absent, then delegates to
+ * {@link concatenateChunkTranscripts}.
+ *
+ * @param chunks - Array of `{ transcriptText, overlapSecs, words? }` objects.
+ * @returns A single clean transcript string with overlap words removed.
+ */
 export function concatenateChunkTexts(
   chunks: Array<{ transcriptText: string; overlapSecs: number; words?: TranscriptWord[] }>,
 ): string {

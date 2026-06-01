@@ -2,7 +2,7 @@
 // Error boundary for public routes — catches runtime errors and displays recovery UI
 
 export default function Error({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -14,7 +14,7 @@ export default function Error({
         Something went wrong
       </h2>
       <p className="text-center text-gray-600 dark:text-gray-400">
-        {error.message || 'An unexpected error occurred'}
+        An unexpected error occurred. Please try again.
       </p>
       <button
         type="button"

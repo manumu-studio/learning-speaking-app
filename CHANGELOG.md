@@ -2,6 +2,16 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.59.0] — 2026-06-01
+
+- **feat:** Register & Pragmatics analysis — 11th metric scoring formality, hedging, and politeness strategies with coaching suggestions
+- **feat:** CEFR level estimation — weighted 3-pillar scoring (pronunciation 25%, language 50%, delivery 25%) with C2 threshold requiring all metrics ≥ 8.0
+- **feat:** Skill Radar chart — 10-axis SVG visualization with C2 target overlay on dashboard
+- **feat:** CEFR Badge — level indicator with longitudinal sparkline trend and next-milestone coaching
+- **feat:** CEFR history API — `/api/users/me/cefr-history` for longitudinal level tracking
+- **docs:** JSDoc coverage on 37 public API files, 11 per-domain READMEs, OpenAPI spec committed
+- **refactor:** Split 4 oversized files into focused modules (all under 300 lines)
+
 ## [0.58.0] — 2026-06-01
 
 - **feat:** Collocation SRS + domain vocabulary: SM-2 spaced repetition, collocation detection, domain/frequency tagging, 10th metric (Lexical Sophistication), /vocabulary page

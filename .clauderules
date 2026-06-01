@@ -114,6 +114,31 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 - Zod validation at all external data boundaries
 - Env vars only via `lib/env.ts`
 
+## Living Documentation Verification (ABSOLUTE — every feature packet)
+
+Every packet that adds or changes a feature MUST verify and update ALL living docs before shipping. A packet is NOT complete if any doc still describes the app as it was before the change.
+
+### Required docs checklist:
+
+| Doc | Check |
+|-----|-------|
+| `README.md` (root) | Description, metric counts, architecture diagram, how-it-works list, project structure tree |
+| `CHANGELOG.md` | New version entry with all features in this packet |
+| `CONTRIBUTING.md` | Only if workflow or system shape changed |
+| `docs/README.md` | Docs index — add entries for any new doc files |
+| `docs/api/openapi.yaml` | Update if API routes were added/changed |
+| `docs/architecture/SYSTEM_SPEC.md` | Update if data flow or system shape changed |
+| `docs/DEPLOYMENT.md` | Update if new env vars, migrations, or infra needed |
+| `docs/SECURITY.md` | Update if auth, CSP, or data handling changed |
+| `docs/TESTING.md` | Update if test strategy or coverage thresholds changed |
+| `src/features/<domain>/README.md` | Update if domain's public API or components changed |
+| JSDoc `@param/@returns` on new exports | Required on all new exported functions in `src/lib/**` |
+| File header comments | Required on every new code file |
+
+### Stale doc = BLOCKER
+
+If the audit finds a metric count that doesn't match, a feature missing from how-it-works, a new folder absent from the structure tree, or a missing CHANGELOG entry — that's a BLOCKER, not a warning.
+
 ## Quality Gates (must pass before shipping)
 ```bash
 npx tsc --noEmit       # Zero type errors

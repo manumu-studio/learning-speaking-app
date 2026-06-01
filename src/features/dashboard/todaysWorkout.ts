@@ -49,6 +49,8 @@ const FALLBACK_TIPS: Record<MetricKey, string> = {
     "Pause instead of filling silence. A half-second pause sounds more confident than 'um' or 'like'.",
   lexicalSophistication:
     'Swap one common word per sentence for a more precise alternative — "important" → "pivotal".',
+  registerPragmatics:
+    'Match your tone to the situation — add hedging phrases like "it might be worth" in professional contexts.',
   pronunciationAccuracy: 'Slow down on consonant clusters. Precision beats speed.',
   prosodyScore: 'Vary your pitch on stressed syllables to sound more expressive.',
   speakingRate:

@@ -12,6 +12,7 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Usage',
   lexicalSophistication: 'Lexical Sophistication',
+  registerPragmatics: 'Register & Pragmatics',
   pronunciationAccuracy: 'Pronunciation Accuracy',
   prosodyScore: 'Prosody & Rhythm',
   speakingRate: 'Speaking Rate',
@@ -74,10 +75,17 @@ function resolveTimeframe(
 }
 
 /**
- * Detect Personal Records for a completed session.
- * Compares each metric score in `currentSnapshots` against the user's historical
- * best for 14-day, 30-day, and all-time windows.
- * Returns one PR per metric (most specific timeframe only).
+ * Detects personal records (PRs) for a completed session across three time windows.
+ *
+ * For each metric in the session's `MetricSnapshot` rows, the score is compared against
+ * the user's historical best in 14-day, 30-day, and all-time windows (excluding the
+ * current session). At most one PR is returned per metric — the most specific timeframe
+ * that qualifies (`all-time` > `30-day` > `14-day`).
+ *
+ * @param userId - Internal user ID (used to scope historical lookups).
+ * @param sessionId - The session whose snapshots are being evaluated.
+ * @param sessionDate - The session creation date, used as the reference for rolling windows.
+ * @returns An array of `PersonalRecord` objects (one per qualifying metric; may be empty).
  */
 export async function detectPersonalRecords(
   userId: string,

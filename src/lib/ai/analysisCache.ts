@@ -39,12 +39,25 @@ function buildCacheKey(transcriptHash: string): string {
   return `lsa:analysis:${CACHE_VERSION}:${transcriptHash}`;
 }
 
-/** Returns a SHA-256 hex digest of a transcript string for use as a cache key. */
+/**
+ * Returns a SHA-256 hex digest of a transcript string for use as a cache key.
+ *
+ * @param transcript - The raw transcript text.
+ * @returns A 64-character lowercase hex string.
+ */
 export function hashTranscript(transcript: string): string {
   return createHash('sha256').update(transcript).digest('hex');
 }
 
-/** Fetches a previously cached analysis result for the given transcript hash, or null on miss/error. */
+/**
+ * Fetches a previously cached analysis result for the given transcript hash.
+ *
+ * Returns `null` on cache miss, Redis unavailability, or schema validation failure —
+ * callers should treat `null` as a miss and proceed with a fresh Claude call.
+ *
+ * @param transcriptHash - SHA-256 hex digest returned by {@link hashTranscript}.
+ * @returns The cached `AnalysisResult`, or `null` if not found or on any error.
+ */
 export async function getCachedAnalysis(
   transcriptHash: string,
 ): Promise<AnalysisResult | null> {
@@ -77,7 +90,15 @@ export async function getCachedAnalysis(
   }
 }
 
-/** Stores an analysis result in Redis keyed by transcript hash with a 7-day TTL. */
+/**
+ * Stores an analysis result in Redis keyed by transcript hash with a 7-day TTL.
+ *
+ * Failures are logged as warnings and swallowed — caching is best-effort and must
+ * not block the pipeline on Redis outages.
+ *
+ * @param transcriptHash - SHA-256 hex digest returned by {@link hashTranscript}.
+ * @param result - Validated `AnalysisResult` to persist.
+ */
 export async function setCachedAnalysis(
   transcriptHash: string,
   result: AnalysisResult,

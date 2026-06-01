@@ -1,7 +1,9 @@
 // Dashboard feature type definitions
 import type { PersonalRecord } from '@/lib/personalRecords.types';
+import type { CefrEstimate } from '@/lib/cefr/cefr.types';
+import type { RadarScore } from '@/features/dashboard/SkillRadar';
 
-/** One of ten metric dimensions tracked per session: 7 Claude-scored + 3 Azure-computed (see Prisma `MetricSnapshot.key`). */
+/** One of eleven metric dimensions tracked per session: 8 Claude-scored + 3 Azure-computed (see Prisma `MetricSnapshot.key`). */
 export type MetricKey =
   | 'connectorRepetition'
   | 'structuralVariety'
@@ -10,6 +12,7 @@ export type MetricKey =
   | 'argumentClosure'
   | 'fillerUsage'
   | 'lexicalSophistication'
+  | 'registerPragmatics'
   | 'pronunciationAccuracy'
   | 'prosodyScore'
   | 'speakingRate';
@@ -77,4 +80,6 @@ export type DashboardData = {
   totalWorkoutCount: number;
   /** Downsampled F0 preview from the most recent session with pitch data */
   recentProsodyPitchPreview: number[];
+  cefrEstimate: CefrEstimate | null;
+  radarScores: RadarScore[];
 };

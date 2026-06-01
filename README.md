@@ -38,7 +38,7 @@ Browser (AudioWorklet) → 2-min chunks with 5s overlap → Upload each to R2
                                                             ↓
 Browser (Results UI) ← Progressive results during recording ← Next.js API
         ↓
-Dashboard ← 10 metrics (7 language + 3 pronunciation), sparklines, streak
+Dashboard ← 11 metrics (8 language + 3 pronunciation), sparklines, streak, CEFR level, skill radar
         ↓
 Training Gym ← AI-generated drills per metric → record response → evaluate
         ↓
@@ -50,8 +50,8 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 1. **Record** — AudioWorklet captures PCM audio, automatically splitting into 2-minute chunks with 5-second overlap for seamless stitching
 2. **Upload** — Each chunk uploads to R2 via presigned URL while recording continues; progressive results appear as chunks complete
 3. **Process** — QStash triggers parallel per-chunk pipelines (Whisper transcription + Azure pronunciation assessment + Claude analysis), then a fan-in synthesis pass deduplicates and merges insights across the full session
-4. **Results** — Ten scored dimensions: 7 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, and L1 interference coaching
-5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, and recent session history
+4. **Results** — Eleven scored dimensions: 8 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication, register & pragmatics) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, L1 interference coaching, and register/pragmatics feedback with hedging suggestions
+5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, CEFR level estimation badge with longitudinal sparkline, 10-axis skill radar chart with C2 threshold overlay, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
 7. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions, detects when you use them in future sessions, and schedules them for spaced review (SM-2) with a tabbed review-queue page; collocation detection flags multi-word phrases worth learning; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
 8. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
@@ -66,7 +66,7 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 - [Testing](docs/TESTING.md) — Test strategy and commands
 - [Security](docs/SECURITY.md) — Privacy and security practices
 - [Decisions](docs/decisions/) — Architecture Decision Records (6 ADRs)
-- **API Reference** — Swagger UI at `/api/docs` in development mode (OpenAPI 3.1)
+- **API Reference** — Interactive Swagger UI at [`/api/docs`](http://localhost:3000/api/docs) (development only). Raw OpenAPI 3.1 JSON at `/api/docs/spec`. Static spec: [`docs/api/openapi.yaml`](docs/api/openapi.yaml)
 
 ## Getting Started
 
@@ -112,13 +112,13 @@ src/
 ├── components/ui/    # Reusable UI components (30+ components)
 ├── features/         # Feature modules
 │   ├── auth/         # Authentication hooks and helpers
-│   ├── dashboard/    # Dashboard data fetching, metric cards, types
+│   ├── dashboard/    # Dashboard data fetching, metric cards, CEFR badge, skill radar, types
 │   ├── insights/     # Session insight display
 │   ├── recording/    # Audio recording and upload
-│   ├── session/      # Session status polling and display
+│   ├── session/      # Session status polling, display, register/pragmatics feedback
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, auth, queue, storage, pipeline, pronunciation, srs, logger)
+├── lib/              # Shared utilities (AI, auth, CEFR, queue, storage, pipeline, pronunciation, srs, logger)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

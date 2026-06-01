@@ -1,2 +1,17 @@
+# Ban `as` type assertions in staged diffs (only `as const` allowed;
+# `as never` is lowercase so never matches; import/export aliases excluded).
+# Scans only NEW/CHANGED lines (+ prefix in diff), not entire files.
+echo "🚫 Checking for forbidden 'as' type assertions in staged diffs..."
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | grep -v '\.test\.' || true)
+if [ -n "$STAGED_TS" ]; then
+  AS_HITS=$(git diff --cached -U0 -- $STAGED_TS 2>/dev/null | grep '^+' | grep -v '^+++' | grep -E '\bas\s+[A-Z][A-Za-z0-9_<>\[\].]*' | grep -v 'as const' | grep -vE '\b(import|export)\b.*\bas\b' || true)
+  if [ -n "$AS_HITS" ]; then
+    echo "🔴 Forbidden 'as' type assertion(s) found in new/changed lines:"
+    echo "$AS_HITS"
+    exit 1
+  fi
+fi
+echo "✅ No forbidden 'as' assertions in staged changes."
+
 echo "🔍 Running lint-staged (lint + typecheck on staged files)..."
 npx lint-staged || exit 1
