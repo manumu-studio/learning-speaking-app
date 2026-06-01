@@ -20,7 +20,7 @@ export const insightSchema = z.object({
   confidence: z.number().min(1).max(5).nullish(),
 });
 
-// Metric scoring schema — accepts 6 Claude-scored keys + 3 Azure-computed keys (for schema completeness)
+// Metric scoring schema — accepts 7 Claude-scored keys + 3 Azure-computed keys (for schema completeness)
 export const metricSchema = z.object({
   key: z.enum([
     'connectorRepetition',
@@ -29,6 +29,7 @@ export const metricSchema = z.object({
     'verbAccuracy',
     'argumentClosure',
     'fillerUsage',
+    'lexicalSophistication',
     'pronunciationAccuracy',
     'prosodyScore',
     'speakingRate',
@@ -84,6 +85,19 @@ export const analysisResultSchema = z.object({
         word: z.string(),
         meaning: z.string(),
         exampleSentence: z.string(),
+        type: z.enum(['word', 'collocation', 'phrase']).optional().default('word'),
+        domain: z.enum(['general', 'business', 'tech', 'academic', 'medical', 'legal']).optional().default('general'),
+        frequencyBand: z.enum(['high', 'mid', 'low', 'rare']).optional().default('mid'),
+      }),
+    )
+    .max(3)
+    .optional(),
+  collocations: z
+    .array(
+      z.object({
+        detected: z.string(),
+        nativeAlternative: z.string(),
+        explanation: z.string(),
       }),
     )
     .max(3)
@@ -109,6 +123,7 @@ const METRIC_LABELS: Record<string, string> = {
   verbAccuracy: 'Verb Accuracy',
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Usage',
+  lexicalSophistication: 'Lexical Sophistication',
 };
 
 function buildFocusInstruction(focusMetricKey: string): string {
@@ -191,8 +206,37 @@ Each suggestion must include:
 - word: the target word or phrase
 - meaning: a brief definition in plain English (one sentence)
 - exampleSentence: a natural example sentence using the word in a context similar to the session topic
+- type: "word" (single word), "collocation" (2-3 word combination), or "phrase" (formulaic sequence, 4+ words)
+- domain: "general", "business", "tech", "academic", "medical", or "legal" — based on which register the word is most associated with. If unsure, use "general".
+- frequencyBand: "high" (top 3000 words), "mid" (3001-8000), "low" (8001-15000), or "rare" (15000+). If unsure, use "mid".
 
 Produce a vocabularySuggestions array with exactly 2-3 items. Choose words that are genuinely useful upgrades — not obscure synonyms. Do not repeat words already flagged in vocabulary insights.
+`;
+
+const COLLOCATION_PROMPT_SECTION = `
+COLLOCATION AND FORMULAIC SEQUENCE DETECTION:
+Identify 1-3 instances where the speaker used a grammatically correct but non-native-sounding word combination (weak collocation). For each:
+- detected: the exact phrase from the transcript
+- nativeAlternative: the higher-MI (mutual information) native-sounding alternative
+- explanation: why the alternative sounds more natural to native ears
+
+Only flag collocations you are confident about — do not invent them. Return an empty array if none are detected.
+
+Produce a collocations array (max 3 items).
+`;
+
+const LEXICAL_SOPHISTICATION_PROMPT_SECTION = `
+LEXICAL SOPHISTICATION SCORING:
+Score the speaker's lexical sophistication on a 1-10 scale. This measures the ratio of mid-frequency, low-frequency, and rare vocabulary to total unique content words.
+
+Rubric:
+- 1-3: Almost entirely high-frequency basic vocabulary ("good", "big", "important", "make", "get")
+- 4-6: Mix of high and mid-frequency words, occasional precise vocabulary ("establish", "demonstrate", "perspective")
+- 7-8: Consistent use of mid-to-low frequency words, academic/professional vocabulary ("notwithstanding", "mitigate", "contingent")
+- 9-10: Native-like lexical sophistication with rare and domain-specific vocabulary used naturally
+
+Include this as a metric with key "lexicalSophistication" in your metrics array.
+For transcripts under 20 words, skip this metric entirely.
 `;
 
 const L1_INTERFERENCE_PROMPT_SECTION = `
@@ -284,8 +328,8 @@ Also provide:
 - summary: 2-3 sentences following the SUMMARY FIELD PATTERN from your system instructions. Lead positive, name one growth area, close encouraging.
 - intentLabel: A concise 3-5 word label describing the main topic of this conversation (e.g., "Daily routine discussion", "Job interview practice", "Travel experiences sharing")
 
-Score ONLY these 6 metrics on a 1-10 scale (10 = native-like proficiency):
-connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, argumentClosure, fillerUsage.
+Score ONLY these 7 metrics on a 1-10 scale (10 = native-like proficiency):
+connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, argumentClosure, fillerUsage, lexicalSophistication.
 For each metric provide: key, level (low=1-3, medium=4-6, high=7-10), score (1-10), note (one sentence observation).
 Do NOT score pronunciationAccuracy, prosodyScore, or speakingRate — those are computed separately from Azure data.`;
 
@@ -304,7 +348,7 @@ const JSON_OUTPUT_SCHEMA = `Schema:
   ],
   "metrics": [
     {
-      "key": "connectorRepetition" | "structuralVariety" | "vocabularyPrecision" | "verbAccuracy" | "argumentClosure" | "fillerUsage",
+      "key": "connectorRepetition" | "structuralVariety" | "vocabularyPrecision" | "verbAccuracy" | "argumentClosure" | "fillerUsage" | "lexicalSophistication",
       "level": "low" | "medium" | "high",
       "score": number,
       "note": "string"
@@ -342,7 +386,17 @@ const JSON_OUTPUT_SCHEMA = `Schema:
     {
       "word": "string",
       "meaning": "string",
-      "exampleSentence": "string"
+      "exampleSentence": "string",
+      "type": "word" | "collocation" | "phrase",
+      "domain": "general" | "business" | "tech" | "academic" | "medical" | "legal",
+      "frequencyBand": "high" | "mid" | "low" | "rare"
+    }
+  ],
+  "collocations": [
+    {
+      "detected": "string",
+      "nativeAlternative": "string",
+      "explanation": "string"
     }
   ]
 }`;
@@ -354,7 +408,7 @@ Step 2: Count discourse markers, identify topic shifts, assess coherence flow.
 Step 3: Count word frequencies, identify overused content words, estimate TTR.
 Step 4: Scan for Spanish interference patterns (calques, false cognates, syntax).
 Step 5: Identify recurring grammar, vocabulary, and structure patterns.
-Step 6: Score all 6 metrics based on your observations above.
+Step 6: Score all 7 metrics based on your observations above.
 Step 7: Write focusNext, summary, and intentLabel.
 Step 8: Produce the JSON output.`;
 
@@ -450,6 +504,8 @@ function buildUserPrompt(
     COHERENCE_PROMPT_SECTION.trim(),
     VOCABULARY_DIVERSITY_PROMPT_SECTION.trim(),
     VOCABULARY_SUGGESTIONS_PROMPT_SECTION.trim(),
+    COLLOCATION_PROMPT_SECTION.trim(),
+    LEXICAL_SOPHISTICATION_PROMPT_SECTION.trim(),
     L1_INTERFERENCE_PROMPT_SECTION.trim(),
     PATTERN_ANALYSIS_SECTION,
   );
@@ -467,7 +523,7 @@ function buildUserPrompt(
   return sections.join('\n\n');
 }
 
-// Analyze transcript using Claude Haiku — returns structured insights validated against Prisma schema
+/** Analyzes a transcript with Claude Haiku and returns structured coaching insights, metrics, and labels. */
 export async function analyzeTranscript(
   transcript: string,
   focusMetricKey?: string | null,

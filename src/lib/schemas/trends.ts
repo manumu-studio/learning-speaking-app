@@ -8,6 +8,7 @@ export const MetricKeySchema = z.enum([
   'verbAccuracy',
   'argumentClosure',
   'fillerUsage',
+  'lexicalSophistication',
   'pronunciationAccuracy',
   'prosodyScore',
   'speakingRate',

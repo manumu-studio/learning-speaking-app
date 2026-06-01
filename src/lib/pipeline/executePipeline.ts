@@ -42,6 +42,7 @@ function buildPronunciationSummary(
   };
 }
 
+/** Runs the full session processing pipeline: Whisper transcription, Azure pronunciation scoring, Claude analysis, and metric persistence. */
 export async function executePipeline(
   sessionId: string,
   mode: PipelineMode

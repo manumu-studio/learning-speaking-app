@@ -13,6 +13,7 @@ function requireEnv(value: string | undefined, name: string): string {
 
 let _anthropicClient: Anthropic | null = null;
 
+/** Returns the shared Anthropic client singleton, initializing it on first call. */
 export function getAnthropicClient(): Anthropic {
   if (_anthropicClient) {
     return _anthropicClient;

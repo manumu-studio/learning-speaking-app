@@ -8,6 +8,7 @@ interface SentryRequestContextOptions {
   route: string;
 }
 
+/** Attaches userId, requestId, route, and sessionId to the current Sentry scope. */
 export function setSentryRequestContext(options: SentryRequestContextOptions): void {
   const { userId, sessionId, requestId, route } = options;
 

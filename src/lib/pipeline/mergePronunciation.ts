@@ -59,6 +59,7 @@ function estimateOverlapWordCount(overlapSecs: number): number {
   return Math.round((overlapSecs / 60) * AVG_WPM);
 }
 
+/** Combines per-chunk Azure pronunciation reports into a single duration-weighted result, deduplicating overlap words. */
 export function mergePronunciation(
   chunks: ChunkPronunciationMergeInput[],
 ): MergedPronunciationResult | null {

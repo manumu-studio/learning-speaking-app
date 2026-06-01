@@ -22,6 +22,7 @@ function mapContourPayload(payload: {
   };
 }
 
+/** Calls the Praat microservice to extract an F0/intensity contour from a presigned audio URL; returns null if unavailable. */
 export async function extractContour(
   audioUrl: string,
   durationSecs: number,

@@ -27,6 +27,7 @@ const METRIC_LABELS: Record<string, string> = {
   verbAccuracy: 'Verb Accuracy',
   argumentClosure: 'Argument Closure',
   fillerUsage: 'Filler Words',
+  lexicalSophistication: 'Lexical Sophistication',
   pronunciationAccuracy: 'Pronunciation',
   prosodyScore: 'Prosody',
   speakingRate: 'Speaking Rate',

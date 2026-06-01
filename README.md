@@ -38,11 +38,11 @@ Browser (AudioWorklet) → 2-min chunks with 5s overlap → Upload each to R2
                                                             ↓
 Browser (Results UI) ← Progressive results during recording ← Next.js API
         ↓
-Dashboard ← 9 metrics (6 language + 3 pronunciation), sparklines, streak
+Dashboard ← 10 metrics (7 language + 3 pronunciation), sparklines, streak
         ↓
 Training Gym ← AI-generated drills per metric → record response → evaluate
         ↓
-Intelligence ← Phoneme patterns + vocab tracking (suggest → detect adoption) + reading practice
+Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → spaced review) + collocations + reading practice
 ```
 
 ## How It Works
@@ -50,22 +50,23 @@ Intelligence ← Phoneme patterns + vocab tracking (suggest → detect adoption)
 1. **Record** — AudioWorklet captures PCM audio, automatically splitting into 2-minute chunks with 5-second overlap for seamless stitching
 2. **Upload** — Each chunk uploads to R2 via presigned URL while recording continues; progressive results appear as chunks complete
 3. **Process** — QStash triggers parallel per-chunk pipelines (Whisper transcription + Azure pronunciation assessment + Claude analysis), then a fan-in synthesis pass deduplicates and merges insights across the full session
-4. **Results** — Nine scored dimensions: 6 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, and L1 interference coaching
+4. **Results** — Ten scored dimensions: 7 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, and L1 interference coaching
 5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
-7. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions and detects when you use them in future sessions; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
+7. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions, detects when you use them in future sessions, and schedules them for spaced review (SM-2) with a tabbed review-queue page; collocation detection flags multi-word phrases worth learning; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
 8. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
 
 ## Documentation
 
-- [API Reference](docs/api/openapi.yaml) — OpenAPI 3.1 spec — API documentation available at `/api/docs` in development mode (Swagger UI)
+- [Changelog](CHANGELOG.md) — Version history (66 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
+- [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
+- [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
 - [Contributing](CONTRIBUTING.md) — Setup, workflow, and code standards
 - [Testing](docs/TESTING.md) — Test strategy and commands
-- [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
-- [Decisions](docs/decisions/) — Architecture Decision Records
 - [Security](docs/SECURITY.md) — Privacy and security practices
-- [System spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
+- [Decisions](docs/decisions/) — Architecture Decision Records (6 ADRs)
+- **API Reference** — Swagger UI at `/api/docs` in development mode (OpenAPI 3.1)
 
 ## Getting Started
 
@@ -115,12 +116,12 @@ src/
 │   ├── insights/     # Session insight display
 │   ├── recording/    # Audio recording and upload
 │   ├── session/      # Session status polling and display
-│   └── training/     # Drill generation, evaluation, drill UI, reading practice
-├── lib/              # Shared utilities (AI, auth, queue, storage, pipeline, pronunciation, logger)
+│   ├── training/     # Drill generation, evaluation, drill UI, reading practice
+│   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
+├── lib/              # Shared utilities (AI, auth, queue, storage, pipeline, pronunciation, srs, logger)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/
-├── api/              # OpenAPI 3.1 spec
 ├── architecture/     # System spec and diagrams
 ├── decisions/        # Architecture Decision Records (ADRs)
 └── roadmap/          # Development roadmap

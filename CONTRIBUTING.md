@@ -65,7 +65,7 @@ CI runs the same expectations on Node 20.
 
 ## Architecture
 
-High-level behaviour and data flow live in `docs/architecture/SYSTEM_SPEC.md` and `docs/architecture/SYSTEM_DIAGRAM.md`. API contracts are in `docs/api/openapi.yaml` (interactive UI at `/api/docs` in development).
+High-level behaviour and data flow live in `docs/architecture/SYSTEM_SPEC.md` and `docs/architecture/SYSTEM_DIAGRAM.md`. API reference is available via Swagger UI at `/api/docs` in development mode.
 
 ## Documentation
 

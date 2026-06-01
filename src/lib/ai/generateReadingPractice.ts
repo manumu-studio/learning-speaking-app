@@ -18,6 +18,7 @@ export type ReadingPracticeInput = {
   difficulty: 'beginner' | 'intermediate' | 'advanced';
 };
 
+/** Generates a short pronunciation-focused reading practice text targeting weak phonemes and vocabulary. */
 export async function generateReadingPractice(
   input: ReadingPracticeInput,
 ): Promise<ReadingPracticeResponse> {
