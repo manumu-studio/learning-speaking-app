@@ -18,13 +18,26 @@ export interface SynthesisInput {
   promptUsed: string | null;
 }
 
+export interface VocabSuggestionItem {
+  word: string;
+  meaning: string;
+  exampleSentence: string;
+}
+
 export interface SynthesisResult {
   insights: z.infer<typeof insightSchema>[];
   metrics: z.infer<typeof metricSchema>[];
   focusNext: string;
   summary: string;
   intentLabel: string;
+  vocabularySuggestions: VocabSuggestionItem[];
 }
+
+const vocabSuggestionSchema = z.object({
+  word: z.string(),
+  meaning: z.string(),
+  exampleSentence: z.string(),
+});
 
 const synthesisResponseSchema = z.object({
   insights: z.array(insightSchema).max(5),
@@ -32,6 +45,7 @@ const synthesisResponseSchema = z.object({
   focusNext: z.string(),
   summary: z.string().max(500),
   intentLabel: z.string().max(80),
+  vocabularySuggestions: z.array(vocabSuggestionSchema).max(3).optional(),
 });
 
 function buildSynthesisPrompt(input: SynthesisInput): string {
@@ -61,6 +75,7 @@ YOUR TASK:
 4. Produce up to 5 final insights covering the full session.
 5. Score all 6 language metrics (connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, argumentClosure, fillerUsage) using the complete transcript, not per-chunk data.
 6. Write a 1–2 sentence summary of the full session, an intentLabel (3–5 words), and a focusNext recommendation.
+7. Produce a vocabularySuggestions array with exactly 2-3 items. Choose words that are genuinely useful upgrades — not obscure synonyms. Each word should have a meaning and an example sentence showing natural usage.
 
 ${focusInstruction}
 
@@ -85,7 +100,10 @@ Use null for optional fields you want to omit (frequency, severity, examples, su
   ],
   "focusNext": "One sentence recommendation",
   "summary": "1-2 sentence session summary",
-  "intentLabel": "3-5 word topic label"
+  "intentLabel": "3-5 word topic label",
+  "vocabularySuggestions": [
+    { "word": "articulate", "meaning": "expressing oneself clearly", "exampleSentence": "She articulated her position with confidence." }
+  ]
 }`;
 }
 
@@ -131,5 +149,8 @@ export async function synthesizeAnalysis(input: SynthesisInput): Promise<Synthes
     throw new Error('Claude synthesis response failed schema validation');
   }
 
-  return result.data;
+  return {
+    ...result.data,
+    vocabularySuggestions: result.data.vocabularySuggestions ?? [],
+  };
 }
