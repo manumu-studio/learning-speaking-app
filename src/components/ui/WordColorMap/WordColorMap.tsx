@@ -8,9 +8,9 @@ import type { WordColor } from './WordColorMap.types';
 import { useWordColorMap } from './useWordColorMap';
 
 const COLOR_CLASSES: Record<WordColor, string> = {
-  green: 'text-green-700 dark:text-green-400',
-  yellow: 'text-yellow-600 dark:text-yellow-400',
-  amber: 'text-rose-600 dark:text-rose-400',
+  red: 'text-red-500 dark:text-red-400',
+  amber: 'text-amber-500 dark:text-amber-400',
+  green: 'text-emerald-500 dark:text-emerald-400',
   'gray-italic': 'text-gray-500 italic dark:text-gray-400',
 } as const;
 
@@ -31,7 +31,7 @@ export function WordColorMap({
       aria-label="Word-by-word pronunciation map"
     >
       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
-        Word Map
+        Pronunciation Accuracy
       </h3>
 
       <div className="flex flex-wrap gap-x-2.5 gap-y-3">
@@ -78,16 +78,16 @@ export function WordColorMap({
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-400" />
-          Clear
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          Solid (85+)
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-yellow-400" />
-          Accented
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" />
+          Getting there (60–84)
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-400" />
-          Needs work
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />
+          Practice (&lt;60)
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-gray-500" />
