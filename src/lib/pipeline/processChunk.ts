@@ -1,5 +1,4 @@
 // Processes a single uploaded session chunk — Whisper transcription and Azure pronunciation scoring
-/* eslint-disable complexity, max-lines-per-function */
 import { ChunkStatus, Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { transcribeWavChunk } from '@/lib/ai/whisper';
@@ -13,6 +12,116 @@ import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 import { toInputJson } from '@/lib/prismaJson';
 
+// ---------------------------------------------------------------------------
+// Pronunciation scoring
+// ---------------------------------------------------------------------------
+
+interface PronScores {
+  pronScore: number | null;
+  accuracyScore: number | null;
+  fluencyScore: number | null;
+  completenessScore: number | null;
+  prosodyScore: number | null;
+  speakingRateWpm: number | null;
+  pronWords: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+  pronRawJson: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+}
+
+const nullPronScores: PronScores = {
+  pronScore: null,
+  accuracyScore: null,
+  fluencyScore: null,
+  completenessScore: null,
+  prosodyScore: null,
+  speakingRateWpm: null,
+  pronWords: Prisma.JsonNull,
+  pronRawJson: Prisma.JsonNull,
+};
+
+async function scoreChunkPronunciation(
+  sessionId: string,
+  chunkIndex: number,
+  audioBuffer: Buffer,
+  transcriptText: string,
+): Promise<PronScores> {
+  const azureKey = env.AZURE_SPEECH_KEY;
+  const azureRegion = env.AZURE_SPEECH_REGION;
+
+  if (azureKey === undefined || azureRegion === undefined || transcriptText.length === 0) {
+    return nullPronScores;
+  }
+
+  try {
+    const pronunciationResult = await assessPronunciation(
+      audioBuffer,
+      transcriptText,
+      azureKey,
+      azureRegion,
+    );
+    const taggedWords = tagSpanishL1(pronunciationResult.words);
+
+    const validWords = taggedWords.filter(
+      (word) => word.errorType !== 'Insertion' && word.errorType !== 'Omission',
+    );
+    const totalDurationMs = validWords.reduce((sum, word) => sum + word.durationMs, 0);
+    const speakingRateWpm =
+      totalDurationMs > 0 ? validWords.length / (totalDurationMs / 60_000) : 0;
+
+    return {
+      pronScore: pronunciationResult.pronScore,
+      accuracyScore: pronunciationResult.accuracyScore,
+      fluencyScore: pronunciationResult.fluencyScore,
+      completenessScore: pronunciationResult.completenessScore,
+      prosodyScore: pronunciationResult.prosodyScore,
+      speakingRateWpm,
+      pronWords: toInputJson(taggedWords),
+      pronRawJson: toInputJson(pronunciationResult.rawUtterances),
+    };
+  } catch (error) {
+    logger.warn(
+      {
+        sessionId,
+        chunkIndex,
+        err: error instanceof Error ? error : new Error('Unknown error'),
+      },
+      'Chunk pronunciation assessment failed',
+    );
+    return nullPronScores;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Audio cleanup
+// ---------------------------------------------------------------------------
+
+async function cleanupChunkAudio(
+  sessionId: string,
+  chunkIndex: number,
+  chunkId: string,
+  audioKey: string,
+): Promise<void> {
+  try {
+    await deleteAudio(audioKey);
+    await prisma.sessionChunk.update({
+      where: { id: chunkId },
+      data: { audioDeletedAt: new Date(), audioUrl: null },
+    });
+  } catch (deleteError) {
+    logger.warn(
+      {
+        sessionId,
+        chunkIndex,
+        err: deleteError instanceof Error ? deleteError : new Error('Unknown error'),
+      },
+      'Failed to delete chunk audio from R2',
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fan-in gate
+// ---------------------------------------------------------------------------
+
 /** Checks whether all chunks for a session are done and, if so, atomically enqueues the final fan-in job exactly once. */
 export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
   const session = await prisma.speakingSession.findUnique({
@@ -20,17 +129,13 @@ export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<vo
     select: { chunkCount: true, isChunked: true, status: true },
   });
 
-  if (!session?.isChunked || session.chunkCount == null) {
-    return;
-  }
+  if (!session?.isChunked || session.chunkCount == null) return;
 
   const doneCount = await prisma.sessionChunk.count({
     where: { sessionId, status: ChunkStatus.CHUNK_DONE },
   });
 
-  if (doneCount !== session.chunkCount) {
-    return;
-  }
+  if (doneCount !== session.chunkCount) return;
 
   if (
     session.status !== SessionStatus.AWAITING_FINAL &&
@@ -48,12 +153,14 @@ export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<vo
     data: { status: SessionStatus.PROCESSING_FINAL },
   });
 
-  if (result.count === 0) {
-    return;
-  }
+  if (result.count === 0) return;
 
   await enqueueFinalProcessing(sessionId);
 }
+
+// ---------------------------------------------------------------------------
+// Main chunk processor
+// ---------------------------------------------------------------------------
 
 /** Transcribes and pronunciation-scores a single audio chunk, persists results, deletes chunk audio from R2, and triggers final fan-in when all chunks are complete. */
 export async function processChunk(
@@ -62,29 +169,16 @@ export async function processChunk(
 ): Promise<void> {
   const chunkStart = Date.now();
   const chunk = await prisma.sessionChunk.findUnique({
-    where: {
-      sessionId_chunkIndex: { sessionId, chunkIndex },
-    },
+    where: { sessionId_chunkIndex: { sessionId, chunkIndex } },
     include: {
-      session: {
-        select: {
-          id: true,
-          userId: true,
-          status: true,
-          isChunked: true,
-        },
-      },
+      session: { select: { id: true, userId: true, status: true, isChunked: true } },
     },
   });
 
-  if (!chunk) {
-    throw new Error(`Chunk not found: ${sessionId}/${chunkIndex}`);
-  }
+  if (!chunk) throw new Error(`Chunk not found: ${sessionId}/${chunkIndex}`);
 
   const audioKey = chunk.audioUrl;
-  if (!audioKey) {
-    throw new Error(`Chunk missing audio URL: ${sessionId}/${chunkIndex}`);
-  }
+  if (!audioKey) throw new Error(`Chunk missing audio URL: ${sessionId}/${chunkIndex}`);
 
   if (chunk.status === ChunkStatus.CHUNK_DONE) {
     await maybeEnqueueFinalProcessing(sessionId);
@@ -115,89 +209,24 @@ export async function processChunk(
 
   await prisma.sessionChunk.update({
     where: { id: chunk.id },
-    data: {
-      status: ChunkStatus.SCORING,
-      transcriptText,
-      words: toInputJson(words),
-      wordCount,
-    },
+    data: { status: ChunkStatus.SCORING, transcriptText, words: toInputJson(words), wordCount },
   });
 
-  let pronScore: number | null = null;
-  let accuracyScore: number | null = null;
-  let fluencyScore: number | null = null;
-  let completenessScore: number | null = null;
-  let prosodyScore: number | null = null;
-  let speakingRateWpm: number | null = null;
-  let pronWords: Prisma.InputJsonValue | typeof Prisma.JsonNull = Prisma.JsonNull;
-  let pronRawJson: Prisma.InputJsonValue | typeof Prisma.JsonNull = Prisma.JsonNull;
-
-  if (
-    env.AZURE_SPEECH_KEY !== undefined &&
-    env.AZURE_SPEECH_REGION !== undefined &&
-    transcriptText.length > 0
-  ) {
-    try {
-      const pronunciationResult = await assessPronunciation(
-        audioBuffer,
-        transcriptText,
-        env.AZURE_SPEECH_KEY,
-        env.AZURE_SPEECH_REGION,
-      );
-      const taggedWords = tagSpanishL1(pronunciationResult.words);
-
-      pronScore = pronunciationResult.pronScore;
-      accuracyScore = pronunciationResult.accuracyScore;
-      fluencyScore = pronunciationResult.fluencyScore;
-      completenessScore = pronunciationResult.completenessScore;
-      prosodyScore = pronunciationResult.prosodyScore;
-
-      const validWords = taggedWords.filter(
-        (word) => word.errorType !== 'Insertion' && word.errorType !== 'Omission',
-      );
-      const totalDurationMs = validWords.reduce((sum, word) => sum + word.durationMs, 0);
-      speakingRateWpm =
-        totalDurationMs > 0
-          ? (validWords.length / (totalDurationMs / 60_000))
-          : 0;
-
-      pronWords = toInputJson(taggedWords);
-      pronRawJson = toInputJson(pronunciationResult.rawUtterances);
-    } catch (error) {
-      logger.warn(
-        {
-          sessionId,
-          chunkIndex,
-          err: error instanceof Error ? error : new Error('Unknown error'),
-        },
-        'Chunk pronunciation assessment failed',
-      );
-    }
-  }
+  const pronScores = await scoreChunkPronunciation(sessionId, chunkIndex, audioBuffer, transcriptText);
 
   await prisma.sessionChunk.update({
     where: { id: chunk.id },
-    data: {
-      status: ChunkStatus.CHUNK_DONE,
-      pronScore,
-      accuracyScore,
-      fluencyScore,
-      completenessScore,
-      prosodyScore,
-      speakingRateWpm,
-      pronWords,
-      pronRawJson,
-    },
+    data: { status: ChunkStatus.CHUNK_DONE, ...pronScores },
   });
 
   try {
-    await extractChunkFeatures(
+    await extractChunkFeatures({
       sessionId,
       chunkIndex,
       audioKey,
-      chunk.durationSecs,
-      chunk.overlapSecs,
-    );
+      durationSecs: chunk.durationSecs,
+      overlapSecs: chunk.overlapSecs,
+    });
   } catch (featureError) {
     logger.warn(
       {
@@ -209,24 +238,15 @@ export async function processChunk(
     );
   }
 
-  try {
-    await deleteAudio(audioKey);
-    await prisma.sessionChunk.update({
-      where: { id: chunk.id },
-      data: { audioDeletedAt: new Date(), audioUrl: null },
-    });
-  } catch (deleteError) {
-    logger.warn(
-      {
-        sessionId,
-        chunkIndex,
-        err: deleteError instanceof Error ? deleteError : new Error('Unknown error'),
-      },
-      'Failed to delete chunk audio from R2',
-    );
-  }
+  await cleanupChunkAudio(sessionId, chunkIndex, chunk.id, audioKey);
 
-  logPipelineStage({ sessionId, stage: 'processChunk', durationMs: Date.now() - chunkStart, success: true, metadata: { chunkIndex } });
+  logPipelineStage({
+    sessionId,
+    stage: 'processChunk',
+    durationMs: Date.now() - chunkStart,
+    success: true,
+    metadata: { chunkIndex },
+  });
 
   await maybeEnqueueFinalProcessing(sessionId);
 }

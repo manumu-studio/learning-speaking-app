@@ -1,5 +1,10 @@
-// Playwright E2E test configuration -- runs against local dev server
+// Playwright E2E test configuration -- runs against an isolated local server
 import { defineConfig, devices } from '@playwright/test';
+
+const IS_CI = Boolean(process.env.CI);
+const E2E_PORT = process.env.PLAYWRIGHT_PORT ?? (IS_CI ? '3000' : '3100');
+const E2E_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${E2E_PORT}`;
+const E2E_READY_URL = `${E2E_BASE_URL}/api/health`;
 
 /** Env passed to the dev server subprocess (strings only; Playwright requires Record<string, string>). */
 function webServerEnv(): Record<string, string> {
@@ -9,20 +14,27 @@ function webServerEnv(): Record<string, string> {
       out[key] = value;
     }
   }
+  out.APP_URL = E2E_BASE_URL;
   out.E2E_TEST_USER = 'true';
+  out.NEXTAUTH_URL = E2E_BASE_URL;
+  out.PORT = E2E_PORT;
   return out;
 }
 
 export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   testDir: './e2e',
+  timeout: IS_CI ? 30_000 : 120_000,
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  ...(process.env.CI ? { workers: 1 as const } : {}),
-  reporter: process.env.CI ? 'github' : 'html',
+  forbidOnly: IS_CI,
+  retries: IS_CI ? 2 : 0,
+  workers: 1,
+  reporter: IS_CI ? 'github' : 'html',
+  expect: {
+    timeout: IS_CI ? 5_000 : 45_000,
+  },
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: E2E_BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -33,11 +45,13 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // CI: webpack dev server so Prisma in RSC sees the same env as the parent (Turbopack workers can miss it)
-    command: process.env.CI ? 'npm run dev:e2e' : 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: process.env.CI ? 120_000 : 30_000,
+    // Webpack dev (not Turbopack) — avoids per-route cold-compile flakes; same server locally and in CI.
+    command: `npm run dev:e2e -- --port ${E2E_PORT}`,
+    url: E2E_READY_URL,
+    // Local E2E uses a dedicated port so manually running `npm run dev` on 3000 cannot affect tests.
+    reuseExistingServer: false,
+    // Keep local E2E in dev mode because synthetic auth bypass is disabled in production NODE_ENV.
+    timeout: IS_CI ? 120_000 : 180_000,
     env: webServerEnv(),
   },
 });

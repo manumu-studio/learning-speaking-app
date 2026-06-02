@@ -23,3 +23,7 @@ export interface ProsodyFeedbackProps {
   prosodyScore: number;
   animationDelay: number;
 }
+
+export interface ProsodyIssueItemProps {
+  issue: ProsodyIssue;
+}

@@ -61,7 +61,7 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md) — Version history (67 releases)
+- [Changelog](CHANGELOG.md) — Version history (68 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting

@@ -1,5 +1,4 @@
 // Fan-in worker for the parallel chunk pipeline — stitches transcripts, merges pronunciation, synthesizes insights
-/* eslint-disable complexity, max-lines-per-function */
 import { Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
@@ -11,7 +10,7 @@ import { mergePronunciation } from '@/lib/pipeline/mergePronunciation';
 import type { ChunkPronunciationMergeInput } from '@/lib/pipeline/mergePronunciation';
 import { persistPronunciation } from '@/lib/pipeline/persistPronunciation';
 import { synthesizeAnalysis } from '@/lib/ai/synthesize';
-import type { ChunkInsightInput } from '@/lib/ai/synthesize';
+import type { ChunkInsightInput, SynthesisResult } from '@/lib/ai/synthesize';
 import { persistVocabSuggestions } from '@/lib/pipeline/persistVocabSuggestions';
 import { detectVocabUsage } from '@/lib/pipeline/detectVocabUsage';
 import { polishTranscript } from '@/lib/ai/polishTranscript';
@@ -21,47 +20,39 @@ import { logPipelineStage } from '@/lib/observability';
 import { estimateCefr } from '@/lib/cefr/estimateCefr';
 import { isJsonArray, invalidateDailySummary } from './processFinalHelpers';
 import { insightSchema } from '@/lib/ai/analyze';
+import type { ChunkResult } from '@prisma/client';
 
-/** Fan-in worker for the parallel chunk pipeline: polls until all ChunkResult rows settle, merges transcripts and pronunciation, synthesizes insights, and marks the session DONE. */
-export async function processParallelFinal(sessionId: string): Promise<void> {
-  const parallelFinalStart = Date.now();
-  const session = await prisma.speakingSession.findUnique({
-    where: { id: sessionId },
-    select: {
-      id: true,
-      userId: true,
-      status: true,
-      focusMetricKey: true,
-      promptUsed: true,
-      processedAt: true,
-      createdAt: true,
-      chunkCount: true,
-    },
-  });
+// ---------------------------------------------------------------------------
+// Chunk polling helper
+// ---------------------------------------------------------------------------
 
-  if (!session) {
-    throw new Error(`Session not found: ${sessionId}`);
-  }
-  if (session.status === SessionStatus.DONE && session.processedAt != null) {
-    return;
-  }
+const MAX_POLL_ATTEMPTS = 12;
+const POLL_INTERVAL_MS = 10_000;
 
-  const expectedChunkCount = session.chunkCount ?? 0;
-  const maxPollAttempts = 12;
-  const pollIntervalMs = 10_000;
-
+/**
+ * Polls ChunkResult rows until all expected chunks settle (DONE or FAILED),
+ * or the maximum number of attempts is reached.
+ *
+ * @param sessionId - ID of the session.
+ * @param expectedChunkCount - How many ChunkResult rows are expected (0 = unknown).
+ * @returns The final array of ChunkResult rows after polling.
+ */
+async function pollChunkResults(
+  sessionId: string,
+  expectedChunkCount: number,
+): Promise<ChunkResult[]> {
   let chunkResults = await prisma.chunkResult.findMany({
     where: { sessionId },
     orderBy: { chunkIndex: 'asc' },
   });
 
-  for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
+  for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
     const stillProcessing = chunkResults.filter((c) => c.status === 'PROCESSING');
     const allPresent = expectedChunkCount === 0 || chunkResults.length >= expectedChunkCount;
 
     if (allPresent && stillProcessing.length === 0) break;
 
-    if (attempt === maxPollAttempts) {
+    if (attempt === MAX_POLL_ATTEMPTS) {
       logger.warn(
         { sessionId, found: chunkResults.length, expected: expectedChunkCount, processing: stillProcessing.length },
         'Chunks did not settle after max poll attempts',
@@ -69,49 +60,30 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
       break;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     chunkResults = await prisma.chunkResult.findMany({
       where: { sessionId },
       orderBy: { chunkIndex: 'asc' },
     });
   }
 
-  if (chunkResults.length === 0) {
-    throw new Error(`No ChunkResult rows found for session ${sessionId}`);
-  }
+  return chunkResults;
+}
 
-  const doneChunks = chunkResults.filter((chunk) => chunk.status === 'DONE');
-  const hasPartialResults = doneChunks.length < chunkResults.length;
+// ---------------------------------------------------------------------------
+// Pronunciation merge + persist helper
+// ---------------------------------------------------------------------------
 
-  if (doneChunks.length === 0) {
-    await prisma.speakingSession.update({
-      where: { id: sessionId },
-      data: { status: SessionStatus.FAILED, errorMessage: 'All chunks failed processing' },
-    });
-    return;
-  }
-
-  await prisma.speakingSession.update({
-    where: { id: sessionId },
-    data: { status: SessionStatus.PROCESSING_FINAL },
-  });
-
-  const transcriptInputs: ChunkTranscriptInput[] = doneChunks.map((chunk) => ({
-    chunkIndex: chunk.chunkIndex,
-    text: chunk.transcriptText ?? '',
-    overlapSecs: chunk.overlapSecs,
-  }));
-
-  const rawStitched = stitchTranscripts(transcriptInputs);
-  const stitchedTranscript = await polishTranscript(rawStitched);
-  const wordCount = stitchedTranscript.split(/\s+/).filter(Boolean).length;
-
-  await prisma.transcript.upsert({
-    where: { sessionId },
-    create: { sessionId, text: stitchedTranscript, wordCount },
-    update: { text: stitchedTranscript, wordCount },
-  });
-
+/**
+ * Merges per-chunk pronunciation reports, tags L1 errors, and persists the result.
+ *
+ * @param sessionId - ID of the session.
+ * @param doneChunks - Chunks with status DONE (containing pronunciation reports).
+ */
+async function mergeAndPersistPronunciation(
+  sessionId: string,
+  doneChunks: ChunkResult[],
+): Promise<void> {
   const pronInputs: ChunkPronunciationMergeInput[] = doneChunks.map((chunk) => ({
     chunkIndex: chunk.chunkIndex,
     durationSecs: chunk.durationSecs,
@@ -120,42 +92,39 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
   }));
 
   const mergedPron = mergePronunciation(pronInputs);
-  if (mergedPron) {
-    const pronResult = {
-      ...mergedPron,
-      words: tagSpanishL1(mergedPron.words),
-      failureReason: null,
-      rawUtterances: [],
-    };
-    await persistPronunciation(sessionId, pronResult);
-  }
+  if (!mergedPron) return;
 
-  let cumulativeSecs = 0;
-  const chunkInsightInputs: ChunkInsightInput[] = doneChunks.map((chunk) => {
-    const startSecs = cumulativeSecs;
-    const effectiveDuration = Math.max(
-      0,
-      chunk.durationSecs - (chunk.chunkIndex === 0 ? 0 : chunk.overlapSecs),
-    );
-    cumulativeSecs += effectiveDuration;
-    return {
-      chunkIndex: chunk.chunkIndex,
-      startSecs,
-      endSecs: cumulativeSecs,
-      // Validate each insight entry from the DB Json column against the canonical schema.
-      // Entries that fail (e.g. from an older schema version) are dropped gracefully.
-      insights: isJsonArray(chunk.insights)
-        ? chunk.insights.filter((entry) => insightSchema.safeParse(entry).success)
-        : [],
-    };
-  });
+  const pronResult = {
+    ...mergedPron,
+    words: tagSpanishL1(mergedPron.words),
+    failureReason: null,
+    rawUtterances: [],
+  };
+  await persistPronunciation(sessionId, pronResult);
+}
 
-  const synthesis = await synthesizeAnalysis({
-    stitchedTranscript,
-    chunks: chunkInsightInputs,
-    focusMetricKey: session.focusMetricKey,
-    promptUsed: session.promptUsed,
-  });
+// ---------------------------------------------------------------------------
+// Synthesis persistence helper
+// ---------------------------------------------------------------------------
+
+interface PersistSynthesisOptions {
+  sessionId: string;
+  userId: string;
+  stitchedTranscript: string;
+  synthesis: SynthesisResult;
+  doneChunks: ChunkResult[];
+  hasPartialResults: boolean;
+  createdAt: Date;
+}
+
+/**
+ * Persists synthesis results (insights, metrics, vocab, session fields, CEFR)
+ * and invalidates the daily summary cache.
+ *
+ * @param opts - All data needed to write synthesis results to the DB.
+ */
+async function persistSynthesisResults(opts: PersistSynthesisOptions): Promise<void> {
+  const { sessionId, userId, stitchedTranscript, synthesis, doneChunks, hasPartialResults, createdAt } = opts;
 
   const nerFilterResult = filterTranscriptionArtefacts(synthesis.insights, stitchedTranscript);
 
@@ -177,9 +146,7 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
 
   if (synthesis.metrics.length > 0) {
     const synthesisKeys = synthesis.metrics.map((m) => m.key);
-    await prisma.metricSnapshot.deleteMany({
-      where: { sessionId, key: { in: synthesisKeys } },
-    });
+    await prisma.metricSnapshot.deleteMany({ where: { sessionId, key: { in: synthesisKeys } } });
     await prisma.metricSnapshot.createMany({
       data: synthesis.metrics.map((metric) => ({
         sessionId,
@@ -212,8 +179,7 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
   });
 
   if (synthesis.vocabularySuggestions && synthesis.vocabularySuggestions.length > 0) {
-    await persistVocabSuggestions(session.userId, sessionId, synthesis.vocabularySuggestions);
-
+    await persistVocabSuggestions(userId, sessionId, synthesis.vocabularySuggestions);
     const rewriteResult = await rewriteTranscript(stitchedTranscript, synthesis.vocabularySuggestions);
     if (rewriteResult) {
       await prisma.transcript.update({
@@ -223,22 +189,167 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     }
   }
 
-  await updatePatternProfile(session.userId, nerFilterResult.kept);
-  await detectVocabUsage(session.userId, sessionId, stitchedTranscript);
-  await invalidateDailySummary(session.userId, session.createdAt);
+  await updatePatternProfile(userId, nerFilterResult.kept);
+  await detectVocabUsage(userId, sessionId, stitchedTranscript);
+  await invalidateDailySummary(userId, createdAt);
 
-  // CEFR estimation from scored metrics
-  const cefrEstimate = estimateCefr(
-    synthesis.metrics.map((m) => ({ key: m.key, score: m.score })),
-  );
+  const cefrEstimate = estimateCefr(synthesis.metrics.map((m) => ({ key: m.key, score: m.score })));
   if (cefrEstimate !== null) {
     await prisma.user.update({
-      where: { id: session.userId },
+      where: { id: userId },
       data: { estimatedCefrLevel: cefrEstimate.level },
     });
   }
+}
 
-  logPipelineStage({ sessionId, stage: 'processParallelFinal', durationMs: Date.now() - parallelFinalStart, success: true, metadata: { chunkCount: doneChunks.length, wordCount } });
+// ---------------------------------------------------------------------------
+// Transcript stitch + store helper
+// ---------------------------------------------------------------------------
+
+interface StitchResult {
+  stitchedTranscript: string;
+  wordCount: number;
+}
+
+/**
+ * Stitches done-chunk transcripts, polishes them with Claude, stores in DB, and returns
+ * the polished text with its word count.
+ *
+ * @param sessionId - ID of the session.
+ * @param doneChunks - ChunkResult rows whose status is DONE.
+ * @returns The polished transcript and its word count.
+ */
+async function stitchAndStoreTranscript(
+  sessionId: string,
+  doneChunks: ChunkResult[],
+): Promise<StitchResult> {
+  const transcriptInputs: ChunkTranscriptInput[] = doneChunks.map((chunk) => ({
+    chunkIndex: chunk.chunkIndex,
+    text: chunk.transcriptText ?? '',
+    overlapSecs: chunk.overlapSecs,
+  }));
+
+  const rawStitched = stitchTranscripts(transcriptInputs);
+  const stitchedTranscript = await polishTranscript(rawStitched);
+  const wordCount = stitchedTranscript.split(/\s+/).filter(Boolean).length;
+
+  await prisma.transcript.upsert({
+    where: { sessionId },
+    create: { sessionId, text: stitchedTranscript, wordCount },
+    update: { text: stitchedTranscript, wordCount },
+  });
+
+  return { stitchedTranscript, wordCount };
+}
+
+// ---------------------------------------------------------------------------
+// Chunk insight input builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Converts done ChunkResult rows into `ChunkInsightInput[]` for synthesis,
+ * computing cumulative time offsets and validating each stored insight against
+ * the canonical insight schema.
+ *
+ * @param doneChunks - ChunkResult rows whose status is DONE.
+ * @returns Typed array of chunk insight inputs ready for `synthesizeAnalysis`.
+ */
+function buildChunkInsightInputs(doneChunks: ChunkResult[]): ChunkInsightInput[] {
+  let cumulativeSecs = 0;
+  return doneChunks.map((chunk) => {
+    const startSecs = cumulativeSecs;
+    const effectiveDuration = Math.max(
+      0,
+      chunk.durationSecs - (chunk.chunkIndex === 0 ? 0 : chunk.overlapSecs),
+    );
+    cumulativeSecs += effectiveDuration;
+    return {
+      chunkIndex: chunk.chunkIndex,
+      startSecs,
+      endSecs: cumulativeSecs,
+      insights: isJsonArray(chunk.insights)
+        ? chunk.insights.filter((entry) => insightSchema.safeParse(entry).success)
+        : [],
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Main fan-in entry point
+// ---------------------------------------------------------------------------
+
+/** Fan-in worker for the parallel chunk pipeline: polls until all ChunkResult rows settle, merges transcripts and pronunciation, synthesizes insights, and marks the session DONE. */
+export async function processParallelFinal(sessionId: string): Promise<void> {
+  const parallelFinalStart = Date.now();
+  const session = await prisma.speakingSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      userId: true,
+      status: true,
+      focusMetricKey: true,
+      promptUsed: true,
+      processedAt: true,
+      createdAt: true,
+      chunkCount: true,
+    },
+  });
+
+  if (!session) throw new Error(`Session not found: ${sessionId}`);
+  if (session.status === SessionStatus.DONE && session.processedAt != null) return;
+
+  const chunkResults = await pollChunkResults(sessionId, session.chunkCount ?? 0);
+
+  if (chunkResults.length === 0) {
+    throw new Error(`No ChunkResult rows found for session ${sessionId}`);
+  }
+
+  const doneChunks = chunkResults.filter((chunk) => chunk.status === 'DONE');
+  const hasPartialResults = doneChunks.length < chunkResults.length;
+
+  if (doneChunks.length === 0) {
+    await prisma.speakingSession.update({
+      where: { id: sessionId },
+      data: { status: SessionStatus.FAILED, errorMessage: 'All chunks failed processing' },
+    });
+    return;
+  }
+
+  await prisma.speakingSession.update({
+    where: { id: sessionId },
+    data: { status: SessionStatus.PROCESSING_FINAL },
+  });
+
+  const { stitchedTranscript, wordCount } = await stitchAndStoreTranscript(sessionId, doneChunks);
+
+  await mergeAndPersistPronunciation(sessionId, doneChunks);
+
+  const chunkInsightInputs = buildChunkInsightInputs(doneChunks);
+
+  const synthesis = await synthesizeAnalysis({
+    stitchedTranscript,
+    chunks: chunkInsightInputs,
+    focusMetricKey: session.focusMetricKey,
+    promptUsed: session.promptUsed,
+  });
+
+  await persistSynthesisResults({
+    sessionId,
+    userId: session.userId,
+    stitchedTranscript,
+    synthesis,
+    doneChunks,
+    hasPartialResults,
+    createdAt: session.createdAt,
+  });
+
+  logPipelineStage({
+    sessionId,
+    stage: 'processParallelFinal',
+    durationMs: Date.now() - parallelFinalStart,
+    success: true,
+    metadata: { chunkCount: doneChunks.length, wordCount },
+  });
 
   logger.info(
     {

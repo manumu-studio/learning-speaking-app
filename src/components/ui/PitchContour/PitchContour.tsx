@@ -1,6 +1,5 @@
 // SVG pitch contour visualization — F0 over time with unvoiced gaps
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { useId, useMemo } from 'react';
 import type { PitchContourProps } from '@/components/ui/PitchContour/PitchContour.types';
@@ -9,12 +8,86 @@ const MIN_F0_HZ = 75;
 const MAX_F0_HZ = 400;
 const CHART_HEIGHT = 160;
 const CHART_PADDING = { top: 16, right: 12, bottom: 28, left: 44 };
+const GRID_HZ_VALUES = [100, 150, 200, 250, 300, 350] as const;
 
 function hzToY(hz: number, plotHeight: number): number {
   const clamped = Math.min(MAX_F0_HZ, Math.max(MIN_F0_HZ, hz));
   const ratio = (clamped - MIN_F0_HZ) / (MAX_F0_HZ - MIN_F0_HZ);
   return CHART_PADDING.top + plotHeight * (1 - ratio);
 }
+
+// ─── Private chart sub-component ─────────────────────────────────────────────
+
+interface PitchChartProps {
+  pathD: string;
+  plotWidth: number;
+  plotHeight: number;
+  width: number;
+}
+
+function PitchChart({ pathD, plotWidth, plotHeight, width }: PitchChartProps) {
+  const gridLines = GRID_HZ_VALUES.map((hz) => ({ hz, y: hzToY(hz, plotHeight) }));
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${CHART_HEIGHT}`}
+      className="w-full min-w-[280px] h-auto text-gray-700 dark:text-gray-200"
+      role="img"
+      aria-label="Pitch contour chart showing fundamental frequency over time"
+    >
+      {gridLines.map((line) => (
+        <g key={line.hz}>
+          <line
+            x1={CHART_PADDING.left}
+            x2={CHART_PADDING.left + plotWidth}
+            y1={line.y}
+            y2={line.y}
+            className="stroke-gray-200 dark:stroke-gray-600"
+            strokeDasharray="4 4"
+          />
+          <text
+            x={CHART_PADDING.left - 8}
+            y={line.y + 4}
+            textAnchor="end"
+            className="fill-gray-500 dark:fill-gray-400 text-[10px]"
+          >
+            {line.hz}
+          </text>
+        </g>
+      ))}
+
+      <line
+        x1={CHART_PADDING.left}
+        x2={CHART_PADDING.left + plotWidth}
+        y1={CHART_PADDING.top + plotHeight}
+        y2={CHART_PADDING.top + plotHeight}
+        className="stroke-gray-300 dark:stroke-gray-500"
+      />
+
+      {pathD.length > 0 && (
+        <path
+          d={pathD}
+          fill="none"
+          className="stroke-violet-600 dark:stroke-violet-400"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+
+      <text
+        x={CHART_PADDING.left + plotWidth / 2}
+        y={CHART_HEIGHT - 6}
+        textAnchor="middle"
+        className="fill-gray-500 dark:fill-gray-400 text-[10px]"
+      >
+        Time (seconds)
+      </text>
+    </svg>
+  );
+}
+
+// ─── Public component ─────────────────────────────────────────────────────────
 
 export function PitchContour({
   contour,
@@ -24,15 +97,15 @@ export function PitchContour({
   const durationSecs = contour.durationMs / 1000;
 
   const { pathD, plotWidth, plotHeight, width } = useMemo(() => {
-    const width = 640;
-    const plotWidth = width - CHART_PADDING.left - CHART_PADDING.right;
-    const plotHeight = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
+    const svgWidth = 640;
+    const svgPlotWidth = svgWidth - CHART_PADDING.left - CHART_PADDING.right;
+    const svgPlotHeight = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
     const segments: string[] = [];
     let currentSegment = '';
 
     contour.f0Hz.forEach((hz, index) => {
       const timeSecs = (index * contour.frameMs) / 1000;
-      const x = CHART_PADDING.left + (timeSecs / Math.max(durationSecs, 0.01)) * plotWidth;
+      const x = CHART_PADDING.left + (timeSecs / Math.max(durationSecs, 0.01)) * svgPlotWidth;
       const isVoiced = contour.voiced[index] === true && hz > 0;
 
       if (!isVoiced) {
@@ -43,27 +116,19 @@ export function PitchContour({
         return;
       }
 
-      const y = hzToY(hz, plotHeight);
+      const y = hzToY(hz, svgPlotHeight);
       currentSegment +=
-        currentSegment.length === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+        currentSegment.length === 0
+          ? `M ${x.toFixed(2)} ${y.toFixed(2)}`
+          : ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
     });
 
     if (currentSegment.length > 0) {
       segments.push(currentSegment);
     }
 
-    return {
-      pathD: segments.join(' '),
-      plotWidth,
-      plotHeight,
-      width,
-    };
+    return { pathD: segments.join(' '), plotWidth: svgPlotWidth, plotHeight: svgPlotHeight, width: svgWidth };
   }, [contour, durationSecs]);
-
-  const gridLines = [100, 150, 200, 250, 300, 350].map((hz) => ({
-    hz,
-    y: hzToY(hz, plotHeight),
-  }));
 
   return (
     <section
@@ -87,61 +152,12 @@ export function PitchContour({
       </div>
 
       <div className="w-full overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${width} ${CHART_HEIGHT}`}
-          className="w-full min-w-[280px] h-auto text-gray-700 dark:text-gray-200"
-          role="img"
-          aria-label="Pitch contour chart showing fundamental frequency over time"
-        >
-          {gridLines.map((line) => (
-            <g key={line.hz}>
-              <line
-                x1={CHART_PADDING.left}
-                x2={CHART_PADDING.left + plotWidth}
-                y1={line.y}
-                y2={line.y}
-                className="stroke-gray-200 dark:stroke-gray-600"
-                strokeDasharray="4 4"
-              />
-              <text
-                x={CHART_PADDING.left - 8}
-                y={line.y + 4}
-                textAnchor="end"
-                className="fill-gray-500 dark:fill-gray-400 text-[10px]"
-              >
-                {line.hz}
-              </text>
-            </g>
-          ))}
-
-          <line
-            x1={CHART_PADDING.left}
-            x2={CHART_PADDING.left + plotWidth}
-            y1={CHART_PADDING.top + plotHeight}
-            y2={CHART_PADDING.top + plotHeight}
-            className="stroke-gray-300 dark:stroke-gray-500"
-          />
-
-          {pathD.length > 0 && (
-            <path
-              d={pathD}
-              fill="none"
-              className="stroke-violet-600 dark:stroke-violet-400"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          <text
-            x={CHART_PADDING.left + plotWidth / 2}
-            y={CHART_HEIGHT - 6}
-            textAnchor="middle"
-            className="fill-gray-500 dark:fill-gray-400 text-[10px]"
-          >
-            Time (seconds)
-          </text>
-        </svg>
+        <PitchChart
+          pathD={pathD}
+          plotWidth={plotWidth}
+          plotHeight={plotHeight}
+          width={width}
+        />
       </div>
 
       <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">

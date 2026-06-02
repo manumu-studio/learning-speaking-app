@@ -1,8 +1,8 @@
 // Tests for Whisper transcription entry — missing API key fails fast
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('transcribeAudio', () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.resetModules();
   });
 

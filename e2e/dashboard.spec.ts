@@ -1,9 +1,11 @@
 // E2E tests for the authenticated dashboard page
 import { test, expect } from './fixtures/auth';
+import { gotoAppPage } from './navigation';
+import { e2eTimeout } from './timeouts';
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/dashboard');
+    await gotoAppPage(authenticatedPage, '/dashboard');
   });
 
   test('dashboard page loads when authenticated', async ({ authenticatedPage }) => {
@@ -17,26 +19,26 @@ test.describe('Dashboard', () => {
     authenticatedPage,
   }) => {
     await expect(authenticatedPage.getByText(/loading dashboard/i)).toHaveCount(0, {
-      timeout: 20_000,
+      timeout: e2eTimeout(20_000),
     });
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Dashboard', level: 1 }),
-    ).toBeVisible({ timeout: 10_000 });
+    ).toBeVisible({ timeout: e2eTimeout(10_000) });
   });
 
   test('IdentitySummary stats section renders with dl structure', async ({
     authenticatedPage,
   }) => {
     await expect(authenticatedPage.getByText(/loading dashboard/i)).toHaveCount(0, {
-      timeout: 10_000,
+      timeout: e2eTimeout(20_000),
     });
     const errorBanner = authenticatedPage.getByText(/unable to load dashboard/i);
     const statsDl = authenticatedPage.locator('dl').first();
-    await expect(errorBanner.or(statsDl)).toBeVisible({ timeout: 15_000 });
+    await expect(errorBanner.or(statsDl)).toBeVisible({ timeout: e2eTimeout(20_000) });
     if (!(await errorBanner.isVisible())) {
       await expect(
         statsDl.locator('dt').filter({ hasText: /^This Week$/i }),
-      ).toBeVisible({ timeout: 10_000 });
+      ).toBeVisible({ timeout: e2eTimeout(10_000) });
     }
   });
 
@@ -53,7 +55,7 @@ test.describe('Dashboard', () => {
     await metricButton.click();
     await expect(
       authenticatedPage.getByText(/today's training focus/i),
-    ).toBeVisible({ timeout: 5000 });
+    ).toBeVisible({ timeout: e2eTimeout(5_000) });
     await expect(
       authenticatedPage.getByRole('button', { name: /clear training focus/i }),
     ).toBeVisible();
@@ -64,7 +66,7 @@ test.describe('Dashboard', () => {
       .getByRole('navigation', { name: 'Main navigation' })
       .getByRole('link', { name: 'Training' });
     await trainingLink.click();
-    await expect(authenticatedPage).toHaveURL(/\/drills/, { timeout: 10_000 });
+    await expect(authenticatedPage).toHaveURL(/\/drills/, { timeout: e2eTimeout(15_000) });
   });
 
   test('dashboard leaves loading state for a stable outcome', async ({ authenticatedPage }) => {
@@ -72,10 +74,10 @@ test.describe('Dashboard', () => {
       authenticatedPage.getByRole('heading', { name: 'Dashboard', level: 1 }),
     ).toBeVisible();
     await expect(authenticatedPage.getByText(/loading dashboard/i)).toHaveCount(0, {
-      timeout: 20_000,
+      timeout: e2eTimeout(20_000),
     });
     const statsDl = authenticatedPage.locator('dl').first();
     const errorBanner = authenticatedPage.getByText(/unable to load dashboard/i);
-    await expect(statsDl.or(errorBanner)).toBeVisible({ timeout: 20_000 });
+    await expect(statsDl.or(errorBanner)).toBeVisible({ timeout: e2eTimeout(20_000) });
   });
 });
