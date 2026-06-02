@@ -1,24 +1,22 @@
 // ExplanationContent — Personalized exclusive welcome experience with Apple-style scroll animations
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useScrollAnimation } from './useScrollAnimation';
 import styles from './explanation.module.css';
+import { ExplanationHero } from './ExplanationHero';
+import { ExplanationScrollSections } from './ExplanationScrollSections';
+import type { Language, PageCopy } from './ExplanationContent.types';
 
 interface ExplanationContentProps {
   guestName: string;
 }
 
-type Language = 'en' | 'es';
-
 // All page copy, keyed by language
-const COPY = {
+const COPY: Record<Language, PageCopy> = {
   en: {
     privatePreview: 'Private Preview',
     welcome: 'Welcome,',
     byInvitation: 'By invitation only',
-    oneOfFive: (name: string) => `One of five.\n${name}.`,
     oneOfFiveLabel: 'One of five.',
     chosenFor: (name: string) => `Chosen for ${name}.`,
     exclusivityBody1:
@@ -79,38 +77,7 @@ const COPY = {
     footer: 'LSA — ManuMu Studio',
     scroll: 'Deslizar',
   },
-} as const satisfies Record<Language, Record<string, string | ((name: string) => string)>>;
-
-// Scroll-animated section wrapper
-function ScrollSection({
-  children,
-  className,
-  delay,
-}: {
-  children: React.ReactNode;
-  className?: string | undefined;
-  delay?: number | undefined;
-}) {
-  const { ref, isVisible } = useScrollAnimation();
-
-  const delayClass =
-    delay === 1
-      ? styles.scrollDelay1
-      : delay === 2
-        ? styles.scrollDelay2
-        : delay === 3
-          ? styles.scrollDelay3
-          : '';
-
-  return (
-    <section
-      ref={ref}
-      className={`${styles.scrollReveal} ${isVisible ? styles.visible : ''} ${delayClass} ${className ?? ''}`}
-    >
-      {children}
-    </section>
-  );
-}
+};
 
 export default function ExplanationContent({ guestName }: ExplanationContentProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -133,111 +100,26 @@ export default function ExplanationContent({ guestName }: ExplanationContentProp
     setLang((prev) => (prev === 'en' ? 'es' : 'en'));
   }, []);
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return <div className={styles.page} data-theme="dark" />;
   }
 
-  const t = COPY[lang];
+  const copy = COPY[lang];
 
   return (
     <div className={styles.page} data-theme={theme}>
       {/* Controls row */}
       <div className={styles.controls}>
-        <button
-          className={styles.langToggle}
-          onClick={toggleLang}
-          aria-label="Switch language"
-        >
+        <button className={styles.langToggle} onClick={toggleLang} aria-label="Switch language">
           {lang === 'en' ? 'ES' : 'EN'}
         </button>
-        <button
-          className={styles.themeToggle}
-          onClick={toggleTheme}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? '\u2600' : '\u263E'}
+        <button className={styles.themeToggle} onClick={toggleTheme} aria-label="Toggle theme">
+          {theme === 'dark' ? '☀' : '☾'}
         </button>
       </div>
 
-      {/* ===== HERO — Full viewport dramatic entrance ===== */}
-      <div className={styles.heroSection}>
-        <p className={`${styles.exclusiveLabel} ${styles.heroAnim} ${styles.heroAnimDelay1}`}>
-          {t.privatePreview}
-        </p>
-        <h1 className={`${styles.heroTitle} ${styles.heroAnim} ${styles.heroAnimDelay2}`}>
-          {t.welcome}
-        </h1>
-        <p className={`${styles.heroName} ${styles.heroAnim} ${styles.heroAnimDelay3}`}>
-          {guestName}.
-        </p>
-
-        {/* Scroll indicator */}
-        <div className={styles.scrollIndicator}>
-          <span className={styles.scrollIndicatorText}>{t.scroll}</span>
-          <span className={styles.scrollArrow}>↓</span>
-        </div>
-      </div>
-
-      {/* ===== EXCLUSIVITY — You were chosen ===== */}
-      <ScrollSection className={styles.section}>
-        <p className={styles.exclusiveLabel}>{t.byInvitation}</p>
-        <div className={styles.separator} />
-        <h2 className={styles.exclusiveTitle}>
-          {t.oneOfFiveLabel}
-          <br />
-          <span className={styles.exclusiveHighlight}>
-            {t.chosenFor(guestName)}
-          </span>
-        </h2>
-        <div className={styles.separator} />
-        <p className={styles.sectionBody}>{t.exclusivityBody1}</p>
-        <p className={styles.sectionBody}>{t.exclusivityBody2}</p>
-      </ScrollSection>
-
-      {/* ===== THE EVENT — What this gathering is about ===== */}
-      <ScrollSection className={styles.section}>
-        <h2 className={styles.sectionTitle}>{t.gatheringTitle}</h2>
-        <p className={styles.sectionBody}>{t.gatheringBody1}</p>
-        <p className={styles.sectionBody}>{t.gatheringBody2}</p>
-      </ScrollSection>
-
-      {/* ===== THE APP — What LSA does ===== */}
-      <ScrollSection className={styles.section}>
-        <p className={styles.exclusiveLabel}>{t.introducing}</p>
-        <div className={styles.separator} />
-        <h2 className={styles.sectionTitle}>{t.appTitle}</h2>
-        <p className={styles.sectionBody}>{t.appBody}</p>
-        <ul className={styles.featureList}>
-          <li className={styles.featureItem}>{t.feature1}</li>
-          <li className={styles.featureItem}>{t.feature2}</li>
-          <li className={styles.featureItem}>{t.feature3}</li>
-          <li className={styles.featureItem}>{t.feature4}</li>
-        </ul>
-      </ScrollSection>
-
-      {/* ===== WHAT TO EXPECT ===== */}
-      <ScrollSection className={styles.section}>
-        <h2 className={styles.sectionTitle}>{t.whatToExpect}</h2>
-        <p className={styles.sectionBody}>{t.expectBody1}</p>
-        <p className={styles.sectionBody}>{t.expectBody2}</p>
-      </ScrollSection>
-
-      {/* ===== CLOSING ===== */}
-      <ScrollSection className={styles.section}>
-        <div className={styles.separator} />
-        <p className={styles.closingText}>
-          {t.closing.split('\n').map((line, i) => (
-            <span key={i}>{line}{i === 0 && <br />}</span>
-          ))}
-        </p>
-        <p className={styles.dateText}>{t.date}</p>
-      </ScrollSection>
-
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <p className={styles.footerText}>{t.footer}</p>
-      </footer>
+      <ExplanationHero guestName={guestName} copy={copy} />
+      <ExplanationScrollSections guestName={guestName} copy={copy} />
     </div>
   );
 }

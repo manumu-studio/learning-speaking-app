@@ -19,3 +19,43 @@ export interface TooltipState {
   x: number;
   y: number;
 }
+
+export interface ActiveTooltip {
+  index: number;
+  x: number;
+  y: number;
+}
+
+export interface TooltipBoxProps {
+  activeTooltip: ActiveTooltip;
+  innerWidth: number;
+  innerHeight: number;
+  data: TrendDataItem[];
+  color: string;
+}
+
+export interface ChartAxesProps {
+  innerWidth: number;
+  innerHeight: number;
+  data: TrendDataItem[];
+  count: number;
+}
+
+export interface ChartDataLayerProps {
+  count: number;
+  data: TrendDataItem[];
+  innerWidth: number;
+  innerHeight: number;
+  color: string;
+  gradientId: string;
+  fillPoints: string;
+  polylinePoints: string;
+}
+
+export interface RegressionLineProps {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+}

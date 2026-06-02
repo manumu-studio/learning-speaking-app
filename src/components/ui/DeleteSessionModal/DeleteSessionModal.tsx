@@ -1,6 +1,5 @@
 // Confirmation modal for permanently deleting a workout session
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -73,45 +72,71 @@ export function DeleteSessionModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-200"
       onClick={handleOverlayClick}
     >
-      <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
-        <h2
-          id="delete-modal-title"
-          className="text-lg font-semibold text-gray-900 dark:text-white"
+      <DeleteModalBody
+        cancelRef={cancelRef}
+        error={error}
+        isDeleting={isDeleting}
+        onClose={onClose}
+        onDelete={handleDelete}
+      />
+    </div>
+  );
+}
+
+// ─── private sub-component ────────────────────────────────────────────────────
+
+interface DeleteModalBodyProps {
+  cancelRef: React.RefObject<HTMLButtonElement | null>;
+  error: string | null;
+  isDeleting: boolean;
+  onClose: () => void;
+  onDelete: () => void;
+}
+
+function DeleteModalBody({
+  cancelRef,
+  error,
+  isDeleting,
+  onClose,
+  onDelete,
+}: DeleteModalBodyProps) {
+  return (
+    <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
+      <h2
+        id="delete-modal-title"
+        className="text-lg font-semibold text-gray-900 dark:text-white"
+      >
+        Delete this workout?
+      </h2>
+
+      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        This will permanently delete all recordings, transcripts, and analysis
+        for this session. This cannot be undone.
+      </p>
+
+      {error && (
+        <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      <div className="mt-6 flex justify-end gap-3">
+        <button
+          ref={cancelRef}
+          type="button"
+          onClick={onClose}
+          disabled={isDeleting}
+          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
         >
-          Delete this workout?
-        </h2>
+          Cancel
+        </button>
 
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          This will permanently delete all recordings, transcripts, and analysis
-          for this session. This cannot be undone.
-        </p>
-
-        {error && (
-          <p className="mt-3 text-sm text-red-600 dark:text-red-400">
-            {error}
-          </p>
-        )}
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            ref={cancelRef}
-            type="button"
-            onClick={onClose}
-            disabled={isDeleting}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
-          >
-            {isDeleting ? 'Deleting…' : 'Delete'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={isDeleting}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
+        >
+          {isDeleting ? 'Deleting…' : 'Delete'}
+        </button>
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ describe('extractChunkFeatures', () => {
     }));
 
     const { extractChunkFeatures } = await import('@/lib/pipeline/extractFeatures');
-    await expect(extractChunkFeatures('s1', 0, 'key', 30, 1.5)).resolves.toBeUndefined();
+    await expect(extractChunkFeatures({ sessionId: 's1', chunkIndex: 0, audioKey: 'key', durationSecs: 30, overlapSecs: 1.5 })).resolves.toBeUndefined();
   });
 
   it('returns early when contour extraction returns null', async () => {
@@ -40,7 +40,7 @@ describe('extractChunkFeatures', () => {
     }));
 
     const { extractChunkFeatures } = await import('@/lib/pipeline/extractFeatures');
-    await expect(extractChunkFeatures('s1', 0, 'key', 30, 1.5)).resolves.toBeUndefined();
+    await expect(extractChunkFeatures({ sessionId: 's1', chunkIndex: 0, audioKey: 'key', durationSecs: 30, overlapSecs: 1.5 })).resolves.toBeUndefined();
   });
 
   it('persists ChunkFeature when contour data is returned', async () => {
@@ -60,7 +60,7 @@ describe('extractChunkFeatures', () => {
 
     const { prisma } = await import('@/lib/prisma');
     const { extractChunkFeatures } = await import('@/lib/pipeline/extractFeatures');
-    await extractChunkFeatures('s1', 0, 'audio/key.wav', 30, 1.5);
+    await extractChunkFeatures({ sessionId: 's1', chunkIndex: 0, audioKey: 'audio/key.wav', durationSecs: 30, overlapSecs: 1.5 });
 
     expect(prisma.chunkFeature.upsert).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,12 +1,13 @@
 // Fan-in worker — deduplicates chunk transcripts, aggregates pronunciation, runs Claude once
-/* eslint-disable complexity, max-lines-per-function */
 import { ChunkStatus, Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';
+import type { AnalysisResult } from '@/lib/ai/analyze';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { aggregatePronunciation, toPronunciationResult } from '@/lib/pipeline/aggregatePronunciation';
+import type { SessionChunk } from '@prisma/client';
 import { concatenateChunkTranscripts } from '@/lib/pipeline/transcriptDedup';
 import { persistPronunciation } from '@/lib/pipeline/persistPronunciation';
 import { persistVocabSuggestions } from '@/lib/pipeline/persistVocabSuggestions';
@@ -16,77 +17,26 @@ import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 import { estimateCefr } from '@/lib/cefr/estimateCefr';
+import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
 import { buildPronunciationSummary, parseWords, parsePronWords, invalidateDailySummary } from './processFinalHelpers';
 
 export { processParallelFinal } from './processParallelFinal';
 
-/** Fan-in worker for chunked sessions: deduplicates transcripts, aggregates pronunciation, runs Claude analysis, and marks the session DONE. */
-export async function processFinal(sessionId: string): Promise<void> {
-  const finalStart = Date.now();
-  const session = await prisma.speakingSession.findUnique({
-    where: { id: sessionId },
-    select: {
-      id: true,
-      userId: true,
-      status: true,
-      chunkCount: true,
-      isChunked: true,
-      focusMetricKey: true,
-      promptUsed: true,
-      processedAt: true,
-      createdAt: true,
-    },
-  });
+// ---------------------------------------------------------------------------
+// Pronunciation aggregation helper
+// ---------------------------------------------------------------------------
 
-  if (!session) {
-    throw new Error(`Session not found: ${sessionId}`);
-  }
-
-  if (!session.isChunked) {
-    throw new Error(`Session is not chunked: ${sessionId}`);
-  }
-
-  if (session.status === SessionStatus.DONE && session.processedAt != null) {
-    return;
-  }
-
-  if (session.status === SessionStatus.AWAITING_FINAL) {
-    await prisma.speakingSession.update({
-      where: { id: sessionId },
-      data: { status: SessionStatus.PROCESSING_FINAL },
-    });
-  }
-
-  const chunks = await prisma.sessionChunk.findMany({
-    where: { sessionId },
-    orderBy: { chunkIndex: 'asc' },
-  });
-
-  if (session.chunkCount != null && chunks.length < session.chunkCount) {
-    throw new Error(`Waiting for all chunks: ${chunks.length}/${session.chunkCount}`);
-  }
-
-  const incomplete = chunks.some((chunk) => chunk.status !== ChunkStatus.CHUNK_DONE);
-  if (incomplete) {
-    throw new Error('Not all chunks are processed yet');
-  }
-
-  const transcriptInput = chunks.map((chunk) => ({
-    words: parseWords(chunk.words),
-    overlapSecs: chunk.overlapSecs,
-  }));
-
-  const unified = concatenateChunkTranscripts(transcriptInput);
-  const rawText = unified.text;
-  const userTranscriptText = await polishTranscript(rawText);
-  const wordCount = userTranscriptText.split(/\s+/).filter(Boolean).length;
-
-  await prisma.transcript.upsert({
-    where: { sessionId },
-    create: { sessionId, text: userTranscriptText, wordCount },
-    update: { text: userTranscriptText, wordCount },
-  });
-
+/**
+ * Aggregates per-chunk pronunciation data, tags L1 errors, and persists the result.
+ *
+ * @param sessionId - ID of the session.
+ * @param chunks - Ordered array of SessionChunk rows.
+ * @returns The merged `PronunciationResult`, or `null` if aggregation yields nothing.
+ */
+async function aggregatePronunciationForSession(
+  sessionId: string,
+  chunks: SessionChunk[],
+): Promise<PronunciationResult | null> {
   const aggregated = aggregatePronunciation(
     chunks.map((chunk) => ({
       chunkIndex: chunk.chunkIndex,
@@ -103,27 +53,40 @@ export async function processFinal(sessionId: string): Promise<void> {
     })),
   );
 
-  let pronunciationResult = aggregated ? toPronunciationResult(aggregated) : null;
-  if (pronunciationResult) {
-    pronunciationResult = {
-      ...pronunciationResult,
-      words: tagSpanishL1(pronunciationResult.words),
-    };
-    await persistPronunciation(sessionId, pronunciationResult);
-  }
+  if (!aggregated) return null;
 
-  const pronunciationSummary = buildPronunciationSummary(pronunciationResult);
-  const analysis = await analyzeTranscript(
-    userTranscriptText,
-    session.focusMetricKey,
-    pronunciationSummary,
-    session.promptUsed ?? null,
-  );
+  const result: PronunciationResult = {
+    ...toPronunciationResult(aggregated),
+    words: tagSpanishL1(toPronunciationResult(aggregated).words),
+  };
 
-  const nerFilterResult = filterTranscriptionArtefacts(
-    analysis.insights,
-    userTranscriptText,
-  );
+  await persistPronunciation(sessionId, result);
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Analysis persistence helper
+// ---------------------------------------------------------------------------
+
+interface PersistAnalysisOptions {
+  sessionId: string;
+  userId: string;
+  userTranscriptText: string;
+  analysis: AnalysisResult;
+  chunks: SessionChunk[];
+  createdAt: Date;
+}
+
+/**
+ * Persists Claude analysis results (insights, metrics, vocab, transcript rewrite,
+ * session fields, pattern profile, CEFR) and invalidates the daily summary cache.
+ *
+ * @param opts - All data needed to write analysis results to the DB.
+ */
+async function persistAnalysisAndFinalize(opts: PersistAnalysisOptions): Promise<void> {
+  const { sessionId, userId, userTranscriptText, analysis, chunks, createdAt } = opts;
+
+  const nerFilterResult = filterTranscriptionArtefacts(analysis.insights, userTranscriptText);
 
   await prisma.insight.deleteMany({ where: { sessionId } });
   if (nerFilterResult.kept.length > 0) {
@@ -143,9 +106,7 @@ export async function processFinal(sessionId: string): Promise<void> {
 
   if (analysis.metrics.length > 0) {
     const claudeKeys = analysis.metrics.map((m) => m.key);
-    await prisma.metricSnapshot.deleteMany({
-      where: { sessionId, key: { in: claudeKeys } },
-    });
+    await prisma.metricSnapshot.deleteMany({ where: { sessionId, key: { in: claudeKeys } } });
     await prisma.metricSnapshot.createMany({
       data: analysis.metrics.map((metric) => ({
         sessionId,
@@ -159,8 +120,7 @@ export async function processFinal(sessionId: string): Promise<void> {
   }
 
   if (analysis.vocabularySuggestions && analysis.vocabularySuggestions.length > 0) {
-    await persistVocabSuggestions(session.userId, sessionId, analysis.vocabularySuggestions);
-
+    await persistVocabSuggestions(userId, sessionId, analysis.vocabularySuggestions);
     const rewriteResult = await rewriteTranscript(userTranscriptText, analysis.vocabularySuggestions);
     if (rewriteResult) {
       await prisma.transcript.update({
@@ -170,7 +130,7 @@ export async function processFinal(sessionId: string): Promise<void> {
     }
   }
 
-  await detectVocabUsage(session.userId, sessionId, userTranscriptText);
+  await detectVocabUsage(userId, sessionId, userTranscriptText);
 
   const totalDurationSecs = chunks.reduce(
     (sum, chunk, index) =>
@@ -190,29 +150,108 @@ export async function processFinal(sessionId: string): Promise<void> {
     },
   });
 
-  await updatePatternProfile(session.userId, nerFilterResult.kept);
-  await invalidateDailySummary(session.userId, session.createdAt);
+  await updatePatternProfile(userId, nerFilterResult.kept);
+  await invalidateDailySummary(userId, createdAt);
 
-  // CEFR estimation from scored metrics
-  const cefrEstimate = estimateCefr(
-    analysis.metrics.map((m) => ({ key: m.key, score: m.score })),
-  );
+  const cefrEstimate = estimateCefr(analysis.metrics.map((m) => ({ key: m.key, score: m.score })));
   if (cefrEstimate !== null) {
     await prisma.user.update({
-      where: { id: session.userId },
+      where: { id: userId },
       data: { estimatedCefrLevel: cefrEstimate.level },
     });
   }
+}
 
-  logPipelineStage({ sessionId, stage: 'processFinal', durationMs: Date.now() - finalStart, success: true, metadata: { chunkCount: chunks.length, wordCount } });
+// ---------------------------------------------------------------------------
+// Main fan-in entry point
+// ---------------------------------------------------------------------------
+
+/** Fan-in worker for chunked sessions: deduplicates transcripts, aggregates pronunciation, runs Claude analysis, and marks the session DONE. */
+export async function processFinal(sessionId: string): Promise<void> {
+  const finalStart = Date.now();
+  const session = await prisma.speakingSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      userId: true,
+      status: true,
+      chunkCount: true,
+      isChunked: true,
+      focusMetricKey: true,
+      promptUsed: true,
+      processedAt: true,
+      createdAt: true,
+    },
+  });
+
+  if (!session) throw new Error(`Session not found: ${sessionId}`);
+  if (!session.isChunked) throw new Error(`Session is not chunked: ${sessionId}`);
+  if (session.status === SessionStatus.DONE && session.processedAt != null) return;
+
+  if (session.status === SessionStatus.AWAITING_FINAL) {
+    await prisma.speakingSession.update({
+      where: { id: sessionId },
+      data: { status: SessionStatus.PROCESSING_FINAL },
+    });
+  }
+
+  const chunks = await prisma.sessionChunk.findMany({
+    where: { sessionId },
+    orderBy: { chunkIndex: 'asc' },
+  });
+
+  if (session.chunkCount != null && chunks.length < session.chunkCount) {
+    throw new Error(`Waiting for all chunks: ${chunks.length}/${session.chunkCount}`);
+  }
+
+  if (chunks.some((chunk) => chunk.status !== ChunkStatus.CHUNK_DONE)) {
+    throw new Error('Not all chunks are processed yet');
+  }
+
+  const transcriptInput = chunks.map((chunk) => ({
+    words: parseWords(chunk.words),
+    overlapSecs: chunk.overlapSecs,
+  }));
+
+  const unified = concatenateChunkTranscripts(transcriptInput);
+  const userTranscriptText = await polishTranscript(unified.text);
+  const wordCount = userTranscriptText.split(/\s+/).filter(Boolean).length;
+
+  await prisma.transcript.upsert({
+    where: { sessionId },
+    create: { sessionId, text: userTranscriptText, wordCount },
+    update: { text: userTranscriptText, wordCount },
+  });
+
+  const pronunciationResult = await aggregatePronunciationForSession(sessionId, chunks);
+  const pronunciationSummary = buildPronunciationSummary(pronunciationResult);
+
+  const analysis = await analyzeTranscript(
+    userTranscriptText,
+    session.focusMetricKey,
+    pronunciationSummary,
+    session.promptUsed ?? null,
+  );
+
+  await persistAnalysisAndFinalize({
+    sessionId,
+    userId: session.userId,
+    userTranscriptText,
+    analysis,
+    chunks,
+    createdAt: session.createdAt,
+  });
+
+  logPipelineStage({
+    sessionId,
+    stage: 'processFinal',
+    durationMs: Date.now() - finalStart,
+    success: true,
+    metadata: { chunkCount: chunks.length, wordCount },
+  });
 
   logger.info(
-    {
-      sessionId,
-      userId: session.userId,
-      chunkCount: chunks.length,
-      wordCount,
-    },
+    { sessionId, userId: session.userId, chunkCount: chunks.length, wordCount },
     'Chunked session fan-in complete',
   );
 }

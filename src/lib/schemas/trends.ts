@@ -21,7 +21,7 @@ export const RangeSchema = z.enum(['7d', '30d', '90d', 'all']);
 
 export const TrendDataPointSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  scores: z.record(MetricKeySchema, z.number().min(0).max(10)),
+  scores: z.record(z.string(), z.number().min(0).max(10)),
 });
 
 export const PillarTrendSchema = z.object({

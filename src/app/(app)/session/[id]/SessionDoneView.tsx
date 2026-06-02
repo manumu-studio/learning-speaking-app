@@ -1,31 +1,20 @@
 // Session results "done" view — orchestrates language feedback, pronunciation, transcript sections
 'use client';
-/* eslint-disable complexity, max-lines-per-function */
 
-import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/Container';
 import { SessionHeader } from '@/components/ui/SessionHeader';
 import { PersonalRecordBanner } from '@/components/ui/PersonalRecordBanner';
-import { METRIC_LABELS } from '@/features/dashboard/pillars';
-import { PronunciationReportSchema } from '@/components/ui/PronunciationSection';
+import { ChunkBreakdown } from '@/components/ui/ChunkBreakdown';
 import type { PitchContourState } from '@/components/ui/PitchContour';
 import type { VocabItem } from '@/components/ui/VocabProgress';
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
-import { ChunkBreakdown } from '@/components/ui/ChunkBreakdown';
 import type { SessionDetail } from '@/features/session/useSessionStatus.types';
-import type { DrillType } from '@/features/training/training.types';
 import type { PersonalRecord } from '@/lib/personalRecords.types';
 import styles from './SessionResults.module.css';
 import { PillarHeroRow } from './PillarHeroRow';
 import { LanguageFeedbackSection, PronunciationFeedbackSection, TranscriptSection } from './SessionFeedbackSections';
 import type { FocusComparison } from './sessionResults.helpers';
-import {
-  METRIC_DRILL_MAP,
-  pickWeakestMetric,
-  collectRecentExamplesForDrill,
-  focusPatternForDrill,
-  drillCreatedSchema,
-} from './sessionResults.helpers';
+import { useSessionDoneViewModel } from './useSessionDoneViewModel';
 
 interface SessionDoneViewProps {
   session: SessionDetail;
@@ -48,57 +37,10 @@ export function SessionDoneView({
   resultsView,
   setResultsView,
 }: SessionDoneViewProps) {
-  const router = useRouter();
-
-  const pronunciationReport = (() => {
-    if (session.pronunciationReport === null || session.pronunciationReport === undefined) {
-      return null;
-    }
-    const result = PronunciationReportSchema.safeParse(session.pronunciationReport);
-    return result.success ? result.data : null;
-  })();
-
-  const baseDelay = 200;
-  const insightDelay = baseDelay + session.insights.length * 100;
-  const pronunciationBlockOffset = pronunciationReport !== null ? 300 : 0;
-  const pronunciationSectionDelay = insightDelay + 100;
-  const wordColorMapDelay = pronunciationSectionDelay + 100;
-  const prosodyPanelDelay = wordColorMapDelay + 100;
-  const focusHighlightDelay = insightDelay + pronunciationBlockOffset + 100;
-  const focusBannerDelay = insightDelay + pronunciationBlockOffset + (focusComparison ? 200 : 100);
-  const transcriptDelay = insightDelay + pronunciationBlockOffset + (focusComparison ? 300 : 200);
-
-  const metrics = session.metrics ?? [];
-  const weakestSnapshot = pickWeakestMetric(metrics);
-  const drillConfig =
-    weakestSnapshot !== null ? METRIC_DRILL_MAP[weakestSnapshot.key] : undefined;
-  const weakestLabel =
-    weakestSnapshot !== null ? (METRIC_LABELS[weakestSnapshot.key] ?? weakestSnapshot.key) : '';
-
-  const handleStartDrill = async (drillType: DrillType, metricKey: string) => {
-    const recentExamples = collectRecentExamplesForDrill(session);
-    const focusPattern = focusPatternForDrill(session);
-    const res = await fetch('/api/drills', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: session.id,
-        drillType,
-        metricKey,
-        recentExamples,
-        focusPattern,
-      }),
-    });
-    if (!res.ok) return;
-    const result = drillCreatedSchema.safeParse(await res.json());
-    if (!result.success) return;
-    router.push(`/drill/${result.data.id}`);
-  };
-
-  const hasChunkBreakdown =
-    session.isChunked === true &&
-    session.chunks !== undefined &&
-    session.chunks.length > 0;
+  const { pronunciationReport, delays, drill, hasChunkBreakdown } = useSessionDoneViewModel(
+    session,
+    focusComparison,
+  );
 
   return (
     <Container>
@@ -130,46 +72,87 @@ export function SessionDoneView({
             <ChunkBreakdown chunks={session.chunks ?? []} />
           </div>
         ) : (
-          <>
-            {personalRecords.length > 0 && (
-              <PersonalRecordBanner personalRecords={personalRecords} animationDelay={100} />
-            )}
-
-            {session.metrics && session.metrics.length > 0 && (
-              <PillarHeroRow metrics={session.metrics} />
-            )}
-
-            <LanguageFeedbackSection
-              session={session}
-              vocabItems={vocabItems}
-              focusComparison={focusComparison}
-              focusHighlightDelay={focusHighlightDelay}
-              focusBannerDelay={focusBannerDelay}
-              weakestSnapshot={weakestSnapshot}
-              drillConfig={drillConfig}
-              weakestLabel={weakestLabel}
-              onStartDrill={handleStartDrill}
-            />
-
-            {pronunciationReport !== null && (
-              <PronunciationFeedbackSection
-                session={session}
-                pronunciationReport={pronunciationReport}
-                pronunciationHistory={pronunciationHistory}
-                pitchState={pitchState}
-                pronunciationSectionDelay={pronunciationSectionDelay}
-                wordColorMapDelay={wordColorMapDelay}
-                prosodyPanelDelay={prosodyPanelDelay}
-              />
-            )}
-
-            {session.transcript && (
-              <TranscriptSection session={session} transcriptDelay={transcriptDelay} />
-            )}
-          </>
+          <SessionOverallView
+            session={session}
+            personalRecords={personalRecords}
+            focusComparison={focusComparison}
+            pronunciationHistory={pronunciationHistory}
+            vocabItems={vocabItems}
+            pitchState={pitchState}
+            pronunciationReport={pronunciationReport}
+            delays={delays}
+            drill={drill}
+          />
         )}
       </div>
     </Container>
+  );
+}
+
+import type { AnimationDelays, DrillViewModel } from './useSessionDoneViewModel';
+import type { PronunciationReport } from '@/components/ui/PronunciationSection';
+
+interface SessionOverallViewProps {
+  session: SessionDetail;
+  personalRecords: PersonalRecord[];
+  focusComparison: FocusComparison | null;
+  pronunciationHistory: HistoryItem[];
+  vocabItems: VocabItem[];
+  pitchState: PitchContourState;
+  pronunciationReport: PronunciationReport | null;
+  delays: AnimationDelays;
+  drill: DrillViewModel;
+}
+
+function SessionOverallView({
+  session,
+  personalRecords,
+  focusComparison,
+  pronunciationHistory,
+  vocabItems,
+  pitchState,
+  pronunciationReport,
+  delays,
+  drill,
+}: SessionOverallViewProps) {
+  return (
+    <>
+      {personalRecords.length > 0 && (
+        <PersonalRecordBanner personalRecords={personalRecords} animationDelay={100} />
+      )}
+
+      {session.metrics && session.metrics.length > 0 && (
+        <PillarHeroRow metrics={session.metrics} />
+      )}
+
+      <LanguageFeedbackSection
+        session={session}
+        vocabItems={vocabItems}
+        focusComparison={focusComparison}
+        focusHighlightDelay={delays.focusHighlightDelay}
+        focusBannerDelay={delays.focusBannerDelay}
+        weakestSnapshot={drill.weakestSnapshot}
+        drillConfig={drill.drillConfig}
+        weakestLabel={drill.weakestLabel}
+        onStartDrill={drill.onStartDrill}
+      />
+
+      {pronunciationReport !== null && (
+        <PronunciationFeedbackSection
+          session={session}
+          pronunciationReport={pronunciationReport}
+          pronunciationHistory={pronunciationHistory}
+          pitchState={pitchState}
+          pronunciationSectionDelay={delays.pronunciationSectionDelay}
+          wordColorMapDelay={delays.wordColorMapDelay}
+          prosodyPanelDelay={delays.prosodyPanelDelay}
+        />
+      )}
+
+      {session.transcript && (
+        <TranscriptSection session={session} transcriptDelay={delays.transcriptDelay} />
+      )}
+    </>
   );
 }
 

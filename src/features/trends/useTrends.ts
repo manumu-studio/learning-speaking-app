@@ -1,7 +1,6 @@
 // useTrends — fetch hook for time-series metric data with range control
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
-/* eslint-disable max-depth */
 
 import { useState, useEffect } from 'react';
 import { PILLAR_CONFIG } from '@/features/dashboard/pillars';
@@ -90,6 +89,20 @@ function computePillarSeries(data: TrendsResponse): PillarTrendSeries[] {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function extractErrorMessage(response: Response): Promise<string> {
+  const fallback = `Request failed (${String(response.status)})`;
+  const body: unknown = await response.json().catch(() => null);
+  if (typeof body !== 'object' || body === null || !('error' in body)) {
+    return fallback;
+  }
+  const { error } = body as { error: unknown };
+  return typeof error === 'string' ? error : fallback;
+}
+
+// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
@@ -109,18 +122,7 @@ export function useTrends() {
         if (cancelled) return;
 
         if (!response.ok) {
-          const errorBody: unknown = await response.json().catch(() => null);
-          let message = `Request failed (${String(response.status)})`;
-          if (
-            typeof errorBody === 'object' &&
-            errorBody !== null &&
-            'error' in errorBody
-          ) {
-            const errorValue = (errorBody as { error: unknown }).error;
-            if (typeof errorValue === 'string') {
-              message = errorValue;
-            }
-          }
+          const message = await extractErrorMessage(response);
           setState({ status: 'error', message });
           return;
         }

@@ -1,6 +1,5 @@
 // useDashboard — fetches dashboard data and manages focus selection in localStorage
 'use client';
-/* eslint-disable max-depth */
 
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
@@ -132,6 +131,19 @@ type UseDashboardReturn = {
   clearFocus: () => void;
 };
 
+/** Reads and validates the persisted focus state from localStorage. Returns null on any failure. */
+function loadFocusFromStorage(): FocusState {
+  try {
+    const stored = localStorage.getItem(FOCUS_STORAGE_KEY);
+    if (!stored) return null;
+    const parsed: unknown = JSON.parse(stored);
+    const result = focusStateSchema.safeParse(parsed);
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useDashboard(): UseDashboardReturn {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,25 +152,8 @@ export function useDashboard(): UseDashboardReturn {
 
   // Load focus from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(FOCUS_STORAGE_KEY);
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored);
-        if (
-          typeof parsed === 'object' &&
-          parsed !== null &&
-          'focusKey' in parsed &&
-          'focusLabel' in parsed
-        ) {
-          const result = focusStateSchema.safeParse(parsed);
-          if (result.success) {
-            setFocusState(result.data);
-          }
-        }
-      }
-    } catch {
-      // Ignore invalid localStorage data
-    }
+    const stored = loadFocusFromStorage();
+    if (stored) setFocusState(stored);
   }, []);
 
   // Fetch dashboard data
