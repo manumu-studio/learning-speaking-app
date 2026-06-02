@@ -34,7 +34,8 @@ Browser (AudioWorklet) → 2-min chunks with 5s overlap → Upload each to R2
                                               1. Stitch transcripts (overlap dedup via LCS)
                                               2. Merge pronunciation scores (weighted avg)
                                               3. Claude synthesis → deduplicated session insights
-                                              4. Store in Postgres
+                                              4. Naturalness detection → formulaic phrase flags + native alternatives
+                                              5. Store in Postgres
                                                             ↓
 Browser (Results UI) ← Progressive results during recording ← Next.js API
         ↓
@@ -52,7 +53,7 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 1. **Record** — AudioWorklet captures PCM audio, automatically splitting into 2-minute chunks with 5-second overlap for seamless stitching
 2. **Upload** — Each chunk uploads to R2 via presigned URL while recording continues; progressive results appear as chunks complete
 3. **Process** — QStash triggers parallel per-chunk pipelines (Whisper transcription + Azure pronunciation assessment + Claude analysis), then a fan-in synthesis pass deduplicates and merges insights across the full session
-4. **Results** — Eleven scored dimensions: 8 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication, register & pragmatics) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, L1 interference coaching, and register/pragmatics feedback with hedging suggestions
+4. **Results** — Eleven scored dimensions: 8 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication, register & pragmatics) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, L1 interference coaching, register/pragmatics feedback with hedging suggestions, and naturalness detection (flags formulaic phrases and suggests native-sounding alternatives)
 5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, CEFR level estimation badge with longitudinal sparkline, 10-axis skill radar chart with C2 threshold overlay, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
 7. **Fluency Training** — 4-3-2 Timed Fluency exercise: repeat the same topic across 3 rounds (4→3→2 minutes) to build automaticity. Countdown timer with grace period, 3-round WPM comparison with SVG bar charts, and session history with progression tracking
@@ -61,7 +62,7 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md) — Version history (68 releases)
+- [Changelog](CHANGELOG.md) — Version history (69 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
@@ -120,10 +121,10 @@ src/
 │   ├── fluency/      # 4-3-2 timed fluency training (TimedRecording, FluencyComparison, FluencySessionList)
 │   ├── prompts/      # Prompt library UI (60+ prompts, multi-filter, format badges)
 │   ├── recording/    # Audio recording and upload
-│   ├── session/      # Session status polling, display, register/pragmatics feedback
+│   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, auth, CEFR, prompts, queue, storage, pipeline, pronunciation, srs, logger)
+├── lib/              # Shared utilities (AI, auth, CEFR, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

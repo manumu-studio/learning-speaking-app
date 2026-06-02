@@ -189,6 +189,25 @@ IMPORTANT:
 - Return an empty array if no interference patterns are found — do not invent them.
 `;
 
+export const NATURALNESS_PROMPT_SECTION = `
+NATURALNESS AND IDIOMATICITY ANALYSIS:
+Identify 1-5 instances where the speaker used grammatically correct but unnatural-sounding phrasing — the signature C1→C2 gap. This goes beyond collocations to include awkward discourse markers, unnatural hedging, register mismatches within a sentence, end-weight violations, and stilted rhythm.
+
+For each issue found, provide:
+- original: the exact phrase from the transcript
+- suggested: the more natural phrasing a native speaker would use
+- dimension: one of "collocation" | "discourse_marker" | "hedging" | "register" | "rhythm" | "given_new"
+- rationale: one sentence explaining why the alternative sounds more natural
+
+IMPORTANT:
+- Only flag phrasing you are confident (>= 4/5) is genuinely unnatural, not stylistic choice.
+- Do NOT flag items already caught by l1Interference, collocations, or grammar insights.
+- Do NOT flag vocabulary-level issues (those belong in vocabulary insights).
+- Return an empty array if no naturalness issues are detected.
+
+Produce a naturalness array (max 5 items).
+`;
+
 export const TONE_CALIBRATION_RULES = `
 FEEDBACK TONE RULES — apply to all text fields: detail, suggestion, focusNext, summary, topicDevelopment, logicalFlow, explanation.
 
