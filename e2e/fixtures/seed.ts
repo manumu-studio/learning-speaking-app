@@ -43,6 +43,7 @@ export async function seedCompletedSession(): Promise<string> {
         'The speaker discussed testing strategies with good structural variety.',
       focusMetricKey: 'structuralVariety',
       focusNext: 'Try using more varied connectors in your next session.',
+      createdAt: new Date(),
       updatedAt: new Date(),
     },
     create: {
@@ -116,7 +117,7 @@ export async function seedCompletedDrill(): Promise<string> {
 
   await prisma.speakingSession.upsert({
     where: { id: SEED_DRILL_SESSION_ID },
-    update: { status: 'DONE', durationSecs: 60, language: 'en', updatedAt: new Date() },
+    update: { status: 'DONE', durationSecs: 60, language: 'en', createdAt: new Date(), updatedAt: new Date() },
     create: {
       id: SEED_DRILL_SESSION_ID,
       userId: user.id,
@@ -174,6 +175,7 @@ export async function seedDeletableSession(): Promise<string> {
       topic: 'Delete Test Topic',
       intentLabel: 'session to be deleted',
       summary: 'A short session created specifically for delete flow testing.',
+      createdAt: new Date(),
       updatedAt: new Date(),
     },
     create: {

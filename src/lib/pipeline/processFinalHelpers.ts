@@ -4,6 +4,9 @@ import { toPronunciationResult } from '@/lib/pipeline/aggregatePronunciation';
 import type { TranscriptWord } from '@/lib/pipeline/transcriptDedup';
 import type { WordResult } from '@/lib/ai/azurePronunciation.types';
 import type { PronunciationSummary } from '@/lib/ai/analyze';
+import { isRecord } from '@/lib/typeGuards';
+import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * Derives a lean `PronunciationSummary` from an aggregated Azure pronunciation result.
@@ -71,19 +74,20 @@ export function parseWords(value: Prisma.JsonValue | null): TranscriptWord[] {
 function isWordResultLike(
   entry: unknown,
 ): entry is WordResult {
+  if (!isRecord(entry)) {
+    return false;
+  }
   return (
-    typeof entry === 'object' &&
-    entry !== null &&
     'word' in entry &&
     'accuracyScore' in entry &&
     'offsetMs' in entry &&
     'durationMs' in entry &&
     'phonemes' in entry &&
-    typeof (entry as Record<string, unknown>).word === 'string' &&
-    typeof (entry as Record<string, unknown>).accuracyScore === 'number' &&
-    typeof (entry as Record<string, unknown>).offsetMs === 'number' &&
-    typeof (entry as Record<string, unknown>).durationMs === 'number' &&
-    Array.isArray((entry as Record<string, unknown>).phonemes)
+    typeof entry['word'] === 'string' &&
+    typeof entry['accuracyScore'] === 'number' &&
+    typeof entry['offsetMs'] === 'number' &&
+    typeof entry['durationMs'] === 'number' &&
+    Array.isArray(entry['phonemes'])
   );
 }
 
@@ -114,4 +118,19 @@ export function parsePronWords(value: Prisma.JsonValue | null): WordResult[] | n
  */
 export function isJsonArray(value: Prisma.JsonValue | null): value is Prisma.JsonArray {
   return Array.isArray(value);
+}
+
+/**
+ * Deletes the cached DailySummary for a user's session date so it regenerates
+ * on next history view. Failures are logged but never rethrown — pipeline must continue.
+ */
+export async function invalidateDailySummary(userId: string, sessionCreatedAt: Date): Promise<void> {
+  try {
+    const dateStr = sessionCreatedAt.toISOString().split('T')[0] as string;
+    await prisma.dailySummary.deleteMany({
+      where: { userId, date: new Date(`${dateStr}T00:00:00.000Z`) },
+    });
+  } catch (err) {
+    logger.error({ err, userId }, 'Failed to invalidate daily summary');
+  }
 }

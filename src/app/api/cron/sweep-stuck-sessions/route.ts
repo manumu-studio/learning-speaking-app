@@ -1,5 +1,5 @@
 // Vercel Cron — re-drives stuck chunked sessions or marks them FAILED
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ChunkStatus, SessionStatus } from '@prisma/client';
 import { env } from '@/lib/env';
 import { prisma } from '@/lib/prisma';
@@ -25,10 +25,7 @@ function isAuthorized(request: Request): boolean {
 }
 
 async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
-  // Cast to NextRequest for header access compatibility
-  const request = req as NextRequest;
-
-  if (!isAuthorized(request)) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
   }
 

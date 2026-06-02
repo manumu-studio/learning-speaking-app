@@ -1,6 +1,6 @@
 // Webhook handler for async session processing (QStash → executePipeline)
 import type pino from 'pino';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
 import { env } from '@/lib/env';
 import {
@@ -39,13 +39,12 @@ function getReceiver(): Receiver {
 }
 
 async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
-  const request = req as NextRequest;
   let sessionId: string | null = null;
 
   try {
     // Verify QStash signature — body must be read once as text
-    const signature = request.headers.get('upstash-signature');
-    const body = await request.text();
+    const signature = req.headers.get('upstash-signature');
+    const body = await req.text();
 
     if (!signature) {
       return NextResponse.json({ error: 'Missing signature', code: 'UNAUTHORIZED' }, { status: 401 });
@@ -73,7 +72,7 @@ async function handler(req: Request, { logger }: { logger: pino.Logger; requestI
       'Processing failed',
     );
 
-    if (sessionId && isQstashFinalFailureAttempt(request)) {
+    if (sessionId && isQstashFinalFailureAttempt(req)) {
       await persistSessionFailedStatus(sessionId, message);
     }
 

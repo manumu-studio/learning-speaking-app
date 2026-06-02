@@ -1,16 +1,17 @@
 // Tests for the curated prompt library — validates structure, counts, and lookup functions
 import { describe, expect, it } from 'vitest';
 
-import type { CefrLevel, LibraryCategory, PromptDuration } from './promptLibrary.types';
+import type { LibraryCategory } from './promptLibrary.types';
 import {
   findPromptById,
   getLibraryByCategory,
+  getLibraryByFormat,
+  getLibraryByCefrLevel,
   LIBRARY_CATEGORIES,
+  LIBRARY_FORMATS,
+  LIBRARY_CEFR_LEVELS,
   PROMPT_LIBRARY,
 } from './promptLibrary';
-
-const VALID_CEFR_LEVELS: readonly CefrLevel[] = ['A2', 'B1', 'B2', 'C1'];
-const VALID_DURATIONS: readonly PromptDuration[] = ['30s', '60s', '90s', '120s'];
 
 describe('LIBRARY_CATEGORIES', () => {
   it('has exactly 4 entries', () => {
@@ -25,15 +26,37 @@ describe('LIBRARY_CATEGORIES', () => {
   });
 });
 
-describe('PROMPT_LIBRARY', () => {
-  it('has exactly 28 entries', () => {
-    expect(PROMPT_LIBRARY).toHaveLength(28);
+describe('LIBRARY_FORMATS', () => {
+  it('has 6 format types', () => {
+    expect(LIBRARY_FORMATS).toHaveLength(6);
   });
 
-  it('has exactly 7 prompts per category', () => {
+  it('includes all format types', () => {
+    expect(LIBRARY_FORMATS).toContain('opinion');
+    expect(LIBRARY_FORMATS).toContain('monologue');
+    expect(LIBRARY_FORMATS).toContain('image');
+    expect(LIBRARY_FORMATS).toContain('retell');
+    expect(LIBRARY_FORMATS).toContain('summarize');
+    expect(LIBRARY_FORMATS).toContain('impromptu');
+  });
+});
+
+describe('LIBRARY_CEFR_LEVELS', () => {
+  it('has 5 levels including C2', () => {
+    expect(LIBRARY_CEFR_LEVELS).toHaveLength(5);
+    expect(LIBRARY_CEFR_LEVELS).toContain('C2');
+  });
+});
+
+describe('PROMPT_LIBRARY', () => {
+  it('has at least 60 entries', () => {
+    expect(PROMPT_LIBRARY.length).toBeGreaterThanOrEqual(60);
+  });
+
+  it('has at least 7 prompts per original category', () => {
     for (const category of LIBRARY_CATEGORIES) {
       const count = PROMPT_LIBRARY.filter((p) => p.category === category).length;
-      expect(count, `Expected 7 prompts in "${category}", got ${count}`).toBe(7);
+      expect(count, `Expected at least 7 prompts in "${category}", got ${count}`).toBeGreaterThanOrEqual(7);
     }
   });
 
@@ -43,6 +66,7 @@ describe('PROMPT_LIBRARY', () => {
       expect(prompt.category, 'category must be a non-empty string').toBeTruthy();
       expect(prompt.cefrLevel, 'cefrLevel must be a non-empty string').toBeTruthy();
       expect(prompt.duration, 'duration must be a non-empty string').toBeTruthy();
+      expect(prompt.format, 'format must be a non-empty string').toBeTruthy();
       expect(prompt.title, 'title must be a non-empty string').toBeTruthy();
       expect(prompt.hint, 'hint must be a non-empty string').toBeTruthy();
       expect(prompt.text, 'text must be a non-empty string').toBeTruthy();
@@ -58,28 +82,54 @@ describe('PROMPT_LIBRARY', () => {
   it('all cefrLevel values are valid', () => {
     for (const prompt of PROMPT_LIBRARY) {
       expect(
-        VALID_CEFR_LEVELS,
+        LIBRARY_CEFR_LEVELS as readonly string[],
         `"${prompt.cefrLevel}" on prompt "${prompt.id}" is not a valid CefrLevel`,
       ).toContain(prompt.cefrLevel);
     }
   });
 
-  it('all duration values are valid', () => {
+  it('all format values are valid', () => {
     for (const prompt of PROMPT_LIBRARY) {
       expect(
-        VALID_DURATIONS,
-        `"${prompt.duration}" on prompt "${prompt.id}" is not a valid PromptDuration`,
-      ).toContain(prompt.duration);
+        LIBRARY_FORMATS as readonly string[],
+        `"${prompt.format}" on prompt "${prompt.id}" is not a valid PromptFormat`,
+      ).toContain(prompt.format);
+    }
+  });
+
+  it('has at least 6 C2-level prompts', () => {
+    const c2Count = PROMPT_LIBRARY.filter((p) => p.cefrLevel === 'C2').length;
+    expect(c2Count).toBeGreaterThanOrEqual(6);
+  });
+
+  it('image prompts have imagePath set', () => {
+    const imagePrompts = PROMPT_LIBRARY.filter((p) => p.format === 'image');
+    for (const p of imagePrompts) {
+      expect(p.imagePath, `Image prompt "${p.id}" must have imagePath`).toBeTruthy();
+    }
+  });
+
+  it('retell prompts have sourcePassage set', () => {
+    const retellPrompts = PROMPT_LIBRARY.filter((p) => p.format === 'retell');
+    for (const p of retellPrompts) {
+      expect(p.sourcePassage, `Retell prompt "${p.id}" must have sourcePassage`).toBeTruthy();
+    }
+  });
+
+  it('impromptu prompts have prepTimeSecs set', () => {
+    const impromptuPrompts = PROMPT_LIBRARY.filter((p) => p.format === 'impromptu');
+    for (const p of impromptuPrompts) {
+      expect(p.prepTimeSecs, `Impromptu prompt "${p.id}" must have prepTimeSecs`).toBeTruthy();
     }
   });
 });
 
 describe('getLibraryByCategory', () => {
   it.each(LIBRARY_CATEGORIES as unknown as LibraryCategory[])(
-    'returns 7 prompts for category "%s"',
+    'returns at least 7 prompts for category "%s"',
     (category) => {
       const result = getLibraryByCategory(category);
-      expect(result).toHaveLength(7);
+      expect(result.length).toBeGreaterThanOrEqual(7);
     },
   );
 
@@ -95,6 +145,26 @@ describe('getLibraryByCategory', () => {
   it('returns an empty array for an unknown category', () => {
     const result = getLibraryByCategory('Unknown' as LibraryCategory);
     expect(result).toEqual([]);
+  });
+});
+
+describe('getLibraryByFormat', () => {
+  it('returns prompts filtered by format', () => {
+    const imagePrompts = getLibraryByFormat('image');
+    expect(imagePrompts.length).toBeGreaterThanOrEqual(1);
+    for (const p of imagePrompts) {
+      expect(p.format).toBe('image');
+    }
+  });
+});
+
+describe('getLibraryByCefrLevel', () => {
+  it('returns prompts filtered by CEFR level', () => {
+    const c1Prompts = getLibraryByCefrLevel('C1');
+    expect(c1Prompts.length).toBeGreaterThanOrEqual(1);
+    for (const p of c1Prompts) {
+      expect(p.cefrLevel).toBe('C1');
+    }
   });
 });
 

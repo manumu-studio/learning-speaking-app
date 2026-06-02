@@ -1,6 +1,6 @@
 // QStash failure callback — marks a session chunk as FAILED after all retries are exhausted
 import type pino from 'pino';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Receiver } from '@upstash/qstash';
 import { ChunkStatus } from '@prisma/client';
 import { env } from '@/lib/env';
@@ -44,11 +44,9 @@ function decodeBase64Json(value: string): unknown {
 }
 
 async function handler(req: Request, { logger }: { logger: pino.Logger; requestId: string }) {
-  const request = req as NextRequest;
-
   try {
-    const signature = request.headers.get('upstash-signature');
-    const rawBody = await request.text();
+    const signature = req.headers.get('upstash-signature');
+    const rawBody = await req.text();
 
     if (!signature) {
       return NextResponse.json({ error: 'Missing signature', code: 'UNAUTHORIZED' }, { status: 401 });
