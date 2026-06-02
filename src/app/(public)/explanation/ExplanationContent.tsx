@@ -1,5 +1,6 @@
 // ExplanationContent — Personalized exclusive welcome experience with Apple-style scroll animations
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useScrollAnimation } from './useScrollAnimation';

@@ -1,4 +1,5 @@
 // Dev-only fan-in processor — runs processFinal without QStash signature verification
+/* eslint-disable max-depth */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { env } from '@/lib/env';

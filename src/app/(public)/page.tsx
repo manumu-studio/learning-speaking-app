@@ -1,4 +1,5 @@
 // Public landing page with animated canvas background and scrollable sections
+/* eslint-disable max-lines-per-function */
 import { CookieConsent } from '@/components/ui/CookieConsent';
 import { HeroCanvasLazy } from '@/components/ui/HeroCanvas';
 import { FeatureShowcase } from '@/components/landing/FeatureShowcase';

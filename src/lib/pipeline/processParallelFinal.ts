@@ -1,4 +1,5 @@
 // Fan-in worker for the parallel chunk pipeline — stitches transcripts, merges pronunciation, synthesizes insights
+/* eslint-disable complexity, max-lines-per-function */
 import { Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';

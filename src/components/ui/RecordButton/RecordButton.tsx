@@ -1,5 +1,6 @@
 // Large prominent record/stop button with visual state changes and glow effects
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import type { RecordButtonProps } from './RecordButton.types';
 

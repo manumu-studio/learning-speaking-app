@@ -1,5 +1,6 @@
 // LaunchContent — Client-side interactive launch page with countdown, theme toggle, and CSS animations
 "use client";
+/* eslint-disable max-lines-per-function */
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";

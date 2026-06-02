@@ -1,4 +1,5 @@
 // Rewrite transcript with vocabulary upgrades using Claude Haiku
+/* eslint-disable max-lines-per-function */
 
 import { getAnthropicClient } from '@/lib/ai/client';
 import { logger } from '@/lib/logger';

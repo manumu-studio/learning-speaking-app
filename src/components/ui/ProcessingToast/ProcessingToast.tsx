@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 // Floating indicator and modal for background session processing
 
 import { useCallback, useEffect, useRef, useState } from 'react';

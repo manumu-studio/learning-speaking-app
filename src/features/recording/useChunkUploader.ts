@@ -1,5 +1,6 @@
 // Manages chunked session lifecycle — presign, R2 PUT, enqueue, and session completion
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';

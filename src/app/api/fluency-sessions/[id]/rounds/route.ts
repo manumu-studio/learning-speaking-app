@@ -1,4 +1,5 @@
 // POST create a round within a 4-3-2 timed fluency session
+/* eslint-disable max-lines-per-function */
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';

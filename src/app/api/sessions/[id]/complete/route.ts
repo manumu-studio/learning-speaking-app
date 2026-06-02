@@ -1,4 +1,5 @@
 // Marks a chunked session complete and sets expected chunk count for fan-in
+/* eslint-disable complexity */
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';

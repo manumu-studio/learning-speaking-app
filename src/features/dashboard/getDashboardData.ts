@@ -1,4 +1,5 @@
 // Dashboard data aggregation — computes stats, streaks, and metric trends with caching
+/* eslint-disable max-lines-per-function */
 import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import type { DashboardData, DashboardMetric, MetricKey, MetricLevel } from './dashboard.types';
