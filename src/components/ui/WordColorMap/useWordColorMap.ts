@@ -14,17 +14,18 @@ const NON_BLOCKING_L1_TAGS = new Set([
 function computeWordColor(word: WordPronunciation): WordColor {
   if (word.errorType === 'Insertion') return 'gray-italic';
 
-  if (word.errorType === 'Omission') return 'amber';
-  if (word.errorType === 'Mispronunciation' && word.accuracyScore < 60) return 'amber';
+  if (word.errorType === 'Omission') return 'red';
+  if (word.errorType === 'Mispronunciation' && word.accuracyScore < 60) return 'red';
 
   const allL1NonBlocking =
     word.l1Tags.length > 0 && word.l1Tags.every((tag) => NON_BLOCKING_L1_TAGS.has(tag));
 
-  if (allL1NonBlocking) return 'yellow';
+  if (allL1NonBlocking) return 'amber';
 
-  if (word.accuracyScore < 60) return 'amber';
+  // 3-band scale: red <60, amber 60–84, green 85+ (raised floor for a C2 target).
+  if (word.accuracyScore < 60) return 'red';
 
-  if (word.accuracyScore < 80) return 'yellow';
+  if (word.accuracyScore < 85) return 'amber';
 
   return 'green';
 }

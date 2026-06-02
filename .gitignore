@@ -116,3 +116,4 @@ playwright-report/
 test-results/
 .auth-state.json.planning/
 .planning/
+*.tsbuildinfo.build
