@@ -16,7 +16,10 @@ import { ProsodyFeedback } from '@/components/ui/ProsodyFeedback';
 import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
 import { PronunciationProgress } from '@/components/ui/PronunciationProgress';
 import { PhonemePatterns } from '@/components/ui/PhonemePatterns';
+import { PrioritySounds } from '@/components/ui/PrioritySounds';
+import { AccentPolish } from '@/components/ui/AccentPolish';
 import { aggregatePhonemes } from '@/lib/pronunciation/aggregatePhonemes';
+import { rankByFunctionalLoad, splitByPriority } from '@/lib/pronunciation/rankByFunctionalLoad';
 import { VocabProgress } from '@/components/ui/VocabProgress';
 import type { VocabItem } from '@/components/ui/VocabProgress';
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
@@ -137,6 +140,8 @@ export function PronunciationFeedbackSection({
   wordColorMapDelay,
   prosodyPanelDelay,
 }: PronunciationFeedbackSectionProps) {
+  const { priority, polish } = splitByPriority(rankByFunctionalLoad(pronunciationReport.words));
+
   return (
     <CollapsibleSection title="Pronunciation & Intonation" animationDelay={pronunciationSectionDelay}>
       <div className="space-y-4">
@@ -155,6 +160,7 @@ export function PronunciationFeedbackSection({
               }
             : {})}
         />
+        <PrioritySounds errors={priority} animationDelay={pronunciationSectionDelay + 30} />
         <PhonemePatterns
           phonemes={aggregatePhonemes(pronunciationReport.words)}
           animationDelay={pronunciationSectionDelay + 50}
@@ -192,6 +198,7 @@ export function PronunciationFeedbackSection({
             animationDelay={prosodyPanelDelay + 200}
           />
         </CollapsibleSection>
+        <AccentPolish errors={polish} animationDelay={prosodyPanelDelay + 250} />
         <CollapsibleSection title="Pronunciation Progress" defaultOpen={false}>
           <PronunciationProgress
             currentSessionId={session.id}
