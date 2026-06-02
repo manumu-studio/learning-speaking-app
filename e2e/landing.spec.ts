@@ -36,7 +36,8 @@ test.describe('Landing Page', () => {
   });
 
   test('primary CTA navigates toward the app session flow', async ({ page }) => {
-    const sessionCta = page.getByRole('link', { name: /go to dashboard/i });
+    // Hero CTA renders as a button (NavButton) when authenticated, link when not
+    const sessionCta = page.getByRole('button', { name: /go to dashboard/i });
     const signInCta = page.getByRole('button', { name: /sign in with manumustudio/i });
     await expect(sessionCta.or(signInCta).first()).toBeVisible({ timeout: 15_000 });
 

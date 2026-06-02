@@ -8,6 +8,7 @@ import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { deleteAudio, getAudio } from '@/lib/storage/r2';
+import { toInputJson } from '@/lib/prismaJson';
 
 export interface ChunkIndependentInput {
   sessionId: string;
@@ -15,10 +16,6 @@ export interface ChunkIndependentInput {
   storageKey: string;
   durationSecs: number;
   overlapSecs: number;
-}
-
-function toJson(value: unknown): Prisma.InputJsonValue {
-  return value as Prisma.InputJsonValue;
 }
 
 /** Runs the full Whisper + Azure + Claude pipeline on a single chunk and stores the result in ChunkResult for later fan-in aggregation. */
@@ -72,7 +69,7 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
           env.AZURE_SPEECH_REGION,
         );
         const taggedWords = tagSpanishL1(pronResult.words);
-        pronunciationReport = toJson({
+        pronunciationReport = toInputJson({
           pronScore: pronResult.pronScore,
           accuracyScore: pronResult.accuracyScore,
           fluencyScore: pronResult.fluencyScore,
@@ -110,7 +107,7 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
         null,
         session?.promptUsed ?? null,
       );
-      insightsJson = toJson(analysis.insights);
+      insightsJson = toInputJson(analysis.insights);
     } catch (analysisError) {
       logger.warn(
         {
@@ -128,7 +125,7 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
         status: 'DONE',
         transcriptText,
         wordCount,
-        words: toJson(words),
+        words: toInputJson(words),
         pronunciationReport,
         insights: insightsJson,
       },

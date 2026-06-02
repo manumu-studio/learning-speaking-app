@@ -10,10 +10,7 @@ import { enqueueFinalProcessing } from '@/lib/queue/qstash';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
-
-function toJson(value: unknown): Prisma.InputJsonValue {
-  return value as Prisma.InputJsonValue;
-}
+import { toInputJson } from '@/lib/prismaJson';
 
 /** Checks whether all chunks for a session are done and, if so, atomically enqueues the final fan-in job exactly once. */
 export async function maybeEnqueueFinalProcessing(sessionId: string): Promise<void> {
@@ -120,7 +117,7 @@ export async function processChunk(
     data: {
       status: ChunkStatus.SCORING,
       transcriptText,
-      words: toJson(words),
+      words: toInputJson(words),
       wordCount,
     },
   });
@@ -163,8 +160,8 @@ export async function processChunk(
           ? (validWords.length / (totalDurationMs / 60_000))
           : 0;
 
-      pronWords = toJson(taggedWords);
-      pronRawJson = toJson(pronunciationResult.rawUtterances);
+      pronWords = toInputJson(taggedWords);
+      pronRawJson = toInputJson(pronunciationResult.rawUtterances);
     } catch (error) {
       logger.warn(
         {

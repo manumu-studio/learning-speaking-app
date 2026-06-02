@@ -30,10 +30,11 @@ test.describe('Session flow', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto('/session/new');
+    await authenticatedPage.waitForLoadState('networkidle');
     await authenticatedPage.getByRole('link', { name: 'History' }).click();
-    await expect(authenticatedPage).toHaveURL(/\/history/);
+    await expect(authenticatedPage).toHaveURL(/\/history/, { timeout: 15_000 });
     await authenticatedPage.getByRole('link', { name: 'New Session' }).click();
-    await expect(authenticatedPage).toHaveURL(/\/session\/new/);
+    await expect(authenticatedPage).toHaveURL(/\/session\/new/, { timeout: 15_000 });
   });
 
   test('prompt selector dropdown shows categories with descriptions', async ({

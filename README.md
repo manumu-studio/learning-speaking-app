@@ -42,6 +42,8 @@ Dashboard ← 11 metrics (8 language + 3 pronunciation), sparklines, streak, CEF
         ↓
 Training Gym ← AI-generated drills per metric → record response → evaluate
         ↓
+Fluency Training ← 4-3-2 timed rounds (same topic, decreasing time) → WPM comparison
+        ↓
 Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → spaced review) + collocations + reading practice
 ```
 
@@ -53,12 +55,13 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 4. **Results** — Eleven scored dimensions: 8 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication, register & pragmatics) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes word-level pronunciation color map, IPA phoneme detail, prosody feedback, L1 interference coaching, and register/pragmatics feedback with hedging suggestions
 5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, CEFR level estimation badge with longitudinal sparkline, 10-axis skill radar chart with C2 threshold overlay, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
-7. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions, detects when you use them in future sessions, and schedules them for spaced review (SM-2) with a tabbed review-queue page; collocation detection flags multi-word phrases worth learning; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
-8. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
+7. **Fluency Training** — 4-3-2 Timed Fluency exercise: repeat the same topic across 3 rounds (4→3→2 minutes) to build automaticity. Countdown timer with grace period, 3-round WPM comparison with SVG bar charts, and session history with progression tracking
+8. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions, detects when you use them in future sessions, and schedules them for spaced review (SM-2) with a tabbed review-queue page; collocation detection flags multi-word phrases worth learning; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
+9. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md) — Version history (66 releases)
+- [Changelog](CHANGELOG.md) — Version history (67 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
@@ -106,19 +109,21 @@ End-to-end tests (Playwright, Chromium): `npm run test:e2e` — requires Node 20
 ```
 src/
 ├── app/              # Next.js App Router pages and API routes
-│   ├── (app)/        # Authenticated app routes (dashboard, session, drills, history)
+│   ├── (app)/        # Authenticated app routes (dashboard, session, drills, history, fluency-training)
 │   ├── (public)/     # Public routes (landing, launch)
-│   └── api/          # API endpoints (sessions, drills, dashboard, pipeline, auth, docs)
+│   └── api/          # API endpoints (sessions, drills, dashboard, fluency-sessions, pipeline, auth, docs)
 ├── components/ui/    # Reusable UI components (30+ components)
 ├── features/         # Feature modules
 │   ├── auth/         # Authentication hooks and helpers
 │   ├── dashboard/    # Dashboard data fetching, metric cards, CEFR badge, skill radar, types
 │   ├── insights/     # Session insight display
+│   ├── fluency/      # 4-3-2 timed fluency training (TimedRecording, FluencyComparison, FluencySessionList)
+│   ├── prompts/      # Prompt library UI (60+ prompts, multi-filter, format badges)
 │   ├── recording/    # Audio recording and upload
 │   ├── session/      # Session status polling, display, register/pragmatics feedback
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, auth, CEFR, queue, storage, pipeline, pronunciation, srs, logger)
+├── lib/              # Shared utilities (AI, auth, CEFR, prompts, queue, storage, pipeline, pronunciation, srs, logger)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

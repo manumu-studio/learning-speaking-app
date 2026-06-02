@@ -6,6 +6,7 @@ import { findOrCreateUser } from '@/lib/db-utils';
 import { errorResponse } from '@/lib/api';
 import { withObservability } from '@/lib/observability';
 import type pino from 'pino';
+import { isRecord } from '@/lib/typeGuards';
 
 async function getHandler(
   _req: Request,
@@ -49,12 +50,10 @@ async function getHandler(
   const simplified = chunkResults.map((r) => {
     let pronScore: number | null = null;
     if (
-      r.pronunciationReport !== null &&
-      typeof r.pronunciationReport === 'object' &&
-      !Array.isArray(r.pronunciationReport) &&
+      isRecord(r.pronunciationReport) &&
       'pronScore' in r.pronunciationReport
     ) {
-      const raw = (r.pronunciationReport as Record<string, unknown>)['pronScore'];
+      const raw = r.pronunciationReport['pronScore'];
       if (typeof raw === 'number') {
         pronScore = raw;
       }

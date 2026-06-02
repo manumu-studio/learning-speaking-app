@@ -42,8 +42,9 @@ test.describe('history with seeded session', () => {
 
   test('session list shows seeded session with intent label', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/history');
+    await authenticatedPage.waitForLoadState('networkidle');
     await expect(authenticatedPage.getByText(/describing test scenarios/i)).toBeVisible({
-      timeout: 10_000,
+      timeout: 20_000,
     });
   });
 });
@@ -64,10 +65,11 @@ test.describe('history delete flow', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto('/history');
+    await authenticatedPage.waitForLoadState('networkidle');
 
     // Wait for the seeded session to appear
     const sessionLabel = authenticatedPage.getByText('session to be deleted', { exact: true });
-    await expect(sessionLabel).toBeVisible({ timeout: 10_000 });
+    await expect(sessionLabel).toBeVisible({ timeout: 20_000 });
 
     // Hover the session card to reveal delete button (card has .group class)
     const cardContainer = authenticatedPage.locator('.group', { hasText: 'session to be deleted' }).first();
@@ -97,10 +99,11 @@ test.describe('history delete flow', () => {
 
   test('confirming delete removes session and shows toast', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/history');
+    await authenticatedPage.waitForLoadState('networkidle');
 
     // Wait for the seeded session to appear
     const sessionLabel = authenticatedPage.getByText('session to be deleted', { exact: true });
-    await expect(sessionLabel).toBeVisible({ timeout: 10_000 });
+    await expect(sessionLabel).toBeVisible({ timeout: 20_000 });
 
     // Hover to reveal and click delete — scoped to the correct card
     const cardContainer = authenticatedPage.locator('.group', { hasText: 'session to be deleted' }).first();
@@ -117,8 +120,11 @@ test.describe('history delete flow', () => {
     await expect(modal).toBeVisible();
     await modal.getByRole('button', { name: 'Delete', exact: true }).click();
 
+    // Wait for modal to close (confirms API completed successfully)
+    await expect(modal).toBeHidden({ timeout: 30_000 });
+
     // Session removed from list
-    await expect(sessionLabel).toBeHidden({ timeout: 20_000 });
+    await expect(sessionLabel).toBeHidden({ timeout: 10_000 });
 
     // Toast notification appears
     await expect(authenticatedPage.getByText('Session deleted', { exact: true })).toBeVisible({

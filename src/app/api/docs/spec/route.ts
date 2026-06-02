@@ -18,7 +18,7 @@ async function handler() {
     return NextResponse.json({ error: 'Invalid OpenAPI document' }, { status: 500 });
   }
 
-  return NextResponse.json(parsed as Record<string, unknown>);
+  return NextResponse.json(parsed);
 }
 
 export const GET = withObservability(handler, { route: 'docs/spec' });

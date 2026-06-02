@@ -2,6 +2,7 @@
 
 import { getAnthropicClient } from '@/lib/ai/client';
 import { logger } from '@/lib/logger';
+import { isRecord } from '@/lib/typeGuards';
 
 const MIN_WORD_COUNT = 20;
 
@@ -77,8 +78,7 @@ Respond with this exact JSON structure:
     const parsed: unknown = JSON.parse(cleaned);
 
     if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
+      !isRecord(parsed) ||
       !('improvedText' in parsed) ||
       !('wordsUsed' in parsed)
     ) {
@@ -86,9 +86,8 @@ Respond with this exact JSON structure:
       return null;
     }
 
-    const record = parsed as Record<string, unknown>;
-    const improvedText = record['improvedText'];
-    const rawWordsUsed = record['wordsUsed'];
+    const improvedText = parsed['improvedText'];
+    const rawWordsUsed = parsed['wordsUsed'];
 
     if (typeof improvedText !== 'string' || !Array.isArray(rawWordsUsed)) {
       logger.warn('Rewrite response has wrong field types');
