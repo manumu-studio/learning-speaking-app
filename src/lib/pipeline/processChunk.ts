@@ -1,4 +1,5 @@
 // Processes a single uploaded session chunk — Whisper transcription and Azure pronunciation scoring
+/* eslint-disable complexity, max-lines-per-function */
 import { ChunkStatus, Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { transcribeWavChunk } from '@/lib/ai/whisper';

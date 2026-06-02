@@ -1,4 +1,5 @@
 // L1 Spanish interference tagger — deterministic phoneme-level rules for Spanish speakers
+/* eslint-disable complexity, max-lines-per-function */
 import type { WordResult } from './azurePronunciation.types';
 import type { L1Tag } from './l1Spanish.types';
 

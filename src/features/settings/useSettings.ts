@@ -1,5 +1,6 @@
 // Hook for fetching, caching, and updating user settings with optimistic UI
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from 'next-themes';

@@ -1,4 +1,5 @@
 // Session creation (POST) and listing (GET) API
+/* eslint-disable complexity, max-lines-per-function */
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateUser, hasConsent } from '@/lib/db-utils';

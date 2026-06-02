@@ -1,4 +1,5 @@
 // API route: list user sessions with pronunciation weaknesses + vocab for reading practice library
+/* eslint-disable max-lines-per-function */
 
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';

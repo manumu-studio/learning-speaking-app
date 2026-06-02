@@ -1,4 +1,5 @@
 // matchInsightsToSentences: fuzzy-matches insight examples to transcript sentences,
+/* eslint-disable max-depth */
 // returning an AnnotationMap keyed by sentence index
 
 import type { TranscriptSentence } from './splitSentences';

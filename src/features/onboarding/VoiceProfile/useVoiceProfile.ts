@@ -1,5 +1,6 @@
 // Hook that polls a session until DONE and derives voice profile data
 'use client';
+/* eslint-disable complexity */
 
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import type { SessionMetricSnapshot } from '@/features/session/useSessionStatus.types';

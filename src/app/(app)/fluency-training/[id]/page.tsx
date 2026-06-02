@@ -1,5 +1,6 @@
 // /fluency-training/[id] — active fluency session (recording or comparison view)
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';

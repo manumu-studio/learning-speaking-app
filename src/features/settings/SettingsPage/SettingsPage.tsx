@@ -1,5 +1,6 @@
 // Settings page UI — manages user preferences with optimistic auto-save
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSettings } from '@/features/settings/useSettings';

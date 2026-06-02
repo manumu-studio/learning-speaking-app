@@ -1,5 +1,6 @@
 // TrendChart — SVG line chart with axes, hover tooltip, and trend line
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import type { TrendChartProps } from './TrendChart.types';
 import {

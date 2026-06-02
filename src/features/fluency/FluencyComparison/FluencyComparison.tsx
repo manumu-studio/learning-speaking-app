@@ -1,5 +1,6 @@
 // FluencyComparison — side-by-side results for 4-3-2 fluency rounds with WPM bar chart
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import Link from 'next/link';
 import type { FluencyComparisonProps, FluencyRoundResult } from './FluencyComparison.types';

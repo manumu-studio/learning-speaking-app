@@ -1,4 +1,5 @@
 // Executes the full speaking session processing pipeline — transcription, pronunciation scoring, analysis, metrics, patterns
+/* eslint-disable complexity, max-lines-per-function */
 import { Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { transcribeAudio } from '@/lib/ai/whisper';

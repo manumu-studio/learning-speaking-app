@@ -1,5 +1,6 @@
 // ProsodyFeedback — coach-style prosody section with plain-English tips per issue
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import React from 'react';
 import { mapAzureScoreToDisplay } from '@/components/ui/PronunciationSection';

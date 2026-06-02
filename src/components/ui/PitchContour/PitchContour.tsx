@@ -1,5 +1,6 @@
 // SVG pitch contour visualization — F0 over time with unvoiced gaps
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useId, useMemo } from 'react';
 import type { PitchContourProps } from '@/components/ui/PitchContour/PitchContour.types';

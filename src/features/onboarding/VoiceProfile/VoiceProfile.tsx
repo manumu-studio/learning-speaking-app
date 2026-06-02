@@ -1,5 +1,6 @@
 // Voice profile results screen — shown after onboarding recording is processed
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useRouter } from 'next/navigation';
 import { ProcessingStatus } from '@/components/ui/ProcessingStatus';

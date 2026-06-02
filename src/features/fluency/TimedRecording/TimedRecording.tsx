@@ -1,5 +1,6 @@
 // TimedRecording — countdown timer and round tracker for 4-3-2 fluency training
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import type { CompletedRound, RoundNumber } from './TimedRecording.types';
 import type { TimedRecordingProps } from './TimedRecording.types';

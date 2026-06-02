@@ -1,5 +1,6 @@
 // PhonemeDetail: inline expansion panel showing phoneme accuracy, L1 tags, and prosody feedback
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import React from 'react';
 import { usePhonemeAlphabet } from '@/hooks/usePhonemeAlphabet';

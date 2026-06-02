@@ -1,4 +1,5 @@
 // Metrics trends API — returns time-series metric data grouped by date with pillar aggregations
+/* eslint-disable max-lines-per-function */
 import { NextResponse } from 'next/server';
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';

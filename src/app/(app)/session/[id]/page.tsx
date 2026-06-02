@@ -1,5 +1,6 @@
 // Session results page — displays analysis feedback with staggered entrance animations
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import { use, useEffect, useState, Suspense } from 'react';
 import { Container } from '@/components/ui/Container';

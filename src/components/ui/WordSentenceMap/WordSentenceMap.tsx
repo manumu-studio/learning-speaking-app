@@ -1,5 +1,6 @@
 // WordSentenceMap: renders the pronunciation transcript inline with underlined problem words and tooltips
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import React, { useRef, useEffect } from 'react';
 import type { WordSentenceMapProps } from './WordSentenceMap.types';

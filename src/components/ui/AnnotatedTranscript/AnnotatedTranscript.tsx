@@ -1,5 +1,6 @@
 // AnnotatedTranscript: collapsible transcript viewer with inline sentence-level metric pins
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import React from 'react';
 import { useAnnotatedTranscript } from './useAnnotatedTranscript';

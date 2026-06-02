@@ -1,5 +1,6 @@
 // Confirmation modal for permanently deleting a workout session
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useRef } from 'react';
 

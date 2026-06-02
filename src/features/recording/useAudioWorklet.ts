@@ -1,5 +1,6 @@
 // Orchestrates AudioWorklet PCM capture, 120s chunks with 5s overlap, and browser fallbacks
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {

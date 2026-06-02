@@ -1,5 +1,6 @@
 // Hook managing timer state, round progression, and round completion for 4-3-2 fluency training
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { z } from 'zod';

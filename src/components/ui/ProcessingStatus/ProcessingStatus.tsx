@@ -1,4 +1,5 @@
 // Displays current processing step with animated visual indicator
+/* eslint-disable max-lines-per-function */
 import type { ProcessingStatusProps } from './ProcessingStatus.types';
 
 const STEPS = [

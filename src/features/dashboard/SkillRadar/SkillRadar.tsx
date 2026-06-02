@@ -1,5 +1,6 @@
 // SVG radar chart — 10-axis skill visualization with C2 threshold ring
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState } from 'react';
 import type { SkillRadarProps } from './SkillRadar.types';

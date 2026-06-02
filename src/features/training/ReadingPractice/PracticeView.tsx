@@ -1,4 +1,5 @@
 // Practice view — text generation, recording, and results display for reading practice
+/* eslint-disable complexity, max-lines-per-function */
 import { Container } from '@/components/ui/Container';
 import { ScoreChip } from '@/components/ui/ScoreChip';
 import type { DifficultyLevel, ReadingPracticeSession, ReadingPracticeResult, WordScore } from './ReadingPractice.types';

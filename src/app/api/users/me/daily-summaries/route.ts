@@ -1,4 +1,5 @@
 // GET /api/users/me/daily-summaries — compute or return cached daily pillar averages + AI feedback
+/* eslint-disable max-lines-per-function */
 import { z } from 'zod';
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';

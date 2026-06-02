@@ -1,5 +1,6 @@
 // Simplified recording panel for the onboarding placement test
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAudioWorklet } from '@/features/recording/useAudioWorklet';

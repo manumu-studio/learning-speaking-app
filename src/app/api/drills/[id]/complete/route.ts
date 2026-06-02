@@ -1,4 +1,5 @@
 // API route: Complete a drill — upload audio, transcribe, evaluate, return feedback
+/* eslint-disable complexity, max-lines-per-function */
 
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';

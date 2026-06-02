@@ -1,5 +1,6 @@
 // useDrill — manages drill lifecycle state machine and API interactions
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';

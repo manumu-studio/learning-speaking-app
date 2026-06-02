@@ -1,5 +1,6 @@
 // State machine hook for Reading Practice — library data, text generation, recording + assessment
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';

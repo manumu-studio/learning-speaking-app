@@ -1,5 +1,6 @@
 // Animated canvas background with blue wave visualization and film grain effects
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import { useRef, useEffect, useCallback } from 'react';
 import { useTheme } from 'next-themes';

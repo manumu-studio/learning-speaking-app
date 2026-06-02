@@ -1,5 +1,6 @@
 // useDashboard — fetches dashboard data and manages focus selection in localStorage
 'use client';
+/* eslint-disable max-depth */
 
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';

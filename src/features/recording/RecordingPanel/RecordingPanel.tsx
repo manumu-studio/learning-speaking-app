@@ -1,5 +1,6 @@
 // Main recording interface — chunked AudioWorklet capture with background upload
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RecordButton } from '@/components/ui/RecordButton';

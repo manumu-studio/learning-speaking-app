@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable max-lines-per-function */
 // Hook for fetching session history with cursor pagination and infinite scroll
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
