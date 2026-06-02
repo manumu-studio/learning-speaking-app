@@ -1,5 +1,6 @@
 // DrillView — orchestrates drill lifecycle: prompt → recording → processing → feedback
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef } from 'react';

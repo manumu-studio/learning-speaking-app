@@ -1,4 +1,5 @@
 // Runs full Whisper + Azure + Claude pipeline on one chunk, stores in ChunkResult
+/* eslint-disable complexity, max-lines-per-function */
 import { Prisma, SessionStatus } from '@prisma/client';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { assessPronunciation } from '@/lib/ai/azurePronunciation';

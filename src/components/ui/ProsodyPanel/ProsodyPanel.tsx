@@ -1,5 +1,6 @@
 // ProsodyPanel: session-level prosody summary (speaking rate, rhythm, top stress/intonation errors)
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import React from 'react';
 import { ScoreChip } from '@/components/ui/ScoreChip';

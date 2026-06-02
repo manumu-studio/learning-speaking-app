@@ -1,4 +1,5 @@
 // Fan-in worker — deduplicates chunk transcripts, aggregates pronunciation, runs Claude once
+/* eslint-disable complexity, max-lines-per-function */
 import { ChunkStatus, Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';

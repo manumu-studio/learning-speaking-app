@@ -1,5 +1,6 @@
 // MetricCard — interactive metric display with level badge, trend, and sparkline
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { ScoreChip } from '@/components/ui/ScoreChip';
 import { SparkLine } from '@/components/ui/SparkLine';

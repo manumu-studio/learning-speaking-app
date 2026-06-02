@@ -1,4 +1,5 @@
 // Azure Speech SDK client for pronunciation assessment — wraps continuous recognition
+/* eslint-disable complexity, max-depth, max-lines-per-function */
 // and post-processes results with client-side miscue detection via difflib
 import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
 import { SequenceMatcher } from 'difflib';

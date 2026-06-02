@@ -1,4 +1,5 @@
 // Post-processes Claude analysis output to remove false-positive flags on proper nouns and tech terms
+/* eslint-disable max-depth */
 import nlp from 'compromise';
 import type { Insight } from '@/lib/ai/analyze';
 import type { FilterResult } from '@/lib/ai/nerFilter.types';

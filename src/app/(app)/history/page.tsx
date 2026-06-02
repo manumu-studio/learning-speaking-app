@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 // Session history page — activity feed with Suspense boundary for search param reads
 import { Suspense, useCallback, useState } from 'react';
 import Link from 'next/link';

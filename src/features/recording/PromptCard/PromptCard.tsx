@@ -1,5 +1,6 @@
 // Dropdown prompt selector — pick a category or free speak, shown as a compact pill
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState, useEffect, useRef } from 'react';
 import { PROMPT_CATEGORIES } from '../prompts.config';

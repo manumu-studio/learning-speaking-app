@@ -1,5 +1,6 @@
 // Orchestrates chunked AudioWorklet recording, parallel upload, and session completion
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';

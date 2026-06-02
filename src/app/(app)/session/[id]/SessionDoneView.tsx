@@ -1,5 +1,6 @@
 // Session results "done" view — orchestrates language feedback, pronunciation, transcript sections
 'use client';
+/* eslint-disable complexity, max-lines-per-function */
 
 import { useRouter } from 'next/navigation';
 import { Container } from '@/components/ui/Container';

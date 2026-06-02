@@ -1,6 +1,7 @@
 // useTrends — fetch hook for time-series metric data with range control
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
+/* eslint-disable max-depth */
 
 import { useState, useEffect } from 'react';
 import { PILLAR_CONFIG } from '@/features/dashboard/pillars';

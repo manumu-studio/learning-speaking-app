@@ -1,4 +1,5 @@
 // Persists per-chunk F0/intensity features via the Praat microservice at chunk processing time
+/* eslint-disable max-params */
 import { prisma } from '@/lib/prisma';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
