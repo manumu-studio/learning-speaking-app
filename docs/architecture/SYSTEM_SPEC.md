@@ -209,6 +209,29 @@ model PatternProfile {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@map("pattern_profiles")
 }
+
+model NaturalnessFlag {
+  id                 String          @id @default(cuid())
+  sessionId          String
+  userId             String
+  createdAt          DateTime        @default(now())
+  originalPhrase     String          @db.Text
+  suggestedPhrase    String          @db.Text
+  flagType           String          // false_friend | calqued_collocation | calqued_syntax | weak_collocation | style_note
+  dimension          String
+  confidence         String          // high | medium | low
+  collocationMetric  String?
+  metricValue        Float?
+  l1TransferSource   String?
+  rationale          String          @db.Text
+  shownToUser        Boolean         @default(false)
+  userFeedback       String?
+  session            SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([sessionId])
+  @@index([userId, createdAt])
+  @@map("naturalness_flags")
+}
 ```
 
 ## API Design
@@ -223,6 +246,7 @@ model PatternProfile {
 | POST | /api/dev/process | None (dev only) | Pipeline webhook (development, NODE_ENV check) |
 | POST | /api/launch/validate | None | QR token validation (launch mode) |
 | GET | /api/auth/federated-signout | Auth cookie | Clear local cookies + redirect to auth RP logout |
+| POST | /api/naturalness/:flagId/feedback | Yes | Submit user feedback on a naturalness flag |
 
 ## Access Control Modes
 
@@ -263,6 +287,7 @@ CREATED → UPLOADED → TRANSCRIBING → ANALYZING → DONE
    ├── Claude Haiku + structured prompt
    ├── Zod-validate JSON response
    ├── Store insights + focusNext
+   ├── Run calque detection (deterministic, 30 patterns) + merge with Claude naturalness flags → persist NaturalnessFlag rows
    ├── Update PatternProfile
    └── Status → DONE
 

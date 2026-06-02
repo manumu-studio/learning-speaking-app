@@ -18,6 +18,9 @@ import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 import { estimateCefr } from '@/lib/cefr/estimateCefr';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
+import { detectCalques } from '@/lib/naturalness/detectCalques';
+import { mergeNaturalnessFlags } from '@/lib/naturalness/confidenceGate';
+import { persistNaturalnessFlags } from '@/lib/pipeline/persistNaturalness';
 import { buildPronunciationSummary, parseWords, parsePronWords, invalidateDailySummary } from './processFinalHelpers';
 
 export { processParallelFinal } from './processParallelFinal';
@@ -131,6 +134,14 @@ async function persistAnalysisAndFinalize(opts: PersistAnalysisOptions): Promise
   }
 
   await detectVocabUsage(userId, sessionId, userTranscriptText);
+
+  // Naturalness detection: deterministic calques + Claude-flagged items → persist
+  const calqueFlags = detectCalques(userTranscriptText);
+  const claudeNaturalness = analysis.naturalness ?? [];
+  const mergedFlags = mergeNaturalnessFlags(calqueFlags, claudeNaturalness);
+  if (mergedFlags.length > 0) {
+    await persistNaturalnessFlags(userId, sessionId, mergedFlags);
+  }
 
   const totalDurationSecs = chunks.reduce(
     (sum, chunk, index) =>

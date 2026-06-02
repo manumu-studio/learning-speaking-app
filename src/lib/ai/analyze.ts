@@ -125,6 +125,17 @@ export const analysisResultSchema = z.object({
       note: z.string(),
     })
     .optional(),
+  naturalness: z
+    .array(
+      z.object({
+        original: z.string(),
+        suggested: z.string(),
+        dimension: z.string(),
+        rationale: z.string(),
+      }),
+    )
+    .max(5)
+    .optional(),
 });
 
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
