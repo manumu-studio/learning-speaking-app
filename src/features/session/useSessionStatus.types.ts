@@ -34,6 +34,22 @@ export type PronunciationReportDetail = {
   words: WordPronunciationDetail[];
 };
 
+/** A naturalness flag returned to the client from the session detail API. */
+export interface NaturalnessFlagDetail {
+  id: string;
+  originalPhrase: string;
+  suggestedPhrase: string;
+  flagType: 'false_friend' | 'calqued_collocation' | 'calqued_syntax' | 'weak_collocation' | 'style_note';
+  dimension: string;
+  confidence: 'high' | 'medium' | 'low';
+  collocationMetric: string | null;
+  metricValue: number | null;
+  l1TransferSource: string | null;
+  rationale: string;
+  shownToUser: boolean;
+  userFeedback: 'helpful' | 'false_positive' | null;
+}
+
 /**
  * Full session the client polls while processing — transcript and insights load when the server includes them.
  * Status values align with Prisma `SessionStatus`.
@@ -99,6 +115,7 @@ export interface SessionDetail {
     suggestions: Array<{ original: string; issue: string; alternative: string }>;
     note: string;
   } | null;
+  naturalness?: NaturalnessFlagDetail[];
   workoutNumber?: number;
 }
 

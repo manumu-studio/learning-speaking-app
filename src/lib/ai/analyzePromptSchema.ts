@@ -75,7 +75,15 @@ export const JSON_OUTPUT_SCHEMA = `Schema:
       { "original": "string", "issue": "string", "alternative": "string" }
     ],
     "note": "string"
-  }
+  },
+  "naturalness": [
+    {
+      "original": "string",
+      "suggested": "string",
+      "dimension": "collocation" | "discourse_marker" | "hedging" | "register" | "rhythm" | "given_new",
+      "rationale": "string"
+    }
+  ]
 }`;
 
 export const COT_INSTRUCTIONS = `Think step by step before producing JSON. Do NOT include your thinking in the output — only produce the final JSON object.
@@ -86,6 +94,7 @@ Step 3: Count word frequencies, identify overused content words, estimate TTR.
 Step 4: Scan for Spanish interference patterns (calques, false cognates, syntax).
 Step 5: Identify recurring grammar, vocabulary, and structure patterns.
 Step 6: Evaluate register appropriateness, hedging, and pragmatic competence.
-Step 7: Score all 8 metrics based on your observations above.
-Step 8: Write focusNext, summary, and intentLabel.
-Step 9: Produce the JSON output.`;
+Step 7: Identify unnatural-but-grammatical phrasing (naturalness issues beyond L1 interference and collocations).
+Step 8: Score all 8 metrics based on your observations above.
+Step 9: Write focusNext, summary, and intentLabel.
+Step 10: Produce the JSON output.`;

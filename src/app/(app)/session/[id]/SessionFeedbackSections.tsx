@@ -28,6 +28,7 @@ import { DrillRecommendation } from '@/features/training/DrillRecommendation';
 import type { DrillType } from '@/features/training/training.types';
 import type { PronunciationReport } from '@/components/ui/PronunciationSection';
 import { RegisterFeedback } from '@/features/session/RegisterFeedback';
+import { NaturalnessInsights } from '@/features/session/NaturalnessInsights';
 import { CategoryInsightsSection, groupInsightsByCategory, deriveVocabSuggestions } from './CategoryInsightsSection';
 import type { FocusComparison } from './sessionResults.helpers';
 import { pickWeakestMetric } from './sessionResults.helpers';
@@ -77,6 +78,19 @@ export function LanguageFeedbackSection({
               note={session.registerFeedback.note}
             />
           </CollapsibleSection>
+        )}
+        {session.naturalness && session.naturalness.length > 0 && (
+          <NaturalnessInsights
+            flags={session.naturalness}
+            animationDelay={480}
+            onFeedback={async (flagId, feedback) => {
+              await fetch(`/api/naturalness/${flagId}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedback }),
+              });
+            }}
+          />
         )}
         {focusComparison && (
           <FocusHighlight
