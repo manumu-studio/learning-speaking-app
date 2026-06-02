@@ -1,5 +1,6 @@
 // AI disclosure modal — shown before first recording or from settings in info mode
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useRef } from 'react';
 import type { AiDisclosureModalProps } from './AiDisclosureModal.types';

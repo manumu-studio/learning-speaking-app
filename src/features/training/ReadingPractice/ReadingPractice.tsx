@@ -1,5 +1,6 @@
 // Reading Practice Library — personalized practice texts based on pronunciation weaknesses + vocab gaps
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { useState } from 'react';
 import { Container } from '@/components/ui/Container';

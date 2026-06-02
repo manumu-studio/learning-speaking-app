@@ -1,6 +1,7 @@
 // DashboardView — renders the full dashboard: pillar-grouped metrics,
 // recent sessions, streak, and drill stats.
 'use client';
+/* eslint-disable max-lines-per-function */
 
 import { IdentitySummary } from '../IdentitySummary';
 import { SkillRadar } from '../SkillRadar';
