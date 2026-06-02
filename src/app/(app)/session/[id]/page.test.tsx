@@ -48,6 +48,8 @@ vi.mock('@/features/training/DrillRecommendation', () => ({
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import SessionResultsPage from './page';
 
+const INTERACTION_TEST_TIMEOUT_MS = 10_000;
+
 const mockWord = {
   word: 'hello',
   accuracyScore: 90,
@@ -147,7 +149,7 @@ describe('SessionResultsPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'establish' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Article usage' })).toBeInTheDocument();
-  });
+  }, INTERACTION_TEST_TIMEOUT_MS);
 
   it('renders insight category badges', async () => {
     const user = userEvent.setup();

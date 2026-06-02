@@ -1,5 +1,4 @@
 // Persists per-chunk F0/intensity features via the Praat microservice at chunk processing time
-/* eslint-disable max-params */
 import { prisma } from '@/lib/prisma';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
@@ -7,14 +6,23 @@ import { extractContour } from '@/lib/praat';
 import { computeChunkTimeRange } from '@/lib/pipeline/chunkTiming';
 import { generatePresignedGetUrl } from '@/lib/storage/r2';
 
-/** Extracts F0/intensity contour for a single chunk via the Praat microservice and persists it as a ChunkFeature row. */
-export async function extractChunkFeatures(
-  sessionId: string,
-  chunkIndex: number,
-  audioKey: string,
-  durationSecs: number,
-  overlapSecs: number,
-): Promise<void> {
+/** Input options for extracting F0/intensity chunk features. */
+export interface ExtractChunkFeaturesInput {
+  sessionId: string;
+  chunkIndex: number;
+  audioKey: string;
+  durationSecs: number;
+  overlapSecs: number;
+}
+
+/**
+ * Extracts F0/intensity contour for a single chunk via the Praat microservice and persists it as a ChunkFeature row.
+ *
+ * @param input - Session/chunk identifiers and audio timing metadata.
+ * @returns Resolves when the feature row is upserted, or immediately when Praat is not configured.
+ */
+export async function extractChunkFeatures(input: ExtractChunkFeaturesInput): Promise<void> {
+  const { sessionId, chunkIndex, audioKey, durationSecs, overlapSecs } = input;
   if (env.PRAAT_SERVICE_URL === undefined || env.PRAAT_API_KEY === undefined) {
     return;
   }

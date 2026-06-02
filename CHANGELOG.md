@@ -2,6 +2,13 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.60.1] — 2026-06-02
+
+- **refactor:** Removed all ESLint complexity-rule suppressions — the codebase now lints clean with `max-lines`, `max-lines-per-function`, `complexity`, `max-depth`, and `max-params` enforced as hard CI-blocking errors (zero inline `eslint-disable` overrides remain in `src/`)
+- **refactor:** Split 82 oversized files into 87 focused single-responsibility modules across library code, UI components, feature modules, API routes, and pages — 169 files touched in total
+- **refactor:** Extracted sub-components, custom hooks, helper utilities, query builders, view-model files, and schema modules while preserving every public API unchanged
+- **chore:** No behavior change — all 1,139 tests pass, `npx tsc --noEmit` clean, `npm run lint` clean
+
 ## [0.60.0] — 2026-06-01
 
 - **feat:** Prompt Library v2 — expanded from 28 to 60+ prompts with 6 format types (opinion, monologue, image, retell, summarize, impromptu) and C2-level content

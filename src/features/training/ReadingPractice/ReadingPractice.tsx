@@ -1,6 +1,5 @@
 // Reading Practice Library — personalized practice texts based on pronunciation weaknesses + vocab gaps
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { useState } from 'react';
 import { Container } from '@/components/ui/Container';
@@ -9,7 +8,7 @@ import { useReadingPractice } from './useReadingPractice';
 import { PracticeView } from './PracticeView';
 import { GlobalSummary } from './GlobalSummary';
 import { SessionCard } from './SessionCard';
-import type { ReadingPracticeSession } from './ReadingPractice.types';
+import type { ReadingPracticeLibraryData, ReadingPracticeSession } from './ReadingPractice.types';
 
 interface SessionDayGroup {
   dayLabel: string;
@@ -43,12 +42,7 @@ function groupByDay(sessions: ReadingPracticeSession[]): SessionDayGroup[] {
       else if (isSameDay(date, yesterday)) dayLabel = 'Yesterday';
       else dayLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-      map.set(dateKey, {
-        dayLabel,
-        dateKey,
-        isToday: isSameDay(date, today),
-        sessions: [session],
-      });
+      map.set(dateKey, { dayLabel, dateKey, isToday: isSameDay(date, today), sessions: [session] });
     }
   }
 
@@ -95,65 +89,83 @@ export function ReadingPractice() {
 
   return (
     <Container className="max-w-2xl py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Reading Practice
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Practice texts designed around your pronunciation weaknesses
-        </p>
-      </div>
-
-      {libraryLoading && (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
-          ))}
-        </div>
-      )}
-
-      {libraryError && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
-          <p className="text-sm text-amber-700 dark:text-amber-300">{libraryError}</p>
-        </div>
-      )}
-
+      <LibraryHeader />
+      {libraryLoading && <LibraryLoadingSkeleton />}
+      {libraryError && <LibraryError error={libraryError} />}
       {libraryData && !libraryLoading && (
-        <div className="space-y-8">
-          <GlobalSummary
-            phonemes={libraryData.globalWeaknesses.phonemes}
-            unadoptedVocab={libraryData.globalWeaknesses.unadoptedVocab}
-          />
-
-          {libraryData.sessions.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-6">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Practice by Session
-              </h2>
-              {groupByDay(libraryData.sessions).map((group) => (
-                <ReadingDayGroup
-                  key={group.dateKey}
-                  group={group}
-                  onSelect={selectSession}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <LibraryContent data={libraryData} onSelect={selectSession} />
       )}
     </Container>
   );
 }
 
-function ReadingDayGroup({
-  group,
-  onSelect,
-}: {
+// ---------------------------------------------------------------------------
+// Library view sub-components
+// ---------------------------------------------------------------------------
+
+function LibraryHeader() {
+  return (
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Reading Practice</h1>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        Practice texts designed around your pronunciation weaknesses
+      </p>
+    </div>
+  );
+}
+
+function LibraryLoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="h-28 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+      ))}
+    </div>
+  );
+}
+
+function LibraryError({ error }: { error: string }) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+      <p className="text-sm text-amber-700 dark:text-amber-300">{error}</p>
+    </div>
+  );
+}
+
+interface LibraryContentProps {
+  data: ReadingPracticeLibraryData;
+  onSelect: (session: ReadingPracticeSession) => void;
+}
+
+function LibraryContent({ data, onSelect }: LibraryContentProps) {
+  return (
+    <div className="space-y-8">
+      <GlobalSummary
+        phonemes={data.globalWeaknesses.phonemes}
+        unadoptedVocab={data.globalWeaknesses.unadoptedVocab}
+      />
+      {data.sessions.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="space-y-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Practice by Session
+          </h2>
+          {groupByDay(data.sessions).map((group) => (
+            <ReadingDayGroup key={group.dateKey} group={group} onSelect={onSelect} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ReadingDayGroupProps {
   group: SessionDayGroup;
   onSelect: (session: ReadingPracticeSession) => void;
-}) {
+}
+
+function ReadingDayGroup({ group, onSelect }: ReadingDayGroupProps) {
   const [expanded, setExpanded] = useState(group.isToday);
   const count = group.sessions.length;
   const countLabel = count === 1 ? '1 session' : `${count} sessions`;

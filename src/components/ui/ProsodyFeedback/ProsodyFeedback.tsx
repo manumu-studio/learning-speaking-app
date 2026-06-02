@@ -1,10 +1,9 @@
 // ProsodyFeedback — coach-style prosody section with plain-English tips per issue
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import React from 'react';
 import { mapAzureScoreToDisplay } from '@/components/ui/PronunciationSection';
-import type { ProsodyFeedbackProps } from './ProsodyFeedback.types';
+import type { ProsodyFeedbackProps, ProsodyIssueItemProps } from './ProsodyFeedback.types';
 import type { ProsodyIssueType } from './ProsodyFeedback.types';
 import { useProsodyFeedback } from './useProsodyFeedback';
 
@@ -26,14 +25,37 @@ const ISSUE_STYLE: Record<ProsodyIssueType, { icon: string; label: string; badge
   },
 };
 
+// Single prosody issue row with badge and coaching tip
+function ProsodyIssueItem({ issue }: ProsodyIssueItemProps) {
+  const style = ISSUE_STYLE[issue.type];
+  return (
+    <li className="flex items-start gap-3 rounded-lg border border-violet-100 bg-white/60 px-3 py-2.5 dark:border-violet-800 dark:bg-violet-950/30">
+      <span
+        className={[
+          'inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+          style.badgeClass,
+        ].join(' ')}
+        aria-label={`${style.label} issue`}
+      >
+        <span aria-hidden>{style.icon}</span>
+        {style.label}
+      </span>
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">
+          &ldquo;{issue.word}&rdquo;
+        </span>
+        <span className="text-xs text-gray-600 dark:text-gray-400">{issue.tip}</span>
+      </div>
+    </li>
+  );
+}
+
 export function ProsodyFeedback({
   words,
   prosodyScore,
   animationDelay,
 }: ProsodyFeedbackProps): React.JSX.Element {
-  const { topIssues, totalIssueCount, coachingSummary, hasIssues } =
-    useProsodyFeedback(words);
-
+  const { topIssues, totalIssueCount, coachingSummary, hasIssues } = useProsodyFeedback(words);
   const displayScore = mapAzureScoreToDisplay(prosodyScore);
 
   return (
@@ -50,7 +72,7 @@ export function ProsodyFeedback({
           id="prosody-feedback-heading"
           className="text-sm font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200"
         >
-          Rhythm & Intonation
+          Rhythm &amp; Intonation
         </h3>
         <div className="flex flex-col items-end">
           <span className="text-2xl font-bold text-violet-700 dark:text-violet-300">
@@ -68,34 +90,9 @@ export function ProsodyFeedback({
 
       {hasIssues && (
         <ul className="space-y-2" aria-label="Prosody coaching tips">
-          {topIssues.map((issue) => {
-            const style = ISSUE_STYLE[issue.type];
-            return (
-              <li
-                key={`${issue.word}-${issue.index}`}
-                className="flex items-start gap-3 rounded-lg border border-violet-100 bg-white/60 px-3 py-2.5 dark:border-violet-800 dark:bg-violet-950/30"
-              >
-                <span
-                  className={[
-                    'inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
-                    style.badgeClass,
-                  ].join(' ')}
-                  aria-label={`${style.label} issue`}
-                >
-                  <span aria-hidden>{style.icon}</span>
-                  {style.label}
-                </span>
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">
-                    &ldquo;{issue.word}&rdquo;
-                  </span>
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
-                    {issue.tip}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
+          {topIssues.map((issue) => (
+            <ProsodyIssueItem key={`${issue.word}-${issue.index}`} issue={issue} />
+          ))}
         </ul>
       )}
 

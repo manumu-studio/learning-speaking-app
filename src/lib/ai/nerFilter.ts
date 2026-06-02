@@ -1,5 +1,4 @@
 // Post-processes Claude analysis output to remove false-positive flags on proper nouns and tech terms
-/* eslint-disable max-depth */
 import nlp from 'compromise';
 import type { Insight } from '@/lib/ai/analyze';
 import type { FilterResult } from '@/lib/ai/nerFilter.types';
@@ -111,22 +110,21 @@ const STOPWORDS = new Set([
   'home',
 ]);
 
-function extractCandidateWords(insight: Insight): string[] {
-  const candidates = new Set<string>();
+function tokenToCandidate(token: string): string | null {
+  const cleaned = token.replace(/[^a-zA-Z0-9]/g, '');
+  const lower = cleaned.toLowerCase();
+  return cleaned.length > 2 && !STOPWORDS.has(lower) ? cleaned : null;
+}
 
-  if (insight.examples != null) {
-    for (const example of insight.examples) {
-      const tokens = example.split(/\s+/);
-      for (const token of tokens) {
-        const cleaned = token.replace(/[^a-zA-Z0-9]/g, '');
-        const lower = cleaned.toLowerCase();
-        if (cleaned.length > 2 && !STOPWORDS.has(lower)) {
-          candidates.add(cleaned);
-        }
-      }
+function extractCandidateWords(insight: Insight): string[] {
+  if (insight.examples == null) return [];
+  const candidates = new Set<string>();
+  for (const example of insight.examples) {
+    for (const token of example.split(/\s+/)) {
+      const candidate = tokenToCandidate(token);
+      if (candidate !== null) candidates.add(candidate);
     }
   }
-
   return [...candidates].filter((w) => w.length > 0);
 }
 

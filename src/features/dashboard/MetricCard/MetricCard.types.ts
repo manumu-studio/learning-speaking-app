@@ -17,3 +17,18 @@ export interface MetricCardProps {
   /** Optional pitch contour mini-preview (prosody card) */
   pitchPreview?: number[] | undefined;
 }
+
+export interface MetricCardHeaderProps {
+  label: string;
+  currentScore: number;
+  trend: TrendDirection;
+  lastTrainedToday?: boolean | undefined;
+}
+
+export interface MetricCardPitchPreviewProps {
+  pitchPreview?: number[] | undefined;
+}
+
+export interface MetricCardDrillBadgeProps {
+  drillCount: number;
+}

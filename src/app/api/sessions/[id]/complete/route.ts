@@ -1,5 +1,4 @@
 // Marks a chunked session complete and sets expected chunk count for fan-in
-/* eslint-disable complexity */
 import { auth } from '@/features/auth/auth';
 import { prisma } from '@/lib/prisma';
 import { findOrCreateUser } from '@/lib/db-utils';
@@ -7,10 +6,9 @@ import { errorResponse, successResponse } from '@/lib/api';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 import { withObservability } from '@/lib/observability';
 import type pino from 'pino';
-import { ChunkStatus, SessionStatus } from '@prisma/client';
-import { maybeEnqueueFinalProcessing } from '@/lib/pipeline/processChunk';
-import { enqueueFinalProcessing } from '@/lib/queue/qstash';
+import { SessionStatus } from '@prisma/client';
 import { z } from 'zod';
+import { isAlreadyFinalized, handleParallelChunks, handleSequentialChunks } from './completeHelpers';
 
 const completeBodySchema = z.object({
   chunkCount: z.number().int().min(1),
@@ -57,16 +55,9 @@ async function postHandler(
     return errorResponse('Recording must be at least 45 seconds', 'VALIDATION_ERROR', 400);
   }
 
-  if (
-    speakingSession.status === SessionStatus.DONE ||
-    speakingSession.status === SessionStatus.FAILED
-  ) {
+  if (isAlreadyFinalized(speakingSession.status)) {
     return successResponse({ sessionId, chunkCount, status: 'already_finalized' });
   }
-
-  const parallelChunkCount = await prisma.chunkResult.count({
-    where: { sessionId },
-  });
 
   await prisma.speakingSession.update({
     where: { id: sessionId },
@@ -77,43 +68,13 @@ async function postHandler(
     },
   });
 
+  const parallelChunkCount = await prisma.chunkResult.count({ where: { sessionId } });
+
   if (parallelChunkCount > 0) {
-    await prisma.speakingSession.update({
-      where: { id: sessionId },
-      data: { status: SessionStatus.AWAITING_FINAL },
-    });
-
-    const claimed = await prisma.speakingSession.updateMany({
-      where: { id: sessionId, status: SessionStatus.AWAITING_FINAL },
-      data: { status: SessionStatus.PROCESSING_FINAL },
-    });
-
-    if (claimed.count > 0) {
-      await enqueueFinalProcessing(sessionId);
-    }
-
-    return successResponse({
-      sessionId,
-      chunkCount,
-      status: 'finalizing',
-      estimatedWaitSecs: 20,
-    });
+    return handleParallelChunks({ sessionId, chunkCount });
   }
 
-  const doneCount = await prisma.sessionChunk.count({
-    where: { sessionId, status: ChunkStatus.CHUNK_DONE },
-  });
-
-  if (doneCount === chunkCount) {
-    await maybeEnqueueFinalProcessing(sessionId);
-  }
-
-  return successResponse({
-    sessionId,
-    chunkCount,
-    status: doneCount === chunkCount ? 'finalizing' : 'processing',
-    estimatedWaitSecs: 30,
-  });
+  return handleSequentialChunks({ sessionId, chunkCount });
 }
 
 export const POST = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>

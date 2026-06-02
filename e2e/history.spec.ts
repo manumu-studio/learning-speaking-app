@@ -6,10 +6,12 @@ import {
   seedCompletedSession,
   seedDeletableSession,
 } from './fixtures/seed';
+import { gotoAppPage } from './navigation';
+import { e2eTimeout } from './timeouts';
 
 test.describe('History', () => {
   test('history page renders heading and resolves content', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/history');
+    await gotoAppPage(authenticatedPage, '/history');
     await expect(authenticatedPage).toHaveURL(/\/history/);
     await expect(
       authenticatedPage.getByRole('heading', { name: /activity/i }),
@@ -19,10 +21,10 @@ test.describe('History', () => {
   test('clicking a session entry navigates to detail when history has items', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/history');
+    await gotoAppPage(authenticatedPage, '/history');
     const list = authenticatedPage.getByRole('list', { name: /speaking sessions/i });
     const firstLink = list.getByRole('link').first();
-    if (await firstLink.isVisible({ timeout: 15000 }).catch(() => false)) {
+    if (await firstLink.isVisible({ timeout: e2eTimeout(15_000) }).catch(() => false)) {
       await firstLink.click();
       await expect(authenticatedPage).toHaveURL(/\/session\/[a-f0-9-]+$/i);
     }
@@ -41,10 +43,9 @@ test.describe('history with seeded session', () => {
   });
 
   test('session list shows seeded session with intent label', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/history');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await gotoAppPage(authenticatedPage, '/history');
     await expect(authenticatedPage.getByText(/describing test scenarios/i)).toBeVisible({
-      timeout: 20_000,
+      timeout: e2eTimeout(20_000),
     });
   });
 });
@@ -64,12 +65,11 @@ test.describe('history delete flow', () => {
   test('delete button appears on hover and opens confirmation modal', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/history');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await gotoAppPage(authenticatedPage, '/history');
 
     // Wait for the seeded session to appear
     const sessionLabel = authenticatedPage.getByText('session to be deleted', { exact: true });
-    await expect(sessionLabel).toBeVisible({ timeout: 20_000 });
+    await expect(sessionLabel).toBeVisible({ timeout: e2eTimeout(20_000) });
 
     // Hover the session card to reveal delete button (card has .group class)
     const cardContainer = authenticatedPage.locator('.group', { hasText: 'session to be deleted' }).first();
@@ -79,7 +79,7 @@ test.describe('history delete flow', () => {
     const deleteButton = cardContainer.getByRole('button', {
       name: /delete session/i,
     });
-    await expect(deleteButton).toBeVisible({ timeout: 5_000 });
+    await expect(deleteButton).toBeVisible({ timeout: e2eTimeout(5_000) });
 
     // Click delete to open modal
     await deleteButton.click();
@@ -98,12 +98,11 @@ test.describe('history delete flow', () => {
   });
 
   test('confirming delete removes session and shows toast', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/history');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await gotoAppPage(authenticatedPage, '/history');
 
     // Wait for the seeded session to appear
     const sessionLabel = authenticatedPage.getByText('session to be deleted', { exact: true });
-    await expect(sessionLabel).toBeVisible({ timeout: 20_000 });
+    await expect(sessionLabel).toBeVisible({ timeout: e2eTimeout(20_000) });
 
     // Hover to reveal and click delete — scoped to the correct card
     const cardContainer = authenticatedPage.locator('.group', { hasText: 'session to be deleted' }).first();
@@ -112,7 +111,7 @@ test.describe('history delete flow', () => {
     const deleteButton = cardContainer.getByRole('button', {
       name: /delete session/i,
     });
-    await expect(deleteButton).toBeVisible({ timeout: 5_000 });
+    await expect(deleteButton).toBeVisible({ timeout: e2eTimeout(5_000) });
     await deleteButton.click();
 
     // Confirm deletion in modal
@@ -121,14 +120,14 @@ test.describe('history delete flow', () => {
     await modal.getByRole('button', { name: 'Delete', exact: true }).click();
 
     // Wait for modal to close (confirms API completed successfully)
-    await expect(modal).toBeHidden({ timeout: 30_000 });
+    await expect(modal).toBeHidden({ timeout: e2eTimeout(30_000) });
 
     // Session removed from list
-    await expect(sessionLabel).toBeHidden({ timeout: 10_000 });
+    await expect(sessionLabel).toBeHidden({ timeout: e2eTimeout(10_000) });
 
     // Toast notification appears
     await expect(authenticatedPage.getByText('Session deleted', { exact: true })).toBeVisible({
-      timeout: 10_000,
+      timeout: e2eTimeout(10_000),
     });
   });
 });

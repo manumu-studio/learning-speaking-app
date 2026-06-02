@@ -67,3 +67,19 @@ export interface ReadingPracticeResult {
 }
 
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+
+// --- PracticeView props ---
+
+export interface PracticeViewProps {
+  session: ReadingPracticeSession;
+  practiceState: ReadingPracticeState;
+  generatedText: GeneratedText | null;
+  difficulty: DifficultyLevel;
+  error: string | null;
+  result: ReadingPracticeResult | null;
+  recordingDuration: number;
+  onGenerate: (level: DifficultyLevel) => void;
+  onStartRecording: () => Promise<void>;
+  onStopRecording: () => Promise<void>;
+  onBack: () => void;
+}

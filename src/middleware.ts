@@ -1,9 +1,9 @@
 // API rate limiting + security headers (CSP, framing, permissions) for matched routes
-/* eslint-disable complexity */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getRateLimiter } from '@/lib/rateLimit';
 import { env } from '@/lib/env';
+import { resolveRateLimitIdentifier, checkRateLimit } from '@/middlewareHelpers';
 
 // CSP with auth URL from environment
 const CSP_HEADER = [
@@ -42,18 +42,23 @@ function nextWithPathname(request: NextRequest): NextResponse {
   return applySecurityHeaders(response);
 }
 
-export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  const isRateLimitedApi =
+/** Returns true when the pathname is an API route subject to rate-limiting. */
+function isRateLimitedPath(pathname: string): boolean {
+  return (
     pathname.startsWith('/api/') &&
     !pathname.startsWith('/api/auth/') &&
-    !pathname.startsWith('/api/health');
+    !pathname.startsWith('/api/health')
+  );
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
   if (process.env.E2E_TEST_USER === 'true' && process.env.NODE_ENV !== 'production') {
     return nextWithPathname(request);
   }
 
-  if (!isRateLimitedApi) {
+  if (!isRateLimitedPath(pathname)) {
     return nextWithPathname(request);
   }
 
@@ -62,24 +67,10 @@ export async function middleware(request: NextRequest) {
     return nextWithPathname(request);
   }
 
-  const token =
-    request.cookies.get('authjs.session-token')?.value ??
-    request.cookies.get('__Secure-authjs.session-token')?.value;
+  const identifier = resolveRateLimitIdentifier(request);
+  const allowed = await checkRateLimit(rateLimiter, identifier);
 
-  let identifier: string;
-  if (token) {
-    identifier = `user:${token.slice(-16)}`;
-  } else {
-    identifier = `ip:${request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'}`;
-  }
-
-  let success = true;
-  try {
-    ({ success } = await rateLimiter.limit(identifier));
-  } catch {
-    return nextWithPathname(request);
-  }
-  if (!success) {
+  if (!allowed) {
     return applySecurityHeaders(
       NextResponse.json(
         { error: 'Too many requests', code: 'RATE_LIMITED' },

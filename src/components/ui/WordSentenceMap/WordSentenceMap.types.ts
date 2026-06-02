@@ -23,6 +23,13 @@ export interface WordSentenceMapProps {
   animationDelay: number;
 }
 
+export interface WordTokenProps {
+  annotatedWord: AnnotatedWord;
+  isOpen: boolean;
+  onOpen: (index: number) => void;
+  onClose: () => void;
+}
+
 /** Zod schema for validating the words array at the component boundary */
 export const WordSentenceMapWordsSchema = z.array(
   z.object({

@@ -1,5 +1,4 @@
 // Azure Speech SDK client for pronunciation assessment — wraps continuous recognition
-/* eslint-disable complexity, max-depth, max-lines-per-function */
 // and post-processes results with client-side miscue detection via difflib
 import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
 import { SequenceMatcher } from 'difflib';
@@ -20,18 +19,25 @@ function toWordErrorType(raw: string | undefined): WordErrorType {
   return isWordErrorType(candidate) ? candidate : 'None';
 }
 
+interface SdkNBestPhoneme {
+  Phoneme?: string;
+  Score?: number;
+}
+
+interface SdkPhonemeDetail {
+  Phoneme?: string;
+  PronunciationAssessment?: {
+    AccuracyScore?: number;
+    NBestPhonemes?: SdkNBestPhoneme[];
+  };
+}
+
 interface SdkWordDetail {
   Word: string;
   Display?: string;
   Offset?: number;
   Duration?: number;
-  Phonemes?: Array<{
-    Phoneme?: string;
-    PronunciationAssessment?: {
-      AccuracyScore?: number;
-      NBestPhonemes?: Array<{ Phoneme?: string; Score?: number }>;
-    };
-  }>;
+  Phonemes?: SdkPhonemeDetail[];
   PronunciationAssessment?: {
     AccuracyScore?: number;
     ErrorType?: string;
@@ -45,6 +51,98 @@ interface SdkWordDetail {
       };
     };
   };
+}
+
+// ---------------------------------------------------------------------------
+// SDK phoneme / prosody helpers (extracted to keep assessPronunciation short)
+// ---------------------------------------------------------------------------
+
+type SdkProsodyRaw = NonNullable<NonNullable<NonNullable<SdkWordDetail['PronunciationAssessment']>['Feedback']>['Prosody']>;
+
+function mapPhoneme(p: SdkPhonemeDetail): PhonemeResult {
+  const nBestRaw = p.PronunciationAssessment?.NBestPhonemes;
+  const result: PhonemeResult = {
+    phoneme: p.Phoneme ?? '',
+    accuracyScore: p.PronunciationAssessment?.AccuracyScore ?? 0,
+  };
+  if (nBestRaw !== undefined) {
+    result.nBest = nBestRaw.map((nb) => ({
+      phoneme: nb.Phoneme ?? '',
+      score: nb.Score ?? 0,
+    }));
+  }
+  return result;
+}
+
+function buildProsodyFeedback(
+  prosodyRaw: SdkProsodyRaw | undefined,
+): ProsodyFeedback | undefined {
+  if (prosodyRaw === undefined) return undefined;
+  const base: ProsodyFeedback = {
+    breakErrorTypes: (prosodyRaw.Break?.ErrorTypes ?? []).filter((t) => t !== 'None'),
+    breakLengthMs: prosodyRaw.Break?.BreakLength ?? 0,
+    intonationErrorTypes: (prosodyRaw.Intonation?.ErrorTypes ?? []).filter((t) => t !== 'None'),
+  };
+  const pitchDelta = prosodyRaw.Intonation?.MonotoneSyllablePitchDeltaConfidence;
+  if (pitchDelta !== undefined) {
+    return { ...base, monotoneSyllablePitchDeltaConfidence: pitchDelta };
+  }
+  return base;
+}
+
+function sdkWordToWordResult(word: SdkWordDetail): WordResult {
+  const phonemes = (word.Phonemes ?? []).map(mapPhoneme);
+  const prosodyFeedback = buildProsodyFeedback(word.PronunciationAssessment?.Feedback?.Prosody);
+  const result: WordResult = {
+    word: word.Word,
+    accuracyScore: word.PronunciationAssessment?.AccuracyScore ?? 0,
+    errorType: toWordErrorType(word.PronunciationAssessment?.ErrorType),
+    offsetMs: (word.Offset ?? 0) / 10_000,
+    durationMs: (word.Duration ?? 0) / 10_000,
+    phonemes,
+  };
+  if (word.Display !== undefined) result.display = word.Display;
+  if (prosodyFeedback !== undefined) result.prosodyFeedback = prosodyFeedback;
+  return result;
+}
+
+function collectWordsFromEvent(
+  event: sdk.SpeechRecognitionEventArgs,
+  utterances: unknown[],
+): WordResult[] {
+  if (event.result.reason !== sdk.ResultReason.RecognizedSpeech) return [];
+  const assessment = sdk.PronunciationAssessmentResult.fromResult(event.result);
+  utterances.push(event.result);
+  const rawWords: unknown = assessment.detailResult.Words;
+  const sdkWords: SdkWordDetail[] = Array.isArray(rawWords) ? rawWords : [];
+  return sdkWords.map(sdkWordToWordResult);
+}
+
+function buildRecognizer(
+  wavBuffer: Buffer,
+  referenceText: string,
+  azureKey: string,
+  azureRegion: string,
+): sdk.SpeechRecognizer {
+  const speechConfig = sdk.SpeechConfig.fromSubscription(azureKey, azureRegion);
+  speechConfig.speechRecognitionLanguage = 'en-US';
+  const pushStream = sdk.AudioInputStream.createPushStream();
+  const arrayBuffer = new ArrayBuffer(wavBuffer.byteLength);
+  new Uint8Array(arrayBuffer).set(wavBuffer);
+  pushStream.write(arrayBuffer);
+  pushStream.close();
+  const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
+  const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
+    referenceText,
+    sdk.PronunciationAssessmentGradingSystem.HundredMark,
+    sdk.PronunciationAssessmentGranularity.Phoneme,
+    false,
+  );
+  pronunciationConfig.enableProsodyAssessment = true;
+  pronunciationConfig.nbestPhonemeCount = 5;
+  const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
+  pronunciationConfig.applyTo(recognizer);
+  return recognizer;
 }
 
 /**
@@ -66,90 +164,15 @@ export async function assessPronunciation(
   azureKey: string,
   azureRegion: string,
 ): Promise<PronunciationResult> {
-  const speechConfig = sdk.SpeechConfig.fromSubscription(azureKey, azureRegion);
-  speechConfig.speechRecognitionLanguage = 'en-US';
-
-  // PushAudioInputStream.write requires ArrayBuffer — copy into a fresh ArrayBuffer
-  // (wavBuffer.buffer may be a SharedArrayBuffer, which write() does not accept)
-  const pushStream = sdk.AudioInputStream.createPushStream();
-  const arrayBuffer = new ArrayBuffer(wavBuffer.byteLength);
-  new Uint8Array(arrayBuffer).set(wavBuffer);
-  pushStream.write(arrayBuffer);
-  pushStream.close();
-
-  const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
-
-  const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
-    referenceText,
-    sdk.PronunciationAssessmentGradingSystem.HundredMark,
-    sdk.PronunciationAssessmentGranularity.Phoneme,
-    false, // enableMiscue -- handled client-side via difflib
-  );
-
-  // enableProsodyAssessment is a setter in the SDK type, not a method
-  pronunciationConfig.enableProsodyAssessment = true;
-
-  // Set NBest phoneme count directly via the setter (available since SDK 1.20.0)
-  pronunciationConfig.nbestPhonemeCount = 5;
-
-  const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
-  pronunciationConfig.applyTo(recognizer);
+  const recognizer = buildRecognizer(wavBuffer, referenceText, azureKey, azureRegion);
 
   return new Promise<PronunciationResult>((resolve, reject) => {
     const utterances: unknown[] = [];
     const allWords: WordResult[] = [];
 
     recognizer.recognized = (_sender, event) => {
-      if (event.result.reason !== sdk.ResultReason.RecognizedSpeech) return;
-
-      const assessment = sdk.PronunciationAssessmentResult.fromResult(event.result);
-      utterances.push(event.result);
-
-      // Azure SDK types omit runtime fields (Offset, Duration, Feedback) — bridge via unknown
-      const rawWords: unknown = assessment.detailResult.Words;
-      const sdkWords: SdkWordDetail[] = Array.isArray(rawWords) ? rawWords : [];
-
-      for (const word of sdkWords) {
-        const phonemes: PhonemeResult[] = (word.Phonemes ?? []).map((p) => {
-          const nBestRaw = p.PronunciationAssessment?.NBestPhonemes;
-          const phonemeResult: PhonemeResult = {
-            phoneme: p.Phoneme ?? '',
-            accuracyScore: p.PronunciationAssessment?.AccuracyScore ?? 0,
-          };
-          if (nBestRaw !== undefined) {
-            phonemeResult.nBest = nBestRaw.map((nb) => ({
-              phoneme: nb.Phoneme ?? '',
-              score: nb.Score ?? 0,
-            }));
-          }
-          return phonemeResult;
-        });
-
-        const prosodyRaw = word.PronunciationAssessment?.Feedback?.Prosody;
-        const prosodyFeedback: ProsodyFeedback | undefined = prosodyRaw
-          ? {
-              breakErrorTypes: (prosodyRaw.Break?.ErrorTypes ?? []).filter(t => t !== 'None'),
-              breakLengthMs: prosodyRaw.Break?.BreakLength ?? 0,
-              intonationErrorTypes: (prosodyRaw.Intonation?.ErrorTypes ?? []).filter(t => t !== 'None'),
-              ...(prosodyRaw.Intonation?.MonotoneSyllablePitchDeltaConfidence !== undefined
-                ? { monotoneSyllablePitchDeltaConfidence: prosodyRaw.Intonation.MonotoneSyllablePitchDeltaConfidence }
-                : {}),
-            }
-          : undefined;
-
-        const wordResult: WordResult = {
-          word: word.Word,
-          ...(word.Display !== undefined ? { display: word.Display } : {}),
-          accuracyScore: word.PronunciationAssessment?.AccuracyScore ?? 0,
-          errorType: toWordErrorType(word.PronunciationAssessment?.ErrorType),
-          offsetMs: (word.Offset ?? 0) / 10_000, // 100ns ticks to ms
-          durationMs: (word.Duration ?? 0) / 10_000,
-          phonemes,
-          ...(prosodyFeedback !== undefined ? { prosodyFeedback } : {}),
-        };
-
-        allWords.push(wordResult);
-      }
+      const words = collectWordsFromEvent(event, utterances);
+      allWords.push(...words);
     };
 
     recognizer.sessionStopped = () => {
@@ -177,99 +200,115 @@ export async function assessPronunciation(
   });
 }
 
-function aggregateResults(
+// ---------------------------------------------------------------------------
+// Miscue detection helpers
+// ---------------------------------------------------------------------------
+
+function applyInsertionTags(taggedWords: WordResult[], j1: number, j2: number): void {
+  for (let j = j1; j < j2; j++) {
+    const existing = taggedWords[j];
+    if (existing) taggedWords[j] = { ...existing, errorType: 'Insertion' };
+  }
+}
+
+function applyMispronunciationTags(taggedWords: WordResult[], j1: number, j2: number): void {
+  for (let j = j1; j < j2; j++) {
+    const existing = taggedWords[j];
+    if (existing?.errorType === 'None') {
+      taggedWords[j] = { ...existing, errorType: 'Mispronunciation' };
+    }
+  }
+}
+
+function buildOmissions(refWords: string[], opcodes: [string, number, number, number, number][]): WordResult[] {
+  const omissions: WordResult[] = [];
+  for (const [tag, i1, i2] of opcodes) {
+    if (tag !== 'delete') continue;
+    for (let i = i1; i < i2; i++) {
+      omissions.push({
+        word: refWords[i] ?? '',
+        accuracyScore: 0,
+        errorType: 'Omission',
+        offsetMs: 0,
+        durationMs: 0,
+        phonemes: [],
+      });
+    }
+  }
+  return omissions;
+}
+
+function applyMiscueTags(
   words: WordResult[],
-  rawUtterances: unknown[],
-  referenceText: string,
-): PronunciationResult {
-  // Client-side miscue detection via difflib
-  const refWords = referenceText.toLowerCase().split(/\s+/).filter(Boolean);
+  refWords: string[],
+): { taggedWords: WordResult[]; omissions: WordResult[] } {
   const recWords = words.map((w) => w.word.toLowerCase());
-
-  // SequenceMatcher produces opcodes: equal / replace / delete / insert
-  // 'delete' in ref = Omission, 'insert' in recognized = Insertion
   const matcher = new SequenceMatcher(null, refWords, recWords);
-  const opcodes = matcher.getOpcodes();
-
+  const opcodes = matcher.getOpcodes() as [string, number, number, number, number][];
   const taggedWords: WordResult[] = words.map((w) => ({ ...w }));
 
   for (const [tag, , , j1, j2] of opcodes) {
-    if (tag === 'insert') {
-      for (let j = j1; j < j2; j++) {
-        const existing = taggedWords[j];
-        if (existing) {
-          const updated: WordResult = { ...existing, errorType: 'Insertion' };
-          taggedWords[j] = updated;
-        }
-      }
-    }
-    if (tag === 'replace') {
-      for (let j = j1; j < j2; j++) {
-        const existing = taggedWords[j];
-        if (existing && existing.errorType === 'None') {
-          const updated: WordResult = { ...existing, errorType: 'Mispronunciation' };
-          taggedWords[j] = updated;
-        }
-      }
-    }
+    if (tag === 'insert') applyInsertionTags(taggedWords, j1, j2);
+    if (tag === 'replace') applyMispronunciationTags(taggedWords, j1, j2);
   }
 
-  // Omissions: reference words with no match get synthetic entries
-  const omissions: WordResult[] = [];
-  for (const [tag, i1, i2] of opcodes) {
-    if (tag === 'delete') {
-      for (let i = i1; i < i2; i++) {
-        omissions.push({
-          word: refWords[i] ?? '',
-          accuracyScore: 0,
-          errorType: 'Omission',
-          offsetMs: 0,
-          durationMs: 0,
-          phonemes: [],
-        });
-      }
-    }
-  }
+  return { taggedWords, omissions: buildOmissions(refWords, opcodes) };
+}
 
-  const finalWords = [...taggedWords, ...omissions];
+// ---------------------------------------------------------------------------
+// Score aggregation helpers
+// ---------------------------------------------------------------------------
 
-  // Aggregate scores
+function computeProsodyScore(taggedWords: WordResult[]): number {
+  const prosodyWords = taggedWords.filter((w) => w.prosodyFeedback !== undefined);
+  if (prosodyWords.length === 0) return 50;
+  const sum = prosodyWords.reduce((acc, w) => {
+    const delta = w.prosodyFeedback?.monotoneSyllablePitchDeltaConfidence ?? 0.5;
+    return acc + delta * 100;
+  }, 0);
+  return sum / prosodyWords.length;
+}
+
+function computeScores(
+  taggedWords: WordResult[],
+  refWords: string[],
+): { accuracy: number; completeness: number; fluency: number; prosody: number } {
   const validWords = taggedWords.filter((w) => w.errorType !== 'Insertion');
   const accuracy =
     validWords.length > 0
       ? validWords.reduce((sum, w) => sum + w.accuracyScore, 0) / validWords.length
       : 0;
-
   const completeness =
-    refWords.length > 0
-      ? Math.min(100, (validWords.length / refWords.length) * 100)
-      : 0;
-
-  // Fluency: ratio of speech duration to total duration (simplified without silence gap data)
+    refWords.length > 0 ? Math.min(100, (validWords.length / refWords.length) * 100) : 0;
   const totalDurationMs = taggedWords.reduce((sum, w) => sum + w.durationMs, 0);
   const speechDurationMs = validWords.reduce((sum, w) => sum + w.durationMs, 0);
-  const fluency =
-    totalDurationMs > 0 ? Math.min(100, (speechDurationMs / totalDurationMs) * 100) : 0;
+  const fluency = totalDurationMs > 0 ? Math.min(100, (speechDurationMs / totalDurationMs) * 100) : 0;
+  const prosody = computeProsodyScore(taggedWords);
+  return { accuracy, completeness, fluency, prosody };
+}
 
-  const prosodyWords = taggedWords.filter((w) => w.prosodyFeedback !== undefined);
-  const prosody =
-    prosodyWords.length > 0
-      ? prosodyWords.reduce((sum, w) => {
-          const delta = w.prosodyFeedback?.monotoneSyllablePitchDeltaConfidence ?? 0.5;
-          return sum + delta * 100;
-        }, 0) / prosodyWords.length
-      : 50; // neutral default when no prosody data
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
 
+function aggregateResults(
+  words: WordResult[],
+  rawUtterances: unknown[],
+  referenceText: string,
+): PronunciationResult {
+  const refWords = referenceText.toLowerCase().split(/\s+/).filter(Boolean);
+  const { taggedWords, omissions } = applyMiscueTags(words, refWords);
+  const { accuracy, completeness, fluency, prosody } = computeScores(taggedWords, refWords);
   const worst = Math.min(accuracy, fluency, completeness, prosody);
   const pronScore = worst * 0.4 + accuracy * 0.15 + fluency * 0.15 + completeness * 0.15 + prosody * 0.15;
 
   return {
-    pronScore: Math.round(pronScore * 10) / 10,
-    accuracyScore: Math.round(accuracy * 10) / 10,
-    fluencyScore: Math.round(fluency * 10) / 10,
-    completenessScore: Math.round(completeness * 10) / 10,
-    prosodyScore: Math.round(prosody * 10) / 10,
-    words: finalWords,
+    pronScore: round1(pronScore),
+    accuracyScore: round1(accuracy),
+    fluencyScore: round1(fluency),
+    completenessScore: round1(completeness),
+    prosodyScore: round1(prosody),
+    words: [...taggedWords, ...omissions],
     rawUtterances,
   };
 }

@@ -1,6 +1,5 @@
 // Hook that polls a session until DONE and derives voice profile data
 'use client';
-/* eslint-disable complexity */
 
 import { useSessionStatus } from '@/features/session/useSessionStatus';
 import type { SessionMetricSnapshot } from '@/features/session/useSessionStatus.types';
@@ -41,6 +40,25 @@ interface UseVoiceProfileReturn {
   weakestMetricKey: string | null;
 }
 
+interface PronunciationDerived {
+  pronScore: number | null;
+  speakingRateWpm: number | null;
+}
+
+function derivePronunciationValues(
+  isDone: boolean,
+  pronScore: number | undefined,
+  speakingRateWpm: number | undefined,
+): PronunciationDerived {
+  if (!isDone) {
+    return { pronScore: null, speakingRateWpm: null };
+  }
+  return {
+    pronScore: pronScore ?? null,
+    speakingRateWpm: speakingRateWpm ?? null,
+  };
+}
+
 export function useVoiceProfile(sessionId: string): UseVoiceProfileReturn {
   const { session, isProcessing, isDone, isFailed } = useSessionStatus(sessionId);
 
@@ -48,13 +66,11 @@ export function useVoiceProfile(sessionId: string): UseVoiceProfileReturn {
   const focusAreas = isDone ? deriveTopFocusAreas(metrics) : [];
   const weakestMetricKey = focusAreas[0]?.key ?? null;
 
-  const pronScore = isDone
-    ? (session?.pronunciationReport?.pronScore ?? null)
-    : null;
-
-  const speakingRateWpm = isDone
-    ? (session?.pronunciationReport?.speakingRateWpm ?? null)
-    : null;
+  const { pronScore, speakingRateWpm } = derivePronunciationValues(
+    isDone,
+    session?.pronunciationReport?.pronScore,
+    session?.pronunciationReport?.speakingRateWpm,
+  );
 
   return {
     isProcessing,

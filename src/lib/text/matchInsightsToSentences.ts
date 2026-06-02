@@ -1,5 +1,4 @@
 // matchInsightsToSentences: fuzzy-matches insight examples to transcript sentences,
-/* eslint-disable max-depth */
 // returning an AnnotationMap keyed by sentence index
 
 import type { TranscriptSentence } from './splitSentences';
@@ -56,6 +55,28 @@ function wordOverlapMatch(sentence: string, example: string): boolean {
   return matchCount / exampleWords.length >= 0.6;
 }
 
+type MatchAccumulator = {
+  map: AnnotationMap;
+  matchedIndices: Set<number>;
+};
+
+function matchExampleToSentences(
+  example: string,
+  sentences: TranscriptSentence[],
+  annotation: SentenceAnnotation,
+  acc: MatchAccumulator,
+): void {
+  if (example.trim().length === 0) return;
+  for (const sentence of sentences) {
+    if (acc.matchedIndices.has(sentence.index)) continue;
+    const matched = substringMatch(sentence.text, example) || wordOverlapMatch(sentence.text, example);
+    if (!matched) continue;
+    acc.matchedIndices.add(sentence.index);
+    const existing = acc.map.get(sentence.index) ?? [];
+    acc.map.set(sentence.index, [...existing, annotation]);
+  }
+}
+
 /**
  * Fuzzy-matches insight examples to transcript sentences, returning an `AnnotationMap` keyed by sentence index.
  *
@@ -82,33 +103,17 @@ export function matchInsightsToSentences(
     const examples = insight.examples ?? [];
     if (examples.length === 0) continue;
 
-    const pinVariant = resolveVariant(insight.category, metrics);
-
     const annotation: SentenceAnnotation = {
       insightId: insight.id,
       category: insight.category,
       pattern: insight.pattern,
       suggestion: insight.suggestion,
-      pinVariant,
+      pinVariant: resolveVariant(insight.category, metrics),
     };
 
-    const matchedIndices = new Set<number>();
-
+    const acc: MatchAccumulator = { map, matchedIndices: new Set<number>() };
     for (const example of examples) {
-      if (example.trim().length === 0) continue;
-
-      for (const sentence of sentences) {
-        if (matchedIndices.has(sentence.index)) continue;
-
-        const matched =
-          substringMatch(sentence.text, example) || wordOverlapMatch(sentence.text, example);
-
-        if (matched) {
-          matchedIndices.add(sentence.index);
-          const existing = map.get(sentence.index) ?? [];
-          map.set(sentence.index, [...existing, annotation]);
-        }
-      }
+      matchExampleToSentences(example, sentences, annotation, acc);
     }
   }
 

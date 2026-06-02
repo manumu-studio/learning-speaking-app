@@ -1,9 +1,8 @@
 // AI disclosure modal — shown before first recording or from settings in info mode
 'use client';
-/* eslint-disable max-lines-per-function */
 
-import { useCallback, useEffect, useRef } from 'react';
 import type { AiDisclosureModalProps } from './AiDisclosureModal.types';
+import { useAiDisclosureModal } from './useAiDisclosureModal';
 
 const PROVIDERS = [
   {
@@ -23,44 +22,21 @@ const PROVIDERS = [
   },
 ] as const;
 
+const POLICY_BULLETS = [
+  'Audio files are deleted immediately after transcription — typically within 60 seconds.',
+  'Transcripts and scores are stored securely in your account.',
+  'Your data is never used to train AI models.',
+] as const;
+
 export function AiDisclosureModal({ onAccept, infoOnly = false }: AiDisclosureModalProps) {
-  const acceptRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    acceptRef.current?.focus();
-    return () => {
-      previousFocusRef.current?.focus();
-    };
-  }, []);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab' || !dialogRef.current) return;
-    const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last?.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first?.focus();
-    }
-  }, []);
+  const { dialogRef, acceptRef, handleKeyDown } = useAiDisclosureModal();
 
   const intro = infoOnly
     ? "LSA uses three AI services to analyze your speech. Here's exactly what each one receives."
     : 'Before your first session, we want to be transparent about the AI services that analyze your speech.';
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div
         ref={dialogRef}
         role="dialog"
@@ -105,15 +81,12 @@ export function AiDisclosureModal({ onAccept, infoOnly = false }: AiDisclosureMo
         </table>
 
         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-4 list-disc pl-5">
-          <li>Audio files are deleted immediately after transcription — typically within 60 seconds.</li>
-          <li>Transcripts and scores are stored securely in your account.</li>
-          <li>Your data is never used to train AI models.</li>
+          {POLICY_BULLETS.map((bullet) => (
+            <li key={bullet}>{bullet}</li>
+          ))}
         </ul>
 
-        <a
-          href="/privacy"
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-        >
+        <a href="/privacy" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
           Full privacy policy
         </a>
 

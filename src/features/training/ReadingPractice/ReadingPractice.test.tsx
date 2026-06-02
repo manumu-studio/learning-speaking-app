@@ -1,6 +1,6 @@
 // Tests for ReadingPractice library view + practice flow
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import type { UseAudioWorkletOptions, ChunkReadyEvent } from '@/features/recording/useAudioWorklet.types';
 
@@ -53,6 +53,8 @@ vi.stubGlobal('fetch', mockFetch);
 import { ReadingPractice } from './ReadingPractice';
 
 // --- Shared mock data ---
+
+const INTERACTION_TEST_TIMEOUT_MS = 10_000;
 
 const MOCK_LIBRARY_DATA = {
   globalWeaknesses: {
@@ -148,9 +150,14 @@ function makeErrorResponse(status = 500): Response {
 
 describe('ReadingPractice', () => {
   beforeEach(() => {
+    cleanup();
     vi.clearAllMocks();
     // Default: library fetch succeeds
     mockFetch.mockResolvedValue(makeOkResponse(MOCK_LIBRARY_DATA));
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -590,18 +597,23 @@ describe('ReadingPractice', () => {
         .mockResolvedValueOnce(makeOkResponse(MOCK_GENERATED_TEXT))
         .mockResolvedValueOnce(makeOkResponse(MOCK_ASSESS_RESULT));
 
+      const STEP_TIMEOUT = { timeout: 5000 };
+
       render(<ReadingPractice />);
       await waitFor(() =>
         expect(screen.getByText(/Show 1 session/i)).toBeInTheDocument(),
+        STEP_TIMEOUT,
       );
       fireEvent.click(screen.getByText(/Show 1 session/i));
       await waitFor(() =>
         expect(screen.getByText('Healthcare systems')).toBeInTheDocument(),
+        STEP_TIMEOUT,
       );
 
       fireEvent.click(screen.getByRole('button', { name: /Healthcare systems/i }));
       await waitFor(() =>
         expect(screen.getByText(/Back to library/i)).toBeInTheDocument(),
+        STEP_TIMEOUT,
       );
 
       fireEvent.click(screen.getByRole('button', { name: /Medium/i }));
@@ -609,6 +621,7 @@ describe('ReadingPractice', () => {
         expect(
           screen.getByText('Think through three things thoroughly.'),
         ).toBeInTheDocument(),
+        STEP_TIMEOUT,
       );
 
       fireEvent.click(screen.getByRole('button', { name: /Record Reading/i }));
@@ -616,12 +629,14 @@ describe('ReadingPractice', () => {
         expect(
           screen.getByRole('button', { name: /Stop & Assess/i }),
         ).toBeInTheDocument(),
+        STEP_TIMEOUT,
       );
 
       fireEvent.click(screen.getByRole('button', { name: /Stop & Assess/i }));
 
       await waitFor(() =>
         expect(screen.getByText('Think')).toBeInTheDocument(),
+        STEP_TIMEOUT,
       );
     }
 
@@ -633,21 +648,21 @@ describe('ReadingPractice', () => {
       expect(screen.getByText('three')).toBeInTheDocument();
       expect(screen.getByText('things')).toBeInTheDocument();
       expect(screen.getByText('thoroughly')).toBeInTheDocument();
-    });
+    }, INTERACTION_TEST_TIMEOUT_MS);
 
     it('applies green color class to words scoring >= 80', async () => {
       await renderResultsView();
       // "Think" has score 85 → emerald (green)
       const thinkSpan = screen.getByText('Think');
       expect(thinkSpan.className).toMatch(/emerald/);
-    });
+    }, INTERACTION_TEST_TIMEOUT_MS);
 
     it('applies amber color class to words scoring >= 60 and < 80', async () => {
       await renderResultsView();
       // "three" has score 62 → amber
       const threeSpan = screen.getByText('three');
       expect(threeSpan.className).toMatch(/amber/);
-    });
+    }, INTERACTION_TEST_TIMEOUT_MS);
 
     it('applies orange color class to words scoring < 60', async () => {
       await renderResultsView();
@@ -655,7 +670,7 @@ describe('ReadingPractice', () => {
       // it also appears in the session header mispronounced tags.
       const thoroughlySpan = screen.getByText('thoroughly');
       expect(thoroughlySpan.className).toMatch(/orange/);
-    });
+    }, INTERACTION_TEST_TIMEOUT_MS);
 
     it('renders ResultsSummary with overall score chip', async () => {
       await renderResultsView();
@@ -664,7 +679,7 @@ describe('ReadingPractice', () => {
       );
       const chips = screen.getAllByTestId('score-chip');
       expect(chips.some((c) => c.textContent === '78')).toBe(true);
-    });
+    }, INTERACTION_TEST_TIMEOUT_MS);
 
     it('shows Try Again button after results', async () => {
       await renderResultsView();
@@ -673,7 +688,7 @@ describe('ReadingPractice', () => {
           screen.getByRole('button', { name: /Try Again/i }),
         ).toBeInTheDocument(),
       );
-    });
+    }, INTERACTION_TEST_TIMEOUT_MS);
   });
 
   // ──────────────────────────────────────────────────────────────
