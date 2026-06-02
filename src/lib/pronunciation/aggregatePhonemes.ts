@@ -39,9 +39,10 @@ type PhonemeAccumulator = {
  * @param words - Raw word+phonemes data from the DB; `phonemes` may be any unknown JSON value.
  * @returns Up to 5 `AggregatedPhoneme` entries for the weakest phonemes, sorted weakest-first.
  */
-export function aggregatePhonemes(
+// Accumulates per-phoneme scores and example words across all words in a report.
+function accumulate(
   words: ReadonlyArray<{ word: string; phonemes: unknown }>,
-): AggregatedPhoneme[] {
+): Map<string, PhonemeAccumulator> {
   const accumulator = new Map<string, PhonemeAccumulator>();
 
   for (const raw of words) {
@@ -66,12 +67,26 @@ export function aggregatePhonemes(
     }
   }
 
+  return accumulator;
+}
+
+/**
+ * Aggregates every tracked phoneme (no weak-filter, no cap), sorted weakest-first.
+ *
+ * This is the basis for functional-load ranking, which must consider phonemes the
+ * raw weak-filter would discard (e.g. a high-functional-load /iː/ scoring 78).
+ *
+ * @param words - Raw word+phonemes data; `phonemes` may be any unknown JSON value.
+ * @returns All `AggregatedPhoneme` entries, sorted ascending by `averageScore`.
+ */
+export function aggregateAllPhonemes(
+  words: ReadonlyArray<{ word: string; phonemes: unknown }>,
+): AggregatedPhoneme[] {
+  const accumulator = accumulate(words);
   const results: AggregatedPhoneme[] = [];
 
   for (const [phoneme, data] of accumulator) {
     const avg = data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length;
-    if (avg >= WEAK_THRESHOLD) continue;
-
     results.push({
       phoneme,
       ipaSymbol: sapiToIpa(phoneme),
@@ -81,7 +96,13 @@ export function aggregatePhonemes(
     });
   }
 
-  return results
-    .sort((a, b) => a.averageScore - b.averageScore)
+  return results.sort((a, b) => a.averageScore - b.averageScore);
+}
+
+export function aggregatePhonemes(
+  words: ReadonlyArray<{ word: string; phonemes: unknown }>,
+): AggregatedPhoneme[] {
+  return aggregateAllPhonemes(words)
+    .filter((p) => p.averageScore < WEAK_THRESHOLD)
     .slice(0, MAX_WEAK_PHONEMES);
 }

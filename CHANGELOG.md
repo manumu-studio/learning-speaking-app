@@ -2,6 +2,15 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.62.0] — 2026-06-03
+
+- **feat:** Functional-load pronunciation ranking — phoneme and structural errors are now ranked by intelligibility impact (`weight × frequency`), surfacing the highest-leverage fixes first instead of treating all errors equally
+- **feat:** Priority Sounds section — the top high-impact pronunciation errors with concrete production rules and IPA-annotated example words (long vowels / diphthongs highlighted)
+- **feat:** Accent Polish section — low-impact "accent refinement" items, collapsed and de-emphasised, labeled as optional
+- **feat:** Functional-load knowledge base — 12 Bogotá-Spanish L1 → English priorities (phoneme-level and structural patterns like s-cluster epenthesis and dropped final consonants), each with a pronunciation rule and phonetic examples
+- **feat:** Structural-pattern detection — s-cluster epenthesis and dropped-final-consonant errors detected from per-word phoneme scores (spelling-proof)
+- **change:** Word Map redesigned as a discrete 3-band intelligibility scale — red <60, amber 60–84, green 85+ (raised green floor to 85 for a C2 target), relabeled "Pronunciation Accuracy"
+
 ## [0.61.0] — 2026-06-02
 
 - **feat:** Naturalness detection pipeline — 5th Language Feedback category detecting awkward-but-grammatical phrasing, L1 transfer calques, and under-idiomatic collocations
