@@ -1,5 +1,6 @@
 // Session detail (GET) and deletion (DELETE) API
 import { auth } from '@/features/auth/auth';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { deleteAudio } from '@/lib/storage/r2';
 import { successResponse, errorResponse } from '@/lib/api';
@@ -7,10 +8,71 @@ import { withObservability } from '@/lib/observability';
 import type pino from 'pino';
 import { validateOrigin, csrfForbiddenResponse } from '@/lib/csrf';
 
-/**
- * GET /api/sessions/:id
- * Fetch session details with transcript and insights
- */
+const SESSION_INCLUDE = {
+  transcript: true,
+  insights: { orderBy: { severity: 'desc' } },
+  metrics: { orderBy: { key: 'asc' } },
+  pronunciationReport: {
+    select: {
+      pronScore: true,
+      accuracyScore: true,
+      fluencyScore: true,
+      completenessScore: true,
+      prosodyScore: true,
+      speakingRateWpm: true,
+      failureReason: true,
+      words: {
+        select: {
+          word: true,
+          display: true,
+          accuracyScore: true,
+          errorType: true,
+          offsetMs: true,
+          durationMs: true,
+          phonemes: true,
+          l1Tags: true,
+          breakErrorTypes: true,
+          intonationErrorTypes: true,
+          monotonePitchDelta: true,
+        },
+        orderBy: { wordIndex: 'asc' },
+      },
+    },
+  },
+  chunks: {
+    orderBy: { chunkIndex: 'asc' },
+    select: {
+      chunkIndex: true,
+      durationSecs: true,
+      transcriptText: true,
+      wordCount: true,
+      accuracyScore: true,
+      fluencyScore: true,
+      prosodyScore: true,
+      pronScore: true,
+      status: true,
+    },
+  },
+  naturalness: {
+    where: { shownToUser: true },
+    orderBy: [{ confidence: 'asc' }, { createdAt: 'asc' }],
+    select: {
+      id: true,
+      originalPhrase: true,
+      suggestedPhrase: true,
+      flagType: true,
+      dimension: true,
+      confidence: true,
+      collocationMetric: true,
+      metricValue: true,
+      l1TransferSource: true,
+      rationale: true,
+      shownToUser: true,
+      userFeedback: true,
+    },
+  },
+} satisfies Prisma.SpeakingSessionInclude;
+
 async function getHandler(
   _req: Request,
   { logger }: { logger: pino.Logger; requestId: string },
@@ -33,52 +95,7 @@ async function getHandler(
 
   const speakingSession = await prisma.speakingSession.findFirst({
     where: { id, userId: user.id },
-    include: {
-      transcript: true,
-      insights: { orderBy: { severity: 'desc' } },
-      metrics: { orderBy: { key: 'asc' } },
-      pronunciationReport: {
-        select: {
-          pronScore: true,
-          accuracyScore: true,
-          fluencyScore: true,
-          completenessScore: true,
-          prosodyScore: true,
-          speakingRateWpm: true,
-          failureReason: true,
-          words: {
-            select: {
-              word: true,
-              display: true,
-              accuracyScore: true,
-              errorType: true,
-              offsetMs: true,
-              durationMs: true,
-              phonemes: true,
-              l1Tags: true,
-              breakErrorTypes: true,
-              intonationErrorTypes: true,
-              monotonePitchDelta: true,
-            },
-            orderBy: { wordIndex: 'asc' },
-          },
-        },
-      },
-      chunks: {
-        orderBy: { chunkIndex: 'asc' },
-        select: {
-          chunkIndex: true,
-          durationSecs: true,
-          transcriptText: true,
-          wordCount: true,
-          accuracyScore: true,
-          fluencyScore: true,
-          prosodyScore: true,
-          pronScore: true,
-          status: true,
-        },
-      },
-    },
+    include: SESSION_INCLUDE,
   });
 
   if (!speakingSession) {

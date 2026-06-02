@@ -2,6 +2,17 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.61.0] — 2026-06-02
+
+- **feat:** Naturalness detection pipeline — 5th Language Feedback category detecting awkward-but-grammatical phrasing, L1 transfer calques, and under-idiomatic collocations
+- **feat:** Deterministic calque checklist — 30 Bogotá-Spanish transfer patterns (false friends, calqued collocations, calqued syntax) with high-confidence flagging
+- **feat:** Claude Haiku naturalness extension — discourse markers, hedging, register mismatch, and rhythm issues flagged as low-confidence "style notes"
+- **feat:** Confidence gate — 3-tier system merging deterministic calques (high) with Claude-only detections (low), deduplicating overlapping flags
+- **feat:** NaturalnessFlagCard UI — original→suggested corrections with L1 source, confidence badges (amber/blue/gray), and rationale
+- **feat:** NaturalnessInsights section — groups flags by confidence tier inside Language Feedback
+- **feat:** User feedback API — thumbs up/down on each naturalness flag for precision tuning
+- **feat:** `NaturalnessFlag` Prisma model with session and user relations
+
 ## [0.60.1] — 2026-06-02
 
 - **refactor:** Removed all ESLint complexity-rule suppressions — the codebase now lints clean with `max-lines`, `max-lines-per-function`, `complexity`, `max-depth`, and `max-params` enforced as hard CI-blocking errors (zero inline `eslint-disable` overrides remain in `src/`)

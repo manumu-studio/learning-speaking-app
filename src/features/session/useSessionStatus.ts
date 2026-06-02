@@ -89,6 +89,20 @@ const sessionDetailSchema = z.object({
     pronScore: z.number().nullable(),
     status: z.string(),
   })).optional(),
+  naturalness: z.array(z.object({
+    id: z.string(),
+    originalPhrase: z.string(),
+    suggestedPhrase: z.string(),
+    flagType: z.enum(['false_friend', 'calqued_collocation', 'calqued_syntax', 'weak_collocation', 'style_note']),
+    dimension: z.string(),
+    confidence: z.enum(['high', 'medium', 'low']),
+    collocationMetric: z.string().nullable(),
+    metricValue: z.number().nullable(),
+    l1TransferSource: z.string().nullable(),
+    rationale: z.string(),
+    shownToUser: z.boolean(),
+    userFeedback: z.enum(['helpful', 'false_positive']).nullable(),
+  })).optional(),
 }).transform((val): SessionDetail => {
   const result: SessionDetail = {
     id: val.id,
@@ -125,6 +139,9 @@ const sessionDetailSchema = z.object({
   }
   if (val.partialResults !== undefined) {
     result.partialResults = val.partialResults;
+  }
+  if (val.naturalness !== undefined) {
+    result.naturalness = val.naturalness;
   }
   return result;
 });
