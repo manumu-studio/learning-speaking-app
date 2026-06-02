@@ -8,3 +8,7 @@ export interface RecordButtonProps {
   onStop: () => void;
   disabled?: boolean;
 }
+
+export interface RecordButtonIconProps {
+  state: RecordingStatus;
+}

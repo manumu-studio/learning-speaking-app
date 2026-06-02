@@ -19,7 +19,7 @@ describe('MoreSheet', () => {
 
     expect(screen.getByText('Prompts')).toBeInTheDocument();
     expect(screen.getByText('Trends')).toBeInTheDocument();
-    expect(screen.getByText('Training')).toBeInTheDocument();
+    expect(screen.getByText('Reading Practice')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 

@@ -1,6 +1,5 @@
 // useDrill — manages drill lifecycle state machine and API interactions
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
@@ -59,7 +58,10 @@ export interface UseDrillReturn {
   tryAgain: () => Promise<string | null>;
 }
 
+// ---------------------------------------------------------------------------
 // Zod schemas for API response validation
+// ---------------------------------------------------------------------------
+
 const drillResponseSchema = z.object({
   id: z.string(),
   sessionId: z.string().nullable().optional(),
@@ -93,6 +95,10 @@ interface SessionForDrillPayload {
   transcript?: { text: string } | undefined;
   insights: Array<{ pattern: string; examples: unknown }>;
 }
+
+// ---------------------------------------------------------------------------
+// Pure helpers (no React state — easily testable)
+// ---------------------------------------------------------------------------
 
 function buildRecentExamples(session: SessionForDrillPayload): string[] {
   const fromInsights = session.insights
@@ -131,6 +137,85 @@ function parseDrillJson(raw: z.infer<typeof drillResponseSchema>): DrillData | n
   };
 }
 
+// ---------------------------------------------------------------------------
+// API helpers — return data; callers handle setState
+// ---------------------------------------------------------------------------
+
+interface FetchDrillResult {
+  drill: DrillData;
+  feedback: DrillFeedbackData | null;
+  initialState: DrillState;
+}
+
+async function apiFetchDrill(drillId: string): Promise<FetchDrillResult> {
+  const res = await fetch(`/api/drills/${drillId}`);
+  if (!res.ok) throw new Error('Failed to load drill');
+  const drillResult = drillResponseSchema.safeParse(await res.json());
+  if (!drillResult.success) throw new Error('Invalid drill response');
+  const parsed = parseDrillJson(drillResult.data);
+  if (!parsed) throw new Error('Invalid drill response');
+
+  const { completedAt, feedback: feedbackText, improved: improvedVal } = drillResult.data;
+  const isCompleted =
+    completedAt != null &&
+    typeof feedbackText === 'string' &&
+    feedbackText.length > 0;
+
+  return {
+    drill: parsed,
+    feedback: isCompleted
+      ? { feedback: feedbackText as string, improved: improvedVal === true }
+      : null,
+    initialState: isCompleted ? 'feedback' : 'prompt',
+  };
+}
+
+async function apiCompleteDrill(drillId: string, audioBlob: Blob): Promise<DrillFeedbackData> {
+  const formData = new FormData();
+  formData.append('audio', audioBlob);
+  const res = await fetch(`/api/drills/${drillId}/complete`, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('Failed to submit drill');
+  const result = drillCompleteResponseSchema.parse(await res.json());
+  return { feedback: result.feedback, improved: result.improved === true };
+}
+
+async function apiCreateRetryDrill(current: DrillData): Promise<string> {
+  const sessionRes = await fetch(`/api/sessions/${current.sessionId as string}`);
+  if (!sessionRes.ok) throw new Error('Failed to load session for retry');
+  const sessionParsed = sessionForDrillSchema.safeParse(await sessionRes.json());
+  if (!sessionParsed.success) throw new Error('Invalid session');
+  const session: SessionForDrillPayload = sessionParsed.data;
+
+  const recentExamples = buildRecentExamples(session);
+  const focusPattern = focusPatternFromSession(session);
+  const sessionTranscript = session.transcript?.text?.trim();
+
+  const res = await fetch('/api/drills', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: current.sessionId,
+      drillType: current.drillType,
+      metricKey: current.metricKey,
+      recentExamples,
+      focusPattern,
+      intentLabel: session.intentLabel ?? null,
+      ...(sessionTranscript && sessionTranscript.length > 0 ? { sessionTranscript } : {}),
+    }),
+  });
+  if (!res.ok) throw new Error('Failed to create new drill');
+
+  const createResult = drillResponseSchema.safeParse(await res.json());
+  if (!createResult.success) throw new Error('Invalid drill response');
+  const parsed = parseDrillJson(createResult.data);
+  if (!parsed) throw new Error('Invalid drill response');
+  return parsed.id;
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
 export function useDrill(drillId: string): UseDrillReturn {
   const [state, setState] = useState<DrillState>('prompt');
   const [drill, setDrill] = useState<DrillData | null>(null);
@@ -139,45 +224,21 @@ export function useDrill(drillId: string): UseDrillReturn {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchDrill() {
+    async function loadDrill() {
+      setIsLoading(true);
+      setError(null);
       try {
-        setIsLoading(true);
-        setError(null);
-        const res = await fetch(`/api/drills/${drillId}`);
-        if (!res.ok) throw new Error('Failed to load drill');
-        const raw: unknown = await res.json();
-        const drillResult = drillResponseSchema.safeParse(raw);
-        if (!drillResult.success) throw new Error('Invalid drill response');
-        const drillData = drillResult.data;
-        const parsed = parseDrillJson(drillData);
-        if (!parsed) throw new Error('Invalid drill response');
-        setDrill(parsed);
-
-        const completedAt = drillData.completedAt;
-        const feedbackText = drillData.feedback;
-        const improvedVal = drillData.improved;
-        if (
-          completedAt !== null &&
-          completedAt !== undefined &&
-          typeof feedbackText === 'string' &&
-          feedbackText.length > 0
-        ) {
-          setFeedback({
-            feedback: feedbackText,
-            improved: improvedVal === true,
-          });
-          setState('feedback');
-        } else {
-          setState('prompt');
-          setFeedback(null);
-        }
+        const result = await apiFetchDrill(drillId);
+        setDrill(result.drill);
+        setFeedback(result.feedback);
+        setState(result.initialState);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setIsLoading(false);
       }
     }
-    void fetchDrill();
+    void loadDrill();
   }, [drillId]);
 
   const startRecording = useCallback(() => {
@@ -187,22 +248,8 @@ export function useDrill(drillId: string): UseDrillReturn {
   const stopRecording = useCallback(async (audioBlob: Blob) => {
     setState('processing');
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob);
-
-      const res = await fetch(`/api/drills/${drillId}/complete`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error('Failed to submit drill');
-
-      const result = drillCompleteResponseSchema.parse(await res.json());
-
-      setFeedback({
-        feedback: result.feedback,
-        improved: result.improved === true,
-      });
+      const result = await apiCompleteDrill(drillId, audioBlob);
+      setFeedback(result);
       setState('feedback');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');
@@ -211,51 +258,14 @@ export function useDrill(drillId: string): UseDrillReturn {
   }, [drillId]);
 
   const tryAgain = useCallback(async (): Promise<string | null> => {
-    const current = drill;
-    if (!current) return null;
-    if (!current.sessionId) {
+    if (!drill) return null;
+    if (!drill.sessionId) {
       setError('Open this drill from workout results to go again with a fresh prompt.');
       return null;
     }
-
     try {
       setError(null);
-      const sessionRes = await fetch(`/api/sessions/${current.sessionId}`);
-      if (!sessionRes.ok) throw new Error('Failed to load session for retry');
-
-      const sessionParsed = sessionForDrillSchema.safeParse(await sessionRes.json());
-      if (!sessionParsed.success) throw new Error('Invalid session');
-      const session: SessionForDrillPayload = sessionParsed.data;
-
-      const recentExamples = buildRecentExamples(session);
-      const focusPattern = focusPatternFromSession(session);
-
-      const sessionTranscript = session.transcript?.text?.trim();
-
-      const res = await fetch('/api/drills', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: current.sessionId,
-          drillType: current.drillType,
-          metricKey: current.metricKey,
-          recentExamples,
-          focusPattern,
-          intentLabel: session.intentLabel ?? null,
-          ...(sessionTranscript && sessionTranscript.length > 0
-            ? { sessionTranscript }
-            : {}),
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to create new drill');
-
-      const createResult = drillResponseSchema.safeParse(await res.json());
-      if (!createResult.success) throw new Error('Invalid drill response');
-      const parsed = parseDrillJson(createResult.data);
-      if (!parsed) throw new Error('Invalid drill response');
-
-      return parsed.id;
+      return await apiCreateRetryDrill(drill);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to retry');
       return null;

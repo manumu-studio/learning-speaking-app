@@ -1,5 +1,4 @@
 // Rewrite transcript with vocabulary upgrades using Claude Haiku
-/* eslint-disable max-lines-per-function */
 
 import { getAnthropicClient } from '@/lib/ai/client';
 import { logger } from '@/lib/logger';
@@ -18,35 +17,11 @@ export interface RewriteResult {
   wordsUsed: string[];
 }
 
-/** Rewrites a transcript to naturally incorporate vocabulary suggestions, preserving the speaker's original meaning. */
-export async function rewriteTranscript(
-  originalText: string,
-  vocabularySuggestions: VocabWord[],
-): Promise<RewriteResult | null> {
-  const wordCount = originalText.split(/\s+/).filter(Boolean).length;
-  if (wordCount < MIN_WORD_COUNT) {
-    logger.info({ wordCount }, 'Transcript too short for rewrite — skipping');
-    return null;
-  }
-
-  if (vocabularySuggestions.length === 0) {
-    return null;
-  }
-
+function buildRewritePrompt(originalText: string, vocabularySuggestions: VocabWord[]): string {
   const vocabList = vocabularySuggestions
     .map((v) => `- "${v.word}" (${v.meaning}). Example: ${v.exampleSentence}`)
     .join('\n');
-
-  try {
-    const client = getAnthropicClient();
-
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: `You are a writing coach. The speaker recorded themselves speaking English. Below is their polished transcript and a list of vocabulary upgrades.
+  return `You are a writing coach. The speaker recorded themselves speaking English. Below is their polished transcript and a list of vocabulary upgrades.
 
 Your job:
 1. Rewrite the transcript so it naturally incorporates the suggested vocabulary words
@@ -62,54 +37,62 @@ Original transcript:
 ${originalText}
 
 Respond with this exact JSON structure:
-{"improvedText": "the full rewritten transcript", "wordsUsed": ["word1", "word2"]}`,
-        },
-      ],
-    });
+{"improvedText": "the full rewritten transcript", "wordsUsed": ["word1", "word2"]}`;
+}
 
+function parseRewriteResponse(responseText: string): RewriteResult | null {
+  const cleaned = responseText.replace(/^```(?:json)?\s*/u, '').replace(/\s*```$/u, '');
+  const parsed: unknown = JSON.parse(cleaned);
+  if (!isRecord(parsed) || !('improvedText' in parsed) || !('wordsUsed' in parsed)) {
+    logger.warn({ raw: responseText }, 'Rewrite response missing required fields');
+    return null;
+  }
+  const improvedText = parsed['improvedText'];
+  const rawWordsUsed = parsed['wordsUsed'];
+  if (typeof improvedText !== 'string' || !Array.isArray(rawWordsUsed)) {
+    logger.warn('Rewrite response has wrong field types');
+    return null;
+  }
+  if (improvedText.trim().length === 0) {
+    logger.warn('Rewrite returned empty improved text');
+    return null;
+  }
+  const wordsUsed = rawWordsUsed.filter((w): w is string => typeof w === 'string');
+  return { improvedText, wordsUsed };
+}
+
+/** Rewrites a transcript to naturally incorporate vocabulary suggestions, preserving the speaker's original meaning. */
+export async function rewriteTranscript(
+  originalText: string,
+  vocabularySuggestions: VocabWord[],
+): Promise<RewriteResult | null> {
+  const wordCount = originalText.split(/\s+/).filter(Boolean).length;
+  if (wordCount < MIN_WORD_COUNT) {
+    logger.info({ wordCount }, 'Transcript too short for rewrite — skipping');
+    return null;
+  }
+  if (vocabularySuggestions.length === 0) return null;
+
+  try {
+    const client = getAnthropicClient();
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: buildRewritePrompt(originalText, vocabularySuggestions) }],
+    });
     const content = message.content[0];
     if (content?.type !== 'text' || content.text.trim().length === 0) {
       logger.warn('Rewrite returned empty content');
       return null;
     }
-
-    const raw = content.text.trim();
-    const cleaned = raw.replace(/^```(?:json)?\s*/u, '').replace(/\s*```$/u, '');
-
-    const parsed: unknown = JSON.parse(cleaned);
-
-    if (
-      !isRecord(parsed) ||
-      !('improvedText' in parsed) ||
-      !('wordsUsed' in parsed)
-    ) {
-      logger.warn({ raw }, 'Rewrite response missing required fields');
-      return null;
+    const result = parseRewriteResponse(content.text.trim());
+    if (result !== null) {
+      logger.info(
+        { wordsUsed: result.wordsUsed, originalLength: originalText.length, improvedLength: result.improvedText.length },
+        'Transcript rewritten with vocab upgrades',
+      );
     }
-
-    const improvedText = parsed['improvedText'];
-    const rawWordsUsed = parsed['wordsUsed'];
-
-    if (typeof improvedText !== 'string' || !Array.isArray(rawWordsUsed)) {
-      logger.warn('Rewrite response has wrong field types');
-      return null;
-    }
-
-    const wordsUsed = rawWordsUsed.filter(
-      (w): w is string => typeof w === 'string',
-    );
-
-    if (improvedText.trim().length === 0) {
-      logger.warn('Rewrite returned empty improved text');
-      return null;
-    }
-
-    logger.info(
-      { wordsUsed, originalLength: originalText.length, improvedLength: improvedText.length },
-      'Transcript rewritten with vocab upgrades',
-    );
-
-    return { improvedText, wordsUsed };
+    return result;
   } catch (error) {
     logger.warn(
       { error: error instanceof Error ? error.message : 'Unknown error' },

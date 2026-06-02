@@ -53,6 +53,7 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.32.0 | [ENTRY-35](journal/ENTRY-35.md) | 2026-05-27 | Pronunciation feedback UX overhaul |
 | 0.33.0 | [ENTRY-37](journal/ENTRY-37.md) | 2026-05-27 | Speaker isolation: push-to-talk, VAD pre-flight, validation gates |
 | 0.34.0 | [ENTRY-38](journal/ENTRY-38.md) | 2026-05-27 | AI analysis quality: coherence, vocabulary diversity, L1 detection, Redis caching |
+| 0.60.1 | [ENTRY-67](journal/ENTRY-67.md) | 2026-06-02 | ESLint complexity compliance — zero suppressions, 82 files split into 87 focused modules |
 
 ## Pull Requests
 
@@ -139,3 +140,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.53.0 | [ENTRY-59](journal/ENTRY-59.md) | 2026-05-31 | Recording & navigation UX — mobile bottom nav, hero layout |
 | 0.52.0 | [PR-0.52.0](pull-requests/PR-0.52.0.md) | 2026-05-31 | Language/pronunciation split, grammar cards, prosody legend |
 | 0.53.0 | [PR-0.53.0](pull-requests/PR-0.53.0.md) | 2026-05-31 | Mobile bottom nav, collapsible prompts, hero recording |
+| 0.60.1 | [PR-0.60.1](pull-requests/PR-0.60.1.md) | 2026-06-02 | ESLint complexity compliance — zero suppressions, 82 files split into 87 focused modules |

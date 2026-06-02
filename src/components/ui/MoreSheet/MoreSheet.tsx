@@ -10,9 +10,7 @@ const secondaryItems = [
   { href: '/session/new', label: 'New Session', icon: 'plus' },
   { href: '/prompts', label: 'Prompts', icon: 'book' },
   { href: '/trends', label: 'Trends', icon: 'trending' },
-  { href: '/drills', label: 'Training', icon: 'dumbbell' },
   { href: '/drill/reading-practice', label: 'Reading Practice', icon: 'speaker' },
-  { href: '/fluency-training', label: 'Fluency Training', icon: 'timer' },
   { href: '/settings', label: 'Settings', icon: 'gear' },
 ] as const;
 

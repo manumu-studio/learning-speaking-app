@@ -11,7 +11,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['node_modules', '.next', 'e2e'],
     setupFiles: ['./src/__mocks__/prisma.ts', './src/__mocks__/rtl-setup.ts'],
-    environmentMatchGlobs: [['src/**/*.test.tsx', 'jsdom']],
+    environmentMatchGlobs: [['src/**/*.test.tsx', 'happy-dom']],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'lcov'],

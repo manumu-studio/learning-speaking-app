@@ -15,3 +15,7 @@ export interface ErrorFrequency {
 }
 
 export type RateStatus = 'too-slow' | 'ideal' | 'too-fast';
+
+export interface TopProsodyIssuesListProps {
+  topErrors: ErrorFrequency[];
+}

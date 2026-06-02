@@ -1,6 +1,5 @@
 // Executes the full speaking session processing pipeline — transcription, pronunciation scoring, analysis, metrics, patterns
-/* eslint-disable complexity, max-lines-per-function */
-import { Prisma, SessionStatus } from '@prisma/client';
+import { SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { transcribeAudio } from '@/lib/ai/whisper';
 import { gateSegments } from '@/lib/ai/confidenceGating';
@@ -18,284 +17,270 @@ import {
   estimateCefrAndPersist,
   runAzurePronunciation,
 } from '@/lib/pipeline/pipelineHelpers';
+import {
+  storeTranscript,
+  storeInsights,
+  storeMetrics,
+  storeSessionFinalData,
+  cleanupSessionAudio,
+  validateSessionState,
+} from '@/lib/pipeline/executePipelineHelpers';
 
 type PipelineMode = 'production' | 'dev';
+
+// ---------------------------------------------------------------------------
+// Transcription step
+// ---------------------------------------------------------------------------
+
+interface TranscriptionOutput {
+  userTranscriptText: string;
+  analysisTranscriptText: string;
+  wordCount: number;
+}
+
+async function runTranscription(
+  sessionId: string,
+  userId: string,
+  audioBuffer: Buffer,
+): Promise<TranscriptionOutput> {
+  const transcribeStart = Date.now();
+  const whisperResult = await transcribeAudio(audioBuffer, `session-${sessionId}.webm`);
+  const gated = gateSegments(whisperResult.segments);
+
+  const userTranscriptText =
+    gated.cleanText.length > 0 ? gated.cleanText : whisperResult.text;
+  const analysisTranscriptText =
+    gated.annotatedText.length > 0 ? gated.annotatedText : whisperResult.text;
+  const wordCount = userTranscriptText.trim().split(/\s+/).filter(Boolean).length;
+
+  logPipelineStage({
+    sessionId,
+    stage: 'transcribe',
+    durationMs: Date.now() - transcribeStart,
+    success: true,
+    metadata: { wordCount },
+  });
+
+  logger.info({ sessionId, userId, wordCount, gating: gated.stats }, 'Transcription complete');
+
+  return { userTranscriptText, analysisTranscriptText, wordCount };
+}
+
+// ---------------------------------------------------------------------------
+// Analysis step
+// ---------------------------------------------------------------------------
+
+interface RunAnalysisOptions {
+  sessionId: string;
+  userId: string;
+  analysisTranscriptText: string;
+  userTranscriptText: string;
+  focusMetricKey: string | null;
+  promptUsed: string | null;
+  pronunciationResult: PronunciationResult | null;
+  analyzeStart: number;
+}
+
+async function runAnalysis(options: RunAnalysisOptions) {
+  const {
+    sessionId,
+    userId,
+    analysisTranscriptText,
+    userTranscriptText,
+    focusMetricKey,
+    promptUsed,
+    pronunciationResult,
+    analyzeStart,
+  } = options;
+  const pronunciationSummary = buildPronunciationSummary(pronunciationResult ?? null);
+  const analysis = await analyzeTranscript(
+    analysisTranscriptText,
+    focusMetricKey,
+    pronunciationSummary,
+    promptUsed,
+  );
+
+  const nerFilterResult = filterTranscriptionArtefacts(analysis.insights, userTranscriptText);
+
+  if (nerFilterResult.filtered.length > 0) {
+    logger.info(
+      {
+        sessionId,
+        userId,
+        filteredCount: nerFilterResult.filtered.length,
+        filterReasons: nerFilterResult.filterReasons,
+      },
+      'NER filter removed transcription false positives',
+    );
+  }
+
+  if (
+    analysis.possible_transcription_artefacts != null &&
+    analysis.possible_transcription_artefacts.length > 0
+  ) {
+    logger.info(
+      { sessionId, userId, artefacts: analysis.possible_transcription_artefacts },
+      'Possible transcription artefacts detected',
+    );
+  }
+
+  logPipelineStage({
+    sessionId,
+    stage: 'analyze',
+    durationMs: Date.now() - analyzeStart,
+    success: true,
+    metadata: { insightCount: nerFilterResult.kept.length },
+  });
+
+  logger.info({ sessionId, userId, insightCount: nerFilterResult.kept.length }, 'Analysis complete');
+
+  return { analysis, insightsForStorage: nerFilterResult.kept };
+}
+
+// ---------------------------------------------------------------------------
+// Scoring + analysis step (steps 9–18)
+// ---------------------------------------------------------------------------
+
+interface ScoringAndAnalysisOptions {
+  sessionId: string;
+  userId: string;
+  mode: PipelineMode;
+  pcmBuffer: Buffer;
+  userTranscriptText: string;
+  analysisTranscriptText: string;
+  focusMetricKey: string | null;
+  promptUsed: string | null;
+  startTime: number;
+}
+
+async function runScoringAndAnalysis(opts: ScoringAndAnalysisOptions): Promise<void> {
+  const { sessionId, userId, mode, pcmBuffer, userTranscriptText, analysisTranscriptText, focusMetricKey, promptUsed, startTime } = opts;
+
+  let pronunciationResult: PronunciationResult | null = null;
+
+  // Step 9: Azure pronunciation assessment (optional)
+  const scoringStart = Date.now();
+  if (env.AZURE_SPEECH_KEY !== undefined && env.AZURE_SPEECH_REGION !== undefined) {
+    pronunciationResult = await runAzurePronunciation({
+      sessionId,
+      userId,
+      pcmBuffer,
+      transcript: userTranscriptText,
+      azureKey: env.AZURE_SPEECH_KEY,
+      azureRegion: env.AZURE_SPEECH_REGION,
+    });
+  } else {
+    logger.info({ sessionId, userId }, 'Pronunciation assessment skipped: Azure credentials not configured');
+  }
+
+  logPipelineStage({ sessionId, stage: 'scoring', durationMs: Date.now() - scoringStart, success: pronunciationResult != null });
+
+  // Step 10: Mark ANALYZING
+  await prisma.speakingSession.update({ where: { id: sessionId }, data: { status: SessionStatus.ANALYZING } });
+
+  // Step 11: Persist pronunciation results
+  if (pronunciationResult != null) {
+    const { persistPronunciation } = await import('@/lib/pipeline/persistPronunciation');
+    await persistPronunciation(sessionId, pronunciationResult);
+  }
+
+  // Step 12: Analyze transcript with Claude
+  const analyzeStart = Date.now();
+  const { analysis, insightsForStorage } = await runAnalysis({
+    sessionId,
+    userId,
+    analysisTranscriptText,
+    userTranscriptText,
+    focusMetricKey,
+    promptUsed,
+    pronunciationResult,
+    analyzeStart,
+  });
+
+  // Steps 13–14: Persist insights and metrics
+  await storeInsights(sessionId, insightsForStorage, mode);
+  await storeMetrics(sessionId, analysis.metrics, mode);
+
+  // Step 15: Store session summary fields
+  await storeSessionFinalData({
+    sessionId,
+    focusNext: analysis.focusNext,
+    summary: analysis.summary,
+    intentLabel: analysis.intentLabel,
+    registerFeedback: analysis.registerFeedback,
+  });
+
+  // Step 16: Update pattern profile
+  await updatePatternProfile(userId, insightsForStorage);
+
+  // Step 17: Estimate CEFR level
+  await estimateCefrAndPersist(userId, analysis.metrics);
+
+  // Step 18: Mark DONE
+  await prisma.speakingSession.update({ where: { id: sessionId }, data: { status: SessionStatus.DONE } });
+
+  logger.info({ sessionId, userId, duration: Date.now() - startTime }, `${mode} pipeline complete`);
+}
+
+// ---------------------------------------------------------------------------
+// Main pipeline
+// ---------------------------------------------------------------------------
 
 /** Runs the full session processing pipeline: Whisper transcription, Azure pronunciation scoring, Claude analysis, and metric persistence. */
 export async function executePipeline(
   sessionId: string,
-  mode: PipelineMode
+  mode: PipelineMode,
 ): Promise<void> {
   const startTime = Date.now();
 
   // Step 1: Fetch session
   const session = await prisma.speakingSession.findUnique({
     where: { id: sessionId },
-    select: {
-      id: true,
-      userId: true,
-      status: true,
-      audioUrl: true,
-      focusMetricKey: true,
-      promptUsed: true,
-    },
+    select: { id: true, userId: true, status: true, audioUrl: true, focusMetricKey: true, promptUsed: true },
   });
 
-  if (!session) {
-    throw new Error(`Session not found: ${sessionId}`);
-  }
+  if (!session) throw new Error(`Session not found: ${sessionId}`);
 
-  // Step 2: Status guard — production only allows retriable states, dev allows re-runs
-  const retriableStatuses: SessionStatus[] = [
-    SessionStatus.UPLOADED,
-    SessionStatus.TRANSCRIBING,
-    SessionStatus.SCORING,
-    SessionStatus.ANALYZING,
-  ];
+  // Step 2: Status guard
+  validateSessionState(session.status, mode);
 
-  if (!retriableStatuses.includes(session.status)) {
-    if (mode === 'production') {
-      throw new Error(`Session in invalid state: ${session.status}`);
-    }
-    // Dev mode: allow re-runs from any state (e.g. DONE, FAILED)
-  }
+  if (!session.audioUrl) throw new Error('Session missing audio URL');
 
-  if (!session.audioUrl) {
-    throw new Error('Session missing audio URL');
-  }
-
-  const id = session.id;
+  const { id, userId } = session;
   const audioKey = session.audioUrl;
 
-  logger.info({ sessionId: id, userId: session.userId }, `${mode} pipeline starting`);
+  logger.info({ sessionId: id, userId }, `${mode} pipeline starting`);
 
-  // Step 3: Download audio from R2
+  // Steps 3–4: Download and transcode audio
   const audioBuffer = await getAudio(audioKey);
-
-  // Step 4: Transcode to PCM 16kHz mono WAV (Azure requires this format)
   const pcmBuffer = await toPcm16kMonoWav(audioBuffer);
 
   // Step 5: Mark TRANSCRIBING
-  await prisma.speakingSession.update({
-    where: { id },
-    data: { status: SessionStatus.TRANSCRIBING },
-  });
+  await prisma.speakingSession.update({ where: { id }, data: { status: SessionStatus.TRANSCRIBING } });
 
-  // Step 6: Transcribe audio with Whisper (opus buffer is fine for Whisper)
-  const transcribeStart = Date.now();
-  const whisperResult = await transcribeAudio(audioBuffer, `session-${id}.webm`);
-  const gated = gateSegments(whisperResult.segments);
-  const userTranscriptText = gated.cleanText.length > 0 ? gated.cleanText : whisperResult.text;
-  const analysisTranscriptText =
-    gated.annotatedText.length > 0 ? gated.annotatedText : whisperResult.text;
-  const wordCount = userTranscriptText.trim().split(/\s+/).filter(Boolean).length;
-  logPipelineStage({ sessionId: id, stage: 'transcribe', durationMs: Date.now() - transcribeStart, success: true, metadata: { wordCount } });
+  // Step 6: Transcribe
+  const { userTranscriptText, analysisTranscriptText, wordCount } =
+    await runTranscription(id, userId, audioBuffer);
 
-  logger.info(
-    {
-      sessionId: id,
-      userId: session.userId,
-      wordCount,
-      gating: gated.stats,
-    },
-    'Transcription complete',
-  );
-
-  // Step 7: Store transcript — production creates, dev upserts for re-run safety
-  if (mode === 'dev') {
-    await prisma.transcript.upsert({
-      where: { sessionId: id },
-      create: { sessionId: id, text: userTranscriptText, wordCount },
-      update: { text: userTranscriptText, wordCount },
-    });
-  } else {
-    await prisma.transcript.create({
-      data: { sessionId: id, text: userTranscriptText, wordCount },
-    });
-  }
+  // Step 7: Store transcript
+  await storeTranscript(id, userTranscriptText, wordCount, mode);
 
   // Step 8: Mark SCORING
-  await prisma.speakingSession.update({
-    where: { id },
-    data: { status: SessionStatus.SCORING },
-  });
-
-  // Steps 9–14 wrapped in try/finally to guarantee R2 cleanup regardless of errors
-  let pronunciationResult: PronunciationResult | null = null;
+  await prisma.speakingSession.update({ where: { id }, data: { status: SessionStatus.SCORING } });
 
   try {
-    // Step 9: Azure pronunciation assessment (optional — skipped when credentials are absent)
-    const scoringStart = Date.now();
-    if (env.AZURE_SPEECH_KEY !== undefined && env.AZURE_SPEECH_REGION !== undefined) {
-      pronunciationResult = await runAzurePronunciation({
-        sessionId: id,
-        userId: session.userId,
-        pcmBuffer,
-        transcript: userTranscriptText,
-        azureKey: env.AZURE_SPEECH_KEY,
-        azureRegion: env.AZURE_SPEECH_REGION,
-      });
-    } else {
-      logger.info(
-        { sessionId: id, userId: session.userId },
-        'Pronunciation assessment skipped: Azure credentials not configured',
-      );
-    }
-
-    logPipelineStage({ sessionId: id, stage: 'scoring', durationMs: Date.now() - scoringStart, success: pronunciationResult != null });
-
-    // Step 10: Mark ANALYZING
-    await prisma.speakingSession.update({
-      where: { id },
-      data: { status: SessionStatus.ANALYZING },
-    });
-
-    // Step 11: Persist pronunciation results when Azure succeeded
-    if (pronunciationResult != null) {
-      const { persistPronunciation } = await import('@/lib/pipeline/persistPronunciation');
-      await persistPronunciation(id, pronunciationResult);
-    }
-
-    // Step 12: Analyze transcript with Claude (pronunciation summary added when available)
-    const analyzeStart = Date.now();
-    const pronunciationSummary = buildPronunciationSummary(pronunciationResult ?? null);
-    const analysis = await analyzeTranscript(
-      analysisTranscriptText,
-      session.focusMetricKey,
-      pronunciationSummary,
-      session.promptUsed ?? null,
-    );
-
-    const nerFilterResult = filterTranscriptionArtefacts(
-      analysis.insights,
+    await runScoringAndAnalysis({
+      sessionId: id,
+      userId,
+      mode,
+      pcmBuffer,
       userTranscriptText,
-    );
-
-    if (nerFilterResult.filtered.length > 0) {
-      logger.info(
-        {
-          sessionId: id,
-          userId: session.userId,
-          filteredCount: nerFilterResult.filtered.length,
-          filterReasons: nerFilterResult.filterReasons,
-        },
-        'NER filter removed transcription false positives',
-      );
-    }
-
-    if (
-      analysis.possible_transcription_artefacts != null &&
-      analysis.possible_transcription_artefacts.length > 0
-    ) {
-      logger.info(
-        {
-          sessionId: id,
-          userId: session.userId,
-          artefacts: analysis.possible_transcription_artefacts,
-        },
-        'Possible transcription artefacts detected',
-      );
-    }
-
-    logPipelineStage({ sessionId: id, stage: 'analyze', durationMs: Date.now() - analyzeStart, success: true, metadata: { insightCount: nerFilterResult.kept.length } });
-
-    const insightsForStorage = nerFilterResult.kept;
-
-    logger.info(
-      {
-        sessionId: id,
-        userId: session.userId,
-        insightCount: insightsForStorage.length,
-      },
-      'Analysis complete',
-    );
-
-    // Step 13: Store insights — dev deletes existing first for re-run safety
-    if (mode === 'dev') {
-      await prisma.insight.deleteMany({ where: { sessionId: id } });
-    }
-
-    await prisma.insight.createMany({
-      data: insightsForStorage.map((insight) => ({
-        sessionId: id,
-        category: insight.category,
-        pattern: insight.pattern,
-        detail: insight.detail,
-        frequency: insight.frequency ?? null,
-        severity: insight.severity ?? null,
-        examples: insight.examples ?? Prisma.JsonNull,
-        suggestion: insight.suggestion ?? null,
-      })),
+      analysisTranscriptText,
+      focusMetricKey: session.focusMetricKey,
+      promptUsed: session.promptUsed ?? null,
+      startTime,
     });
-
-    // Step 14: Store metric snapshots — dev deletes existing first
-    if (analysis.metrics.length > 0) {
-      if (mode === 'dev') {
-        await prisma.metricSnapshot.deleteMany({ where: { sessionId: id } });
-      }
-
-      await prisma.metricSnapshot.createMany({
-        data: analysis.metrics.map((metric) => ({
-          sessionId: id,
-          key: metric.key,
-          level: metric.level,
-          score: metric.score,
-          note: metric.note,
-        })),
-        skipDuplicates: true,
-      });
-    }
-
-    // Step 15: Store focusNext, summary, intentLabel, and registerFeedback on the session
-    await prisma.speakingSession.update({
-      where: { id },
-      data: {
-        focusNext: analysis.focusNext,
-        summary: analysis.summary,
-        intentLabel: analysis.intentLabel,
-        registerFeedback: analysis.registerFeedback != null
-          ? JSON.parse(JSON.stringify(analysis.registerFeedback))
-          : Prisma.JsonNull,
-      },
-    });
-
-    // Step 16: Aggregate insights into user's long-term pattern profile
-    await updatePatternProfile(session.userId, insightsForStorage);
-
-    // Step 17: Estimate CEFR level from scored metrics and update user profile
-    await estimateCefrAndPersist(session.userId, analysis.metrics);
-
-    // Step 18: Mark DONE
-    await prisma.speakingSession.update({
-      where: { id },
-      data: { status: SessionStatus.DONE },
-    });
-
-    const processingDuration = Date.now() - startTime;
-    logger.info(
-      {
-        sessionId: id,
-        userId: session.userId,
-        duration: processingDuration,
-      },
-      `${mode} pipeline complete`,
-    );
   } finally {
-    // R2 audio deletion always runs — moved here from after Whisper so Azure can use pcmBuffer
-    try {
-      await deleteAudio(audioKey);
-      await prisma.speakingSession.update({
-        where: { id },
-        data: { audioDeletedAt: new Date() },
-      });
-    } catch (deleteError) {
-      logger.warn(
-        {
-          sessionId: id,
-          err: deleteError instanceof Error ? deleteError : new Error('Unknown error'),
-        },
-        'Failed to delete audio from R2 (non-blocking)',
-      );
-    }
+    await cleanupSessionAudio(id, audioKey, deleteAudio);
   }
 }

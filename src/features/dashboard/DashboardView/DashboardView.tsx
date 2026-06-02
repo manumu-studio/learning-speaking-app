@@ -1,28 +1,17 @@
 // DashboardView — renders the full dashboard: pillar-grouped metrics,
 // recent sessions, streak, and drill stats.
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { IdentitySummary } from '../IdentitySummary';
 import { SkillRadar } from '../SkillRadar';
 import { CefrBadge } from '../CefrBadge';
 import { PersonalRecordStrip } from '../PersonalRecordStrip';
-import { MetricCard } from '../MetricCard';
 import { FocusSelector } from '../FocusSelector';
 import { DashboardSkeleton } from '../DashboardSkeleton';
-import { PillarCard } from '../PillarCard';
-import { usePillarCard } from '../PillarCard/usePillarCard';
+import { PillarCardWithState } from './DashboardView.parts';
 import { computePillarScores, PILLAR_CONFIG, PILLAR_KEYS } from '../pillars';
-import type { PillarKey } from '../pillars';
 import { useDashboard } from './useDashboard';
-import type {
-  DashboardViewProps,
-  MetricCardContext,
-  PronunciationMetricCardItemProps,
-  SpeakingMetricCardItemProps,
-} from './DashboardView.types';
-import type { DashboardMetric } from '@/features/dashboard/dashboard.types';
-import { PRONUNCIATION_METRIC_KEYS } from '@/features/dashboard/dashboard.types';
+import type { DashboardViewProps, MetricCardContext } from './DashboardView.types';
 import { TodaysWorkout, useTodaysWorkout } from '@/features/dashboard/TodaysWorkout/index';
 import type { PromptEntry } from '@/features/dashboard/todaysWorkout';
 
@@ -30,117 +19,23 @@ const PROMPT_LIBRARY: PromptEntry[] = [];
 
 const MIN_SESSIONS_FOR_METRICS = 3;
 
-const PRONUNCIATION_METRIC_KEY_SET = new Set<string>(PRONUNCIATION_METRIC_KEYS);
-
-function SpeakingMetricCardItem({ metric, context }: SpeakingMetricCardItemProps) {
-  const { data, focus, setFocus } = context;
-
+function DashboardErrorView({ className }: { className?: string | undefined }) {
   return (
-    <MetricCard
-      metricKey={metric.key}
-      label={metric.label}
-      currentLevel={metric.currentLevel}
-      currentScore={metric.currentScore}
-      trend={metric.trend}
-      history={metric.history}
-      isSelected={focus?.focusKey === metric.key}
-      onSelect={(key) => {
-        const selected = data.metrics.find((m) => m.key === key);
-        if (selected) {
-          setFocus(key, selected.label);
-        }
-      }}
-      lastTrainedToday={metric.lastTrainedToday}
-      drillCount={data.drillStats.byMetric[metric.key]}
-    />
+    <div className={`rounded-xl bg-white p-8 text-center dark:bg-slate-800 ${className ?? ''}`}>
+      <p className="text-slate-500 dark:text-slate-400">
+        Unable to load dashboard. We&apos;ll fix this — check back soon.
+      </p>
+    </div>
   );
 }
 
-function PronunciationMetricCardItem({
-  metric,
-  drillCount,
-  pitchPreview,
-}: PronunciationMetricCardItemProps) {
+function DashboardNoDataPrompt() {
   return (
-    <MetricCard
-      metricKey={metric.key}
-      label={metric.label}
-      currentLevel={metric.currentLevel}
-      currentScore={metric.currentScore}
-      trend={metric.trend}
-      history={metric.history}
-      isSelected={false}
-      lastTrainedToday={metric.lastTrainedToday}
-      drillCount={drillCount}
-      pitchPreview={metric.key === 'prosodyScore' ? pitchPreview : undefined}
-    />
-  );
-}
-
-interface PillarCardWithStateProps {
-  pillarKey: PillarKey;
-  label: string;
-  averageScore: number;
-  delta: number;
-  sparklineData: number[];
-  color: string;
-  metricContext: MetricCardContext;
-  constituents: DashboardMetric[];
-  pronunciationEmpty: boolean;
-}
-
-function PillarCardWithState({
-  pillarKey,
-  label,
-  averageScore,
-  delta,
-  sparklineData,
-  color,
-  metricContext,
-  constituents,
-  pronunciationEmpty,
-}: PillarCardWithStateProps) {
-  const { isExpanded, toggle } = usePillarCard(pillarKey);
-
-  return (
-    <PillarCard
-      pillarKey={pillarKey}
-      label={label}
-      averageScore={averageScore}
-      delta={delta}
-      sparklineData={sparklineData}
-      color={color}
-      isExpanded={isExpanded}
-      onToggle={toggle}
-    >
-      {pronunciationEmpty ? (
-        <p className="col-span-full text-sm text-slate-500 dark:text-slate-400">
-          Complete a session with pronunciation assessment enabled to see metrics here.
-        </p>
-      ) : (
-        constituents.map((metric) => {
-          const isPronunciationMetric = PRONUNCIATION_METRIC_KEY_SET.has(metric.key);
-          return isPronunciationMetric ? (
-            <PronunciationMetricCardItem
-              key={metric.key}
-              metric={metric}
-              drillCount={metricContext.data.drillStats.byMetric[metric.key]}
-              pitchPreview={
-                metric.key === 'prosodyScore'
-                  ? metricContext.data.recentProsodyPitchPreview
-                  : undefined
-              }
-            />
-          ) : (
-            <SpeakingMetricCardItem
-              key={metric.key}
-              metric={metric}
-              context={metricContext}
-            />
-          );
-        })
-      )}
-    </PillarCard>
+    <div className="mt-6 rounded-xl border border-slate-100 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
+      <p className="text-slate-500 dark:text-slate-400">
+        Record a few more workouts to see your patterns emerge.
+      </p>
+    </div>
   );
 }
 
@@ -151,32 +46,18 @@ export function DashboardView({ className }: DashboardViewProps) {
     PROMPT_LIBRARY,
   );
 
-  if (isLoading) {
-    return <DashboardSkeleton className={className} />;
-  }
-
-  if (error) {
-    return (
-      <div className={`rounded-xl bg-white p-8 text-center dark:bg-slate-800 ${className ?? ''}`}>
-        <p className="text-slate-500 dark:text-slate-400">Unable to load dashboard. We&apos;ll fix this — check back soon.</p>
-      </div>
-    );
-  }
-
+  if (isLoading) return <DashboardSkeleton className={className} />;
+  if (error) return <DashboardErrorView className={className} />;
   if (!data) return null;
 
   const showMetrics = data.totalSessions >= MIN_SESSIONS_FOR_METRICS;
-
   const pillarScores = computePillarScores(data.metrics);
-
   const pronunciationMetrics = data.metrics.filter((m) =>
     (PILLAR_CONFIG.pronunciation.metricKeys as readonly string[]).includes(m.key),
   );
-
   const pronunciationEmpty = pronunciationMetrics.every(
     (m) => m.currentScore === 0 && m.history.length === 0,
   );
-
   const metricContext: MetricCardContext = { data, focus, setFocus };
 
   return (
@@ -189,23 +70,19 @@ export function DashboardView({ className }: DashboardViewProps) {
         totalDrillsCompleted={data.drillStats.totalCompleted}
         workoutWeeks={data.workoutWeeks}
       />
-
       <TodaysWorkout
         recommendation={recommendation}
         completedMetricKey={completedMetricKey}
         workoutNumber={workoutNumber}
         className="mt-6"
       />
-
       <PersonalRecordStrip personalRecords={data.personalRecords ?? []} />
-
       {showMetrics && data.radarScores.length > 0 && (
         <section aria-label="Skill overview" className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start">
           <SkillRadar scores={data.radarScores} />
           <CefrBadge estimate={data.cefrEstimate} />
         </section>
       )}
-
       {showMetrics ? (
         <section aria-label="Speaking metrics by pillar" className="mt-6 flex flex-col gap-4">
           {PILLAR_KEYS.map((pillarKey) => {
@@ -215,7 +92,6 @@ export function DashboardView({ className }: DashboardViewProps) {
             const constituents = data.metrics.filter((m) =>
               (config.metricKeys as readonly string[]).includes(m.key),
             );
-
             return (
               <PillarCardWithState
                 key={pillarKey}
@@ -233,17 +109,9 @@ export function DashboardView({ className }: DashboardViewProps) {
           })}
         </section>
       ) : (
-        <div className="mt-6 rounded-xl border border-slate-100 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
-          <p className="text-slate-500 dark:text-slate-400">
-            Record a few more workouts to see your patterns emerge.
-          </p>
-        </div>
+        <DashboardNoDataPrompt />
       )}
-
-      <FocusSelector
-        focusLabel={focus?.focusLabel ?? null}
-        onClear={clearFocus}
-      />
+      <FocusSelector focusLabel={focus?.focusLabel ?? null} onClear={clearFocus} />
     </div>
   );
 }

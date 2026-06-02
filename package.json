@@ -1,6 +1,6 @@
 {
   "name": "learning-speaking-app",
-  "version": "0.60.0",
+  "version": "0.60.1",
   "private": true,
   "engines": {
     "node": ">=20.0.0"
@@ -15,7 +15,7 @@
     "analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -87,6 +87,7 @@
     "autoprefixer": "^10.4.24",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
+    "happy-dom": "^17.6.1",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
     "jsdom": "^26.1.0",

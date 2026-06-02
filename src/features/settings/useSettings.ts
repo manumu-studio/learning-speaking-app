@@ -1,10 +1,9 @@
 // Hook for fetching, caching, and updating user settings with optimistic UI
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from 'next-themes';
-import { z } from 'zod';
+import { loadSettings, patchSetting } from './settingsApi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,26 +28,9 @@ export interface UseSettingsReturn {
   updateSetting: <K extends SettingKey>(key: K, value: UserSettings[K]) => Promise<void>;
 }
 
-// ─── Zod Schema ──────────────────────────────────────────────────────────────
-
-const UserSettingsSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  dailyGoalMinutes: z.number().int(),
-  defaultDurationSecs: z.number().int(),
-  pronunciationEnabled: z.boolean(),
-  theme: z.enum(['light', 'dark', 'system']),
-  phonemeAlphabet: z.enum(['IPA', 'SAPI']),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
 // ─── localStorage key for phoneme alphabet (shared with usePhonemeAlphabet) ──
 
 const PHONEME_STORAGE_KEY = 'lsa-phoneme-alphabet';
-
-// Schema for parsing API error responses
-const ApiErrorSchema = z.object({ error: z.string() });
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
@@ -70,14 +52,7 @@ export function useSettings(): UseSettingsReturn {
   useEffect(() => {
     async function fetchSettings(): Promise<void> {
       try {
-        const res = await fetch('/api/settings');
-        if (!res.ok) {
-          const body: unknown = await res.json().catch(() => ({}));
-          const errorParsed = ApiErrorSchema.safeParse(body);
-          throw new Error(errorParsed.success ? errorParsed.data.error : 'Failed to load settings');
-        }
-        const raw: unknown = await res.json();
-        const parsed = UserSettingsSchema.parse(raw);
+        const parsed = await loadSettings();
         if (mountedRef.current) {
           setSettings(parsed);
           setError(null);
@@ -100,51 +75,24 @@ export function useSettings(): UseSettingsReturn {
     async <K extends SettingKey>(key: K, value: UserSettings[K]): Promise<void> => {
       if (!settings) return;
 
-      // Capture previous state for rollback
       const previous = settings;
-
-      // Optimistic update
-      const optimistic: UserSettings = { ...settings, [key]: value };
-      setSettings(optimistic);
+      setSettings({ ...settings, [key]: value });
       setError(null);
 
-      // Apply side effects immediately for responsive UX
-      if (key === 'theme') {
-        setTheme(String(value));
-      }
+      if (key === 'theme') setTheme(String(value));
       if (key === 'phonemeAlphabet') {
         window.localStorage.setItem(PHONEME_STORAGE_KEY, String(value).toLowerCase());
       }
 
       try {
-        const res = await fetch('/api/settings', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [key]: value }),
-        });
-
-        if (!res.ok) {
-          const body: unknown = await res.json().catch(() => ({}));
-          const errorParsed = ApiErrorSchema.safeParse(body);
-          throw new Error(errorParsed.success ? errorParsed.data.error : 'Failed to save setting');
-        }
-
-        const raw: unknown = await res.json();
-        const parsed = UserSettingsSchema.parse(raw);
-        if (mountedRef.current) {
-          setSettings(parsed);
-        }
+        const parsed = await patchSetting(key, value);
+        if (mountedRef.current) setSettings(parsed);
       } catch (err) {
-        // Rollback on failure
         if (mountedRef.current) {
           setSettings(previous);
           setError(err instanceof Error ? err.message : 'Failed to save setting');
         }
-
-        // Rollback side effects
-        if (key === 'theme') {
-          setTheme(String(previous.theme));
-        }
+        if (key === 'theme') setTheme(String(previous.theme));
         if (key === 'phonemeAlphabet') {
           window.localStorage.setItem(PHONEME_STORAGE_KEY, previous.phonemeAlphabet.toLowerCase());
         }

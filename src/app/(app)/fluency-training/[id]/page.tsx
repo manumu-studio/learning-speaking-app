@@ -1,6 +1,5 @@
 // /fluency-training/[id] — active fluency session (recording or comparison view)
 'use client';
-/* eslint-disable max-lines-per-function */
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -26,6 +25,39 @@ const SessionDetailSchema = z.object({
 });
 
 type SessionDetail = z.infer<typeof SessionDetailSchema>;
+
+function FluencyLoadingView() {
+  return (
+    <Container>
+      <div className="flex flex-col gap-4 animate-pulse py-12">
+        <div className="h-8 w-64 rounded bg-gray-200 dark:bg-gray-800" />
+        <div className="h-4 w-48 rounded bg-gray-200 dark:bg-gray-800" />
+        <div className="h-64 rounded-xl bg-gray-200 dark:bg-gray-800" />
+      </div>
+    </Container>
+  );
+}
+
+interface FluencyErrorViewProps {
+  message: string | null;
+  onBack: () => void;
+}
+
+function FluencyErrorView({ message, onBack }: FluencyErrorViewProps) {
+  return (
+    <Container>
+      <div className="py-12 text-center">
+        <p className="text-gray-500 dark:text-gray-400">{message ?? 'Session not found'}</p>
+        <button
+          onClick={onBack}
+          className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+        >
+          Back to Fluency Training
+        </button>
+      </div>
+    </Container>
+  );
+}
 
 export default function FluencySessionPage() {
   const params = useParams();
@@ -61,32 +93,9 @@ export default function FluencySessionPage() {
     fetchSession();
   }, [fetchSession]);
 
-  if (isLoading) {
-    return (
-      <Container>
-        <div className="flex flex-col gap-4 animate-pulse py-12">
-          <div className="h-8 w-64 rounded bg-gray-200 dark:bg-gray-800" />
-          <div className="h-4 w-48 rounded bg-gray-200 dark:bg-gray-800" />
-          <div className="h-64 rounded-xl bg-gray-200 dark:bg-gray-800" />
-        </div>
-      </Container>
-    );
-  }
-
-  if (error || !session) {
-    return (
-      <Container>
-        <div className="py-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400">{error ?? 'Session not found'}</p>
-          <button
-            onClick={() => router.push('/fluency-training')}
-            className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-          >
-            Back to Fluency Training
-          </button>
-        </div>
-      </Container>
-    );
+  if (isLoading) return <FluencyLoadingView />;
+  if (error !== null || session === null) {
+    return <FluencyErrorView message={error} onBack={() => router.push('/fluency-training')} />;
   }
 
   const completedRounds = session.rounds.map((r) => ({

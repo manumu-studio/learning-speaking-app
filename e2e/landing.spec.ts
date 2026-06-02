@@ -1,9 +1,11 @@
 // E2E tests for the public landing page (dev server uses E2E_TEST_USER — authenticated hero CTA)
 import { test, expect } from '@playwright/test';
+import { gotoAppPage } from './navigation';
+import { e2eTimeout } from './timeouts';
 
 test.describe('Landing Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await gotoAppPage(page, '/');
   });
 
   test('loads with correct title', async ({ page }) => {
@@ -39,17 +41,21 @@ test.describe('Landing Page', () => {
     // Hero CTA renders as a button (NavButton) when authenticated, link when not
     const sessionCta = page.getByRole('button', { name: /go to dashboard/i });
     const signInCta = page.getByRole('button', { name: /sign in with manumustudio/i });
-    await expect(sessionCta.or(signInCta).first()).toBeVisible({ timeout: 15_000 });
+    await expect(sessionCta.or(signInCta).first()).toBeVisible({
+      timeout: e2eTimeout(15_000),
+    });
 
     if (await sessionCta.isVisible()) {
       await sessionCta.click();
-      await expect(page).toHaveURL(/\/dashboard|\/session\/new/, { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/dashboard|\/session\/new/, {
+        timeout: e2eTimeout(15_000),
+      });
     }
   });
 
   test('cookie consent banner appears on first visit to the app', async ({ page }) => {
     const banner = page.getByRole('banner', { name: /cookie consent/i });
-    await expect(banner).toBeVisible({ timeout: 10000 });
+    await expect(banner).toBeVisible({ timeout: e2eTimeout(10_000) });
     await expect(banner.getByRole('button', { name: /^accept$/i })).toBeVisible();
   });
 });
