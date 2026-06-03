@@ -44,8 +44,8 @@ Each feature produces:
 
 ## Current Documentation Status
 
-- Latest journal entry: `docs/journal/ENTRY-72.md`
-- Latest PR doc: `docs/pull-requests/PR-0.65.0.md`
+- Latest journal entry: `docs/journal/ENTRY-73.md`
+- Latest PR doc: `docs/pull-requests/PR-0.66.0.md`
 - Product direction: `docs/roadmap/ROADMAP.md`
 - Source-of-truth architecture: `docs/architecture/SYSTEM_SPEC.md`
 

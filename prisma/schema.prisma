@@ -108,6 +108,10 @@ model SpeakingSession {
   partialResults Boolean       @default(false)
   chunkCount     Int?
   processedAt    DateTime?
+  verbatimTranscript String?   @db.Text  // AssemblyAI Universal-3-Pro raw verbatim output
+  verbatimWordCount  Int?                // Word count from the verbatim transcript
+  divergenceSpans    Json?               // DivergenceSpan[] — normalized↔verbatim disagreements
+  verbatimProvider   String?             // e.g. "assemblyai"
   transcript          Transcript?
   insights            Insight[]
   metrics             MetricSnapshot[]
