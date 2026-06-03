@@ -1,8 +1,9 @@
-// Tests for confidence gate and naturalness flag merging
+// Tests for confidence gate and naturalness flag merging — Tier 1/2/3
 import { describe, it, expect } from 'vitest';
 import { mergeNaturalnessFlags } from './confidenceGate';
 import type { ClaudeNaturalnessItem } from './confidenceGate';
 import type { NaturalnessFlagInput } from './naturalness.types';
+import type { CorpusEvidence } from '@/lib/analysis/analysis.types';
 
 const makeCalqueFlag = (original: string, suggested: string): NaturalnessFlagInput => ({
   originalPhrase: original,
@@ -69,5 +70,78 @@ describe('mergeNaturalnessFlags', () => {
 
   it('returns empty array when both inputs are empty', () => {
     expect(mergeNaturalnessFlags([], [])).toEqual([]);
+  });
+
+  describe('with corpus evidence (Tier 2)', () => {
+    const corpusEvidence: CorpusEvidence = {
+      vocabulary: new Map(),
+      collocations: [
+        {
+          head: 'big',
+          collocate: 'success',
+          lookup: { headLemma: 'big', collocate: 'success', attested: true, mi: 4, logDice: 6.5, freq: 80, source: 'COCA' },
+        },
+      ],
+      expressions: [
+        {
+          phrase: 'in essence',
+          lookup: { canonical: 'in essence', type: 'formula', freq: 50, cefr: 'C1', senseNote: null, source: 'PHaVE', matchMethod: 'exact' as const },
+        },
+      ],
+      stats: { totalContentWords: 50, matchedWords: 30, cefrDistribution: {}, avgFreqPerMillion: null },
+    };
+
+    it('upgrades confidence when collocation match has logDice >= 5', () => {
+      const items = [makeClaudeItem('a big success', 'a great achievement')];
+      const result = mergeNaturalnessFlags([], items, corpusEvidence);
+      expect(result[0]?.confidence).toBe('high');
+      expect(result[0]?.collocationMetric).toBe('logDice');
+      expect(result[0]?.metricValue).toBe(6.5);
+    });
+
+    it('upgrades to medium confidence when attested with low logDice', () => {
+      const lowDiceEvidence: CorpusEvidence = {
+        vocabulary: new Map(),
+        collocations: [{
+          head: 'big',
+          collocate: 'success',
+          lookup: { headLemma: 'big', collocate: 'success', attested: true, mi: 2, logDice: 3.0, freq: 30, source: 'COCA' },
+        }],
+        expressions: [],
+        stats: { totalContentWords: 50, matchedWords: 30, cefrDistribution: {}, avgFreqPerMillion: null },
+      };
+      const items = [makeClaudeItem('a big success', 'a great achievement')];
+      const result = mergeNaturalnessFlags([], items, lowDiceEvidence);
+      expect(result[0]?.confidence).toBe('medium');
+      expect(result[0]?.collocationMetric).toBe('logDice');
+      expect(result[0]?.metricValue).toBe(3.0);
+    });
+
+    it('upgrades confidence via MWE attestation', () => {
+      const items = [makeClaudeItem('so basically in essence', 'fundamentally', 'discourse_marker')];
+      const result = mergeNaturalnessFlags([], items, corpusEvidence);
+      expect(result[0]?.confidence).toBe('medium');
+      expect(result[0]?.collocationMetric).toBe('mwe_freq');
+    });
+
+    it('keeps low confidence when no corpus match found', () => {
+      const items = [makeClaudeItem('very unique situation', 'unique situation', 'register')];
+      const emptyEvidence: CorpusEvidence = {
+        vocabulary: new Map(),
+        collocations: [],
+        expressions: [],
+        stats: { totalContentWords: 0, matchedWords: 0, cefrDistribution: {}, avgFreqPerMillion: null },
+      };
+      const result = mergeNaturalnessFlags([], items, emptyEvidence);
+      expect(result[0]?.confidence).toBe('low');
+      expect(result[0]?.collocationMetric).toBeNull();
+    });
+
+    it('does not affect calque flags (already high confidence)', () => {
+      const calques = [makeCalqueFlag('make a party', 'throw a party')];
+      const result = mergeNaturalnessFlags(calques, [], corpusEvidence);
+      expect(result[0]?.confidence).toBe('high');
+      expect(result[0]?.collocationMetric).toBeNull();
+    });
   });
 });

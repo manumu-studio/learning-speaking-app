@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { transcribeAudio } from '@/lib/ai/whisper';
 import { gateSegments } from '@/lib/ai/confidenceGating';
 import { analyzeTranscript } from '@/lib/ai/analyze';
+import { buildCorpusEvidence } from '@/lib/analysis/buildCorpusEvidence';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
 import { toPcm16kMonoWav } from '@/lib/audio/transcode';
@@ -93,12 +94,29 @@ async function runAnalysis(options: RunAnalysisOptions) {
     analyzeStart,
   } = options;
   const pronunciationSummary = buildPronunciationSummary(pronunciationResult ?? null);
-  const analysis = await analyzeTranscript(
-    analysisTranscriptText,
+
+  const corpusStart = Date.now();
+  const corpusEvidence = await buildCorpusEvidence(analysisTranscriptText);
+  logPipelineStage({
+    sessionId,
+    stage: 'corpus-lookup',
+    durationMs: Date.now() - corpusStart,
+    success: true,
+    metadata: {
+      contentWords: corpusEvidence.stats.totalContentWords,
+      matched: corpusEvidence.stats.matchedWords,
+      collocations: corpusEvidence.collocations.filter((c) => c.lookup !== null).length,
+      expressions: corpusEvidence.expressions.length,
+    },
+  });
+
+  const analysis = await analyzeTranscript({
+    transcript: analysisTranscriptText,
     focusMetricKey,
     pronunciationSummary,
     promptUsed,
-  );
+    corpusEvidence,
+  });
 
   const nerFilterResult = filterTranscriptionArtefacts(analysis.insights, userTranscriptText);
 

@@ -92,12 +92,12 @@ async function runChunkAnalysis(
   });
 
   try {
-    const analysis = await analyzeTranscript(
-      transcriptText,
-      session?.focusMetricKey ?? null,
-      null,
-      session?.promptUsed ?? null,
-    );
+    const analysis = await analyzeTranscript({
+      transcript: transcriptText,
+      focusMetricKey: session?.focusMetricKey ?? null,
+      pronunciationSummary: null,
+      promptUsed: session?.promptUsed ?? null,
+    });
     return toInputJson(analysis.insights);
   } catch (analysisError) {
     logger.warn(

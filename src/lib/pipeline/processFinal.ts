@@ -3,6 +3,8 @@ import { ChunkStatus, Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import type { AnalysisResult } from '@/lib/ai/analyze';
+import { buildCorpusEvidence } from '@/lib/analysis/buildCorpusEvidence';
+import type { CorpusEvidence } from '@/lib/analysis/analysis.types';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
@@ -78,6 +80,7 @@ interface PersistAnalysisOptions {
   analysis: AnalysisResult;
   chunks: SessionChunk[];
   createdAt: Date;
+  corpusEvidence?: CorpusEvidence | null;
 }
 
 /**
@@ -87,7 +90,7 @@ interface PersistAnalysisOptions {
  * @param opts - All data needed to write analysis results to the DB.
  */
 async function persistAnalysisAndFinalize(opts: PersistAnalysisOptions): Promise<void> {
-  const { sessionId, userId, userTranscriptText, analysis, chunks, createdAt } = opts;
+  const { sessionId, userId, userTranscriptText, analysis, chunks, createdAt, corpusEvidence } = opts;
 
   const nerFilterResult = filterTranscriptionArtefacts(analysis.insights, userTranscriptText);
 
@@ -138,7 +141,7 @@ async function persistAnalysisAndFinalize(opts: PersistAnalysisOptions): Promise
   // Naturalness detection: deterministic calques + Claude-flagged items → persist
   const calqueFlags = detectCalques(userTranscriptText);
   const claudeNaturalness = analysis.naturalness ?? [];
-  const mergedFlags = mergeNaturalnessFlags(calqueFlags, claudeNaturalness);
+  const mergedFlags = mergeNaturalnessFlags(calqueFlags, claudeNaturalness, corpusEvidence);
   if (mergedFlags.length > 0) {
     await persistNaturalnessFlags(userId, sessionId, mergedFlags);
   }
@@ -171,6 +174,31 @@ async function persistAnalysisAndFinalize(opts: PersistAnalysisOptions): Promise
       data: { estimatedCefrLevel: cefrEstimate.level },
     });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Corpus evidence helper
+// ---------------------------------------------------------------------------
+
+async function buildCorpusEvidenceWithLogging(
+  sessionId: string,
+  transcript: string,
+): Promise<CorpusEvidence> {
+  const corpusStart = Date.now();
+  const evidence = await buildCorpusEvidence(transcript);
+  logPipelineStage({
+    sessionId,
+    stage: 'corpus-lookup',
+    durationMs: Date.now() - corpusStart,
+    success: true,
+    metadata: {
+      contentWords: evidence.stats.totalContentWords,
+      matched: evidence.stats.matchedWords,
+      collocations: evidence.collocations.filter((c) => c.lookup !== null).length,
+      expressions: evidence.expressions.length,
+    },
+  });
+  return evidence;
 }
 
 // ---------------------------------------------------------------------------
@@ -237,12 +265,15 @@ export async function processFinal(sessionId: string): Promise<void> {
   const pronunciationResult = await aggregatePronunciationForSession(sessionId, chunks);
   const pronunciationSummary = buildPronunciationSummary(pronunciationResult);
 
-  const analysis = await analyzeTranscript(
-    userTranscriptText,
-    session.focusMetricKey,
+  const corpusEvidence = await buildCorpusEvidenceWithLogging(sessionId, userTranscriptText);
+
+  const analysis = await analyzeTranscript({
+    transcript: userTranscriptText,
+    focusMetricKey: session.focusMetricKey,
     pronunciationSummary,
-    session.promptUsed ?? null,
-  );
+    promptUsed: session.promptUsed ?? null,
+    corpusEvidence,
+  });
 
   await persistAnalysisAndFinalize({
     sessionId,
@@ -251,6 +282,7 @@ export async function processFinal(sessionId: string): Promise<void> {
     analysis,
     chunks,
     createdAt: session.createdAt,
+    corpusEvidence,
   });
 
   logPipelineStage({

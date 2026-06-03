@@ -44,8 +44,8 @@ Each feature produces:
 
 ## Current Documentation Status
 
-- Latest journal entry: `docs/journal/ENTRY-11.md`
-- Latest PR doc: `docs/pull-requests/PR-0.11.0.md`
+- Latest journal entry: `docs/journal/ENTRY-72.md`
+- Latest PR doc: `docs/pull-requests/PR-0.65.0.md`
 - Product direction: `docs/roadmap/ROADMAP.md`
 - Source-of-truth architecture: `docs/architecture/SYSTEM_SPEC.md`
 
@@ -53,7 +53,7 @@ Each feature produces:
 
 After every packet:
 ```bash
-npx tsc --noEmit          # Zero type errors
+npm run typecheck         # Zero type errors
 npm run build             # Clean build
 npm run lint              # No lint violations
 ```
