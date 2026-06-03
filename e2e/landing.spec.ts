@@ -46,10 +46,20 @@ test.describe('Landing Page', () => {
     });
 
     if (await sessionCta.isVisible()) {
-      await sessionCta.click();
-      await expect(page).toHaveURL(/\/dashboard|\/session\/new/, {
-        timeout: e2eTimeout(15_000),
-      });
+      // The CTA is a client NavButton whose onClick→router.push is only wired after
+      // hydration, and its target (/session/new) is a protected route that can
+      // cold-redirect back to / before the test session is ready. Assert the landing
+      // page's own responsibility — that clicking *initiates* the session-flow
+      // transition — rather than coupling to auth/route timing. NavButton sets its
+      // loading state synchronously on click and holds it until the route unmounts,
+      // so the "Loading…" button is a stable proof the navigation fired. The completed
+      // /session/new load is covered by session.spec.ts. (See INCIDENT-E2E-LANDING-CTA.)
+      await expect(async () => {
+        await sessionCta.click();
+        await expect(page.getByRole('button', { name: /loading/i })).toBeVisible({
+          timeout: 1_000,
+        });
+      }).toPass({ timeout: e2eTimeout(15_000) });
     }
   });
 
