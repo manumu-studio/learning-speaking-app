@@ -34,11 +34,20 @@ describe('computePillarScores', () => {
     const metrics = [
       makeMetric('speakingRate', 8),
       makeMetric('fillerUsage', 6),
-      makeMetric('argumentClosure', 7),
     ];
     const result = computePillarScores(metrics);
     const delivery = result.find((ps) => ps.pillarKey === 'delivery');
     expect(delivery?.averageScore).toBeCloseTo(7.0, 5);
+  });
+
+  it('computes correct average for language pillar including argumentClosure', () => {
+    const metrics = [
+      makeMetric('connectorRepetition', 7),
+      makeMetric('argumentClosure', 7),
+    ];
+    const result = computePillarScores(metrics);
+    const language = result.find((ps) => ps.pillarKey === 'language');
+    expect(language?.averageScore).toBeCloseTo(7.0, 5);
   });
 
   it('excludes missing metrics from the average', () => {
@@ -55,7 +64,6 @@ describe('computePillarScores', () => {
     const metrics = [
       makeMetric('speakingRate', 9, [5, 5, 5, 5, 5, 5, 5]),
       makeMetric('fillerUsage', 9, [5, 5, 5, 5, 5, 5, 5]),
-      makeMetric('argumentClosure', 9, [5, 5, 5, 5, 5, 5, 5]),
     ];
     const result = computePillarScores(metrics);
     const delivery = result.find((ps) => ps.pillarKey === 'delivery');
@@ -73,7 +81,6 @@ describe('computePillarScores', () => {
     const metrics = [
       makeMetric('speakingRate', 7, [5, 6, 7]),
       makeMetric('fillerUsage', 7, [5, 6]),
-      makeMetric('argumentClosure', 7, [5, 6, 7, 8]),
     ];
     const result = computePillarScores(metrics);
     const delivery = result.find((ps) => ps.pillarKey === 'delivery');

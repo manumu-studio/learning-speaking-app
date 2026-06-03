@@ -154,8 +154,8 @@ describe('GET /api/users/me/daily-summaries', () => {
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
     prismaMock.dailySummary.findUnique.mockResolvedValueOnce(null as never);
     prismaMock.speakingSession.findMany.mockResolvedValueOnce([{ id: 'sess-1' }] as never);
-    // delivery keys: speakingRate, fillerUsage, argumentClosure
-    // language keys: connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, lexicalSophistication, registerPragmatics
+    // delivery keys: speakingRate, fillerUsage
+    // language keys: connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, lexicalSophistication, registerPragmatics, argumentClosure
     // pronunciation keys: pronunciationAccuracy, prosodyScore
     prismaMock.metricSnapshot.findMany.mockResolvedValueOnce([
       { key: 'speakingRate', score: 8 },

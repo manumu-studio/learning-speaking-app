@@ -7,7 +7,6 @@ import type { DaySessionData } from './aggregateDayData';
 const deliveryMetrics = [
   { key: 'speakingRate', score: 8.0 },
   { key: 'fillerUsage', score: 6.0 },
-  { key: 'argumentClosure', score: 7.0 },
 ];
 
 const languageMetrics = [
@@ -17,6 +16,7 @@ const languageMetrics = [
   { key: 'verbAccuracy', score: 9.0 },
   { key: 'lexicalSophistication', score: 7.0 },
   { key: 'registerPragmatics', score: 8.0 },
+  { key: 'argumentClosure', score: 7.0 },
 ];
 
 const pronunciationMetrics = [
@@ -46,10 +46,10 @@ describe('aggregateDayData', () => {
 
     const result = aggregateDayData([session]);
 
-    // Delivery: mean(8, 6, 7) = 7.0
+    // Delivery: mean(8, 6) = 7.0
     expect(result.pillarScores.delivery).toBeCloseTo(7.0);
-    // Language: mean(7, 8, 6, 9, 7, 8) = 7.5
-    expect(result.pillarScores.language).toBeCloseTo(7.5);
+    // Language: mean(7, 8, 6, 9, 7, 8, 7) = 7.43
+    expect(result.pillarScores.language).toBeCloseTo(52 / 7, 2);
     // Pronunciation: mean(9, 7) = 8.0
     expect(result.pillarScores.pronunciation).toBeCloseTo(8.0);
   });

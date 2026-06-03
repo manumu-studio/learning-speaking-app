@@ -94,6 +94,10 @@ describe('estimateCefr', () => {
   });
 
   it('returns pillar breakdown with correct averages', () => {
+    // delivery: speakingRate=7, fillerUsage=7 → mean=7.0
+    // language: connectorRepetition=7, structuralVariety=8, vocabularyPrecision=7, verbAccuracy=6,
+    //           lexicalSophistication=7, registerPragmatics=7, argumentClosure=7 → mean(49/7)=7.0
+    // pronunciation: pronunciationAccuracy=8, prosodyScore=6 → mean=7.0
     const metrics: MetricScoreInput[] = [
       { key: 'pronunciationAccuracy', score: 8.0 },
       { key: 'prosodyScore', score: 6.0 },
@@ -104,8 +108,8 @@ describe('estimateCefr', () => {
       { key: 'lexicalSophistication', score: 7.0 },
       { key: 'registerPragmatics', score: 7.0 },
       { key: 'speakingRate', score: 7.0 },
-      { key: 'fillerUsage', score: 6.0 },
-      { key: 'argumentClosure', score: 8.0 },
+      { key: 'fillerUsage', score: 7.0 },
+      { key: 'argumentClosure', score: 7.0 },
     ];
     const result = estimateCefr(metrics);
     expect(result).not.toBeNull();

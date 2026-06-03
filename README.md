@@ -13,7 +13,7 @@ AI-powered English speaking coach that provides real-time feedback on spoken lan
 - **Database:** PostgreSQL (Neon serverless) via Prisma ORM
 - **Auth:** OIDC + PKCE (external auth server, RS256 JWT)
 - **Storage:** Cloudflare R2 (temporary audio)
-- **AI Pipeline:** OpenAI Whisper (display transcript) + AssemblyAI Universal-3-Pro (verbatim transcript, parallel) → Levenshtein divergence detection (grammar/disfluency candidate spans) → Corpus lookup (frequency, CEFR, collocations) → Azure Speech (pronunciation assessment) → Claude Haiku (corpus-grounded analysis + synthesis) → Hybrid scoring (corpus confirms/overrides LLM)
+- **AI Pipeline:** OpenAI Whisper (display transcript) + AssemblyAI Universal-3-Pro (verbatim transcript, parallel) → Levenshtein divergence detection → Corpus lookup (frequency, CEFR, collocations) → Azure Speech (pronunciation assessment) → Claude Haiku (corpus-grounded analysis + synthesis) → Hybrid scoring (corpus confirms/overrides LLM) → Grammar classification (divergence spans classified as errors/self-corrections/artifacts)
 - **Pronunciation:** Azure Speech SDK (phoneme accuracy, prosody, speaking rate, L1 interference detection)
 - **Queue:** QStash (async processing with retry, parallel per-chunk pipeline)
 - **Hosting:** Vercel
@@ -39,7 +39,7 @@ Browser (AudioWorklet) → 2-min chunks with 5s overlap → Upload each to R2
                                                             ↓
 Browser (Results UI) ← Progressive results during recording ← Next.js API
         ↓
-Dashboard ← 11 metrics (8 language + 3 pronunciation), sparklines, streak, CEFR level, skill radar
+Dashboard ← 11 metrics across 3 pillars (Delivery: 2, Language: 7, Pronunciation: 2), sparklines, streak, CEFR level, skill radar
         ↓
 Training Gym ← AI-generated drills per metric → record response → evaluate
         ↓
@@ -126,7 +126,7 @@ src/
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, analysis, analysis/divergence, assemblyai, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
+├── lib/              # Shared utilities (AI, analysis, analysis/divergence, analysis/grammar, assemblyai, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

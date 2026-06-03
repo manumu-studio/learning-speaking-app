@@ -73,7 +73,7 @@ YOUR TASK:
 2. Filter out insights that look like transcription boundary artifacts (e.g. a pattern that only appears in one chunk and consists of a sentence fragment).
 3. Detect cross-chunk patterns that are MORE significant because they persist across the full session.
 4. Produce up to 5 final insights covering the full session.
-5. Score all 6 language metrics (connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, argumentClosure, fillerUsage) using the complete transcript, not per-chunk data.
+5. Score all 7 language metrics (connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, lexicalSophistication, registerPragmatics, argumentClosure) and 2 delivery metrics (fillerUsage, speakingRate) using the complete transcript, not per-chunk data.
 6. Write a 1–2 sentence summary of the full session, an intentLabel (3–5 words), and a focusNext recommendation.
 7. Produce a vocabularySuggestions array with exactly 2-3 items. Choose words that are genuinely useful upgrades — not obscure synonyms. Each word should have a meaning and an example sentence showing natural usage.
 

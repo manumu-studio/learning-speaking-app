@@ -14,13 +14,13 @@ export type PillarConfig = {
 export const PILLAR_CONFIG = {
   delivery: {
     label: 'Delivery',
-    metricKeys: ['speakingRate', 'fillerUsage', 'argumentClosure'],
+    metricKeys: ['speakingRate', 'fillerUsage'],
     color: 'blue',
     icon: 'Mic',
   },
   language: {
     label: 'Language',
-    metricKeys: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'lexicalSophistication', 'registerPragmatics'],
+    metricKeys: ['connectorRepetition', 'structuralVariety', 'vocabularyPrecision', 'verbAccuracy', 'lexicalSophistication', 'registerPragmatics', 'argumentClosure'],
     color: 'violet',
     icon: 'BookOpen',
   },
