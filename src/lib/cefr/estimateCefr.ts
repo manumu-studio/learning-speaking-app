@@ -11,8 +11,9 @@ const PILLAR_METRICS: Record<keyof PillarBreakdown, readonly MetricKey[]> = {
     'verbAccuracy',
     'lexicalSophistication',
     'registerPragmatics',
+    'argumentClosure',
   ],
-  delivery: ['speakingRate', 'fillerUsage', 'argumentClosure'],
+  delivery: ['speakingRate', 'fillerUsage'],
 };
 
 const PILLAR_KEYS_ORDERED: readonly (keyof PillarBreakdown)[] = [

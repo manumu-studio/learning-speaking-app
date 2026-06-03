@@ -2,6 +2,17 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.67.0] — 2026-06-03
+
+### Added
+- Grammar pipeline: classifies dual-transcript divergence spans as grammar errors, self-corrections, pronunciation artifacts, or false starts via dedicated Claude Haiku call
+- Evidence-based `verbAccuracy` scoring: replaces LLM-vibes score with weighted formula (error severity × confidence × corpus boost) when grammar flags are available
+- GrammarSection UI component in session results — shows error flags with verbatim vs normalized text, error type badges, suggestions, and corpus evidence
+- `grammarFlags` JSON field on SpeakingSession (additive migration, nullable)
+
+### Changed
+- Moved `argumentClosure` metric from Delivery pillar to Language pillar (Delivery: 2 metrics, Language: 7)
+
 ## [0.66.0] — 2026-06-03
 
 ### Added

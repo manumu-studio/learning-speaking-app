@@ -103,6 +103,17 @@ const sessionDetailSchema = z.object({
     shownToUser: z.boolean(),
     userFeedback: z.enum(['helpful', 'false_positive']).nullable(),
   })).optional(),
+  grammarFlags: z.array(z.object({
+    spanIndex: z.number(),
+    verbatimText: z.string(),
+    normalizedText: z.string(),
+    classification: z.enum(['grammar_error', 'self_correction', 'pronunciation_artifact', 'false_start']),
+    errorType: z.enum(['verb_tense', 'article', 'preposition', 'agreement', 'word_order', 'other']).nullable(),
+    confidence: z.number(),
+    explanation: z.string(),
+    suggestion: z.string(),
+    corpusEvidence: z.string().nullable(),
+  })).nullable().optional(),
 }).transform((val): SessionDetail => {
   const result: SessionDetail = {
     id: val.id,
@@ -142,6 +153,9 @@ const sessionDetailSchema = z.object({
   }
   if (val.naturalness !== undefined) {
     result.naturalness = val.naturalness;
+  }
+  if (val.grammarFlags != null) {
+    result.grammarFlags = val.grammarFlags;
   }
   return result;
 });

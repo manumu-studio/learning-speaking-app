@@ -18,7 +18,6 @@ const LANGUAGE_METRICS: SessionMetricSnapshot[] = [
 const DELIVERY_METRICS: SessionMetricSnapshot[] = [
   makeMetric('speakingRate', 7.0),
   makeMetric('fillerUsage', 3.5),
-  makeMetric('argumentClosure', 6.2),
 ];
 
 const PRONUNCIATION_METRICS: SessionMetricSnapshot[] = [
@@ -39,14 +38,13 @@ describe('PillarTooltip', () => {
     expect(screen.getByText('6.8')).toBeInTheDocument();
   });
 
-  it('renders delivery pillar with its 3 metrics', () => {
+  it('renders delivery pillar with its 2 metrics', () => {
     render(
       <PillarTooltip pillarKey="delivery" metrics={DELIVERY_METRICS} isOpen onClose={vi.fn()} />,
     );
     expect(screen.getByText('Filler Usage')).toBeInTheDocument();
     expect(screen.getByText('3.5')).toBeInTheDocument();
     expect(screen.getByText('Speaking Rate')).toBeInTheDocument();
-    expect(screen.getByText('Argument Closure')).toBeInTheDocument();
   });
 
   it('renders pronunciation pillar with its 2 metrics', () => {

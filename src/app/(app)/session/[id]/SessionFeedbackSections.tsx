@@ -33,6 +33,7 @@ import type { PronunciationReport } from '@/components/ui/PronunciationSection';
 import { RegisterFeedback } from '@/features/session/RegisterFeedback';
 import { NaturalnessInsights } from '@/features/session/NaturalnessInsights';
 import { CategoryInsightsSection, groupInsightsByCategory, deriveVocabSuggestions } from './CategoryInsightsSection';
+import { GrammarSection } from './GrammarSection';
 import type { FocusComparison } from './sessionResults.helpers';
 import { pickWeakestMetric } from './sessionResults.helpers';
 
@@ -66,6 +67,9 @@ export function LanguageFeedbackSection({
     <CollapsibleSection title="Language Feedback" count={session.insights.length} animationDelay={200}>
       <div className="flex flex-col gap-4">
         <CategoryInsightsSection title="Grammar" insights={grouped.grammar} baseDelay={220} />
+        {session.grammarFlags && session.grammarFlags.length > 0 && (
+          <GrammarSection flags={session.grammarFlags} animationDelay={250} />
+        )}
         <CategoryInsightsSection title="Vocabulary" insights={grouped.vocabulary} baseDelay={280} />
         <CategoryInsightsSection title="Structure" insights={grouped.structure} baseDelay={340} />
         <VocabSuggestions suggestions={vocabSuggestions} animationDelay={400} />
