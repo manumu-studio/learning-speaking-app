@@ -1,6 +1,8 @@
 // Builder functions for Claude analysis prompts; imports static section constants from analyzePromptSections
 import { isSpeakingMetricKey } from '@/lib/metric-keys';
 import type { PronunciationSummary } from './analyze';
+import type { BuildUserPromptOptions } from './analyzeTranscript.types';
+import { formatCorpusPrompt } from '@/lib/analysis/formatCorpusPrompt';
 import {
   ANALYSIS_ROLE_SECTION,
   ASR_GUARD_PROMPT,
@@ -104,23 +106,15 @@ export function buildSystemPrompt(): string {
 /**
  * Assembles the Claude user prompt by composing all analysis sections in order.
  *
- * Sections included: prompt context (if provided), chain-of-thought instructions,
- * coherence, vocabulary diversity, vocabulary suggestions, collocation, register,
- * lexical sophistication, L1 interference, pattern analysis, optional focus
- * instruction, optional pronunciation context, and finally the transcript.
+ * Sections included: prompt context, chain-of-thought, analysis dimensions,
+ * pattern scoring, optional focus instruction, optional pronunciation context,
+ * optional corpus evidence, and finally the transcript.
  *
- * @param transcript - The Whisper-produced transcript to analyze.
- * @param focusMetricKey - If set and a valid `SpeakingMetricKey`, appends a focus instruction for that metric.
- * @param pronunciationSummary - If provided, appends the Azure pronunciation context block.
- * @param promptUsed - If provided, prepends the speaking-prompt topic for context.
+ * @param options - All inputs for building the user prompt.
  * @returns The fully assembled user-turn string.
  */
-export function buildUserPrompt(
-  transcript: string,
-  focusMetricKey?: string | null,
-  pronunciationSummary?: PronunciationSummary | null,
-  promptUsed?: string | null,
-): string {
+export function buildUserPrompt(options: BuildUserPromptOptions): string {
+  const { transcript, focusMetricKey, pronunciationSummary, promptUsed, corpusEvidence } = options;
   const sections: string[] = [];
 
   if (promptUsed != null && promptUsed.trim().length > 0) {
@@ -148,6 +142,13 @@ export function buildUserPrompt(
 
   if (pronunciationSummary != null) {
     sections.push(buildPronunciationContext(pronunciationSummary));
+  }
+
+  if (corpusEvidence != null) {
+    const corpusSection = formatCorpusPrompt(corpusEvidence);
+    if (corpusSection.length > 0) {
+      sections.push(corpusSection);
+    }
   }
 
   sections.push(`Transcript:\n${transcript}`);

@@ -54,6 +54,11 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.33.0 | [ENTRY-37](journal/ENTRY-37.md) | 2026-05-27 | Speaker isolation: push-to-talk, VAD pre-flight, validation gates |
 | 0.34.0 | [ENTRY-38](journal/ENTRY-38.md) | 2026-05-27 | AI analysis quality: coherence, vocabulary diversity, L1 detection, Redis caching |
 | 0.60.1 | [ENTRY-67](journal/ENTRY-67.md) | 2026-06-02 | ESLint complexity compliance — zero suppressions, 82 files split into 87 focused modules |
+| 0.61.0 | [ENTRY-68](journal/ENTRY-68.md) | 2026-06-02 | Pronunciation redesign — functional-load prioritization with rules + IPA |
+| 0.62.0 | [ENTRY-69](journal/ENTRY-69.md) | 2026-06-03 | Daily conclusion engine + language bank system |
+| 0.63.0 | [ENTRY-70](journal/ENTRY-70.md) | 2026-06-03 | Audit remediation — N+1 query, VAD Zod guard, CI parallel split |
+| 0.64.0 | [ENTRY-71](journal/ENTRY-71.md) | 2026-06-03 | Corpus foundation — 3 models, seed script, query layer |
+| 0.65.0 | [ENTRY-72](journal/ENTRY-72.md) | 2026-06-03 | Corpus-grounded scoring — evidence builder, hybrid engine, Tier 2 naturalness |
 
 ## Pull Requests
 
@@ -141,3 +146,8 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.52.0 | [PR-0.52.0](pull-requests/PR-0.52.0.md) | 2026-05-31 | Language/pronunciation split, grammar cards, prosody legend |
 | 0.53.0 | [PR-0.53.0](pull-requests/PR-0.53.0.md) | 2026-05-31 | Mobile bottom nav, collapsible prompts, hero recording |
 | 0.60.1 | [PR-0.60.1](pull-requests/PR-0.60.1.md) | 2026-06-02 | ESLint complexity compliance — zero suppressions, 82 files split into 87 focused modules |
+| 0.61.0 | [PR-0.61.0](pull-requests/PR-0.61.0.md) | 2026-06-02 | Pronunciation redesign — functional-load prioritization |
+| 0.62.0 | [PR-0.62.0](pull-requests/PR-0.62.0.md) | 2026-06-03 | Daily conclusion engine + language bank system |
+| 0.63.0 | [PR-0.63.0](pull-requests/PR-0.63.0.md) | 2026-06-03 | Audit remediation — N+1, VAD, CI split |
+| 0.64.0 | [PR-0.64.0](pull-requests/PR-0.64.0.md) | 2026-06-03 | Corpus foundation — models, seed, query layer |
+| 0.65.0 | [PR-0.65.0](pull-requests/PR-0.65.0.md) | 2026-06-03 | Corpus-grounded scoring — evidence, hybrid engine, Tier 2 |

@@ -1,5 +1,6 @@
 // Assigns confidence tiers and merges detection sources into unified naturalness flags
-import type { NaturalnessFlagInput, NaturalnessFlagType, NaturalnessDimension } from './naturalness.types';
+import type { NaturalnessFlagInput, NaturalnessFlagType, NaturalnessDimension, NaturalnessConfidence } from './naturalness.types';
+import type { CorpusEvidence } from '@/lib/analysis/analysis.types';
 
 /** Shape of Claude-detected naturalness issues from the analysis response. */
 export interface ClaudeNaturalnessItem {
@@ -49,19 +50,74 @@ function isDuplicate(claudeItem: ClaudeNaturalnessItem, calqueFlags: Naturalness
   });
 }
 
+// Stop words for extracting content-word pairs from Claude-flagged phrases
+const ENRICHMENT_STOP_WORDS = new Set([
+  'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'have', 'has', 'had', 'do', 'does', 'did', 'in', 'on', 'at', 'to',
+  'of', 'and', 'or', 'but', 'for', 'with', 'by', 'from', 'as', 'not',
+  'it', 'i', 'my', 'we', 'you', 'they', 'this', 'that',
+]);
+
+function extractContentPair(phrase: string): { head: string; collocate: string } | null {
+  const words = phrase.toLowerCase().split(/\s+/).filter((w) => !ENRICHMENT_STOP_WORDS.has(w) && w.length > 1);
+  if (words.length < 2) return null;
+  return { head: words[0] ?? '', collocate: words[1] ?? '' };
+}
+
+type CorpusEnrichment = {
+  confidence: NaturalnessConfidence;
+  collocationMetric: string | null;
+  metricValue: number | null;
+};
+
+function enrichFromCorpus(item: ClaudeNaturalnessItem, evidence: CorpusEvidence): CorpusEnrichment {
+  const pair = extractContentPair(item.original);
+
+  // Check collocation match
+  if (pair !== null) {
+    const match = evidence.collocations.find(
+      (c) => c.head === pair.head && c.collocate === pair.collocate && c.lookup !== null,
+    );
+    if (match?.lookup !== undefined && match.lookup !== null) {
+      const logDice = match.lookup.logDice ?? 0;
+      if (match.lookup.attested && logDice >= 5) {
+        return { confidence: 'high', collocationMetric: 'logDice', metricValue: logDice };
+      }
+      if (match.lookup.attested) {
+        return { confidence: 'medium', collocationMetric: 'logDice', metricValue: logDice };
+      }
+      return { confidence: 'low', collocationMetric: 'logDice', metricValue: 0 };
+    }
+  }
+
+  // Check MWE match
+  const mweMatch = evidence.expressions.find(
+    (e) => item.original.toLowerCase().includes(e.phrase) && e.lookup !== null,
+  );
+  if (mweMatch?.lookup !== undefined && mweMatch.lookup !== null) {
+    return { confidence: 'medium', collocationMetric: 'mwe_freq', metricValue: mweMatch.lookup.freq ?? 0 };
+  }
+
+  return { confidence: 'low', collocationMetric: null, metricValue: null };
+}
+
 /**
- * Merges deterministic calque flags (Tier 1, high confidence) with Claude-detected
- * naturalness issues (Tier 3, low confidence). Deduplicates overlapping items.
+ * Merges deterministic calque flags (Tier 1), corpus-confirmed items (Tier 2), and
+ * Claude-only items (Tier 3) into a unified naturalness flag array.
  *
- * Tier 2 (Claude + corpus confirmation via Log Dice) is not yet implemented.
+ * Tier 1: Deterministic calque flags (high confidence, unchanged).
+ * Tier 2: Claude + corpus confirmation (medium/high confidence when corpus data matches).
+ * Tier 3: Claude-only, no corpus confirmation (low confidence).
  *
  * @param calqueFlags - Flags from deterministic calque detection (already high confidence).
  * @param claudeItems - Raw naturalness issues from the Claude analysis response.
+ * @param corpusEvidence - Optional corpus evidence for Tier 2 enrichment.
  * @returns Unified, deduplicated array of naturalness flag inputs.
  */
 export function mergeNaturalnessFlags(
   calqueFlags: NaturalnessFlagInput[],
   claudeItems: ClaudeNaturalnessItem[],
+  corpusEvidence?: CorpusEvidence | null,
 ): NaturalnessFlagInput[] {
   const merged: NaturalnessFlagInput[] = [...calqueFlags];
 
@@ -69,14 +125,18 @@ export function mergeNaturalnessFlags(
     if (isDuplicate(item, calqueFlags)) continue;
 
     const dimension = parseDimension(item.dimension);
+    const enrichment = corpusEvidence != null
+      ? enrichFromCorpus(item, corpusEvidence)
+      : { confidence: 'low' as const, collocationMetric: null, metricValue: null };
+
     merged.push({
       originalPhrase: item.original,
       suggestedPhrase: item.suggested,
       flagType: inferFlagType(dimension),
       dimension,
-      confidence: 'low',
-      collocationMetric: null,
-      metricValue: null,
+      confidence: enrichment.confidence,
+      collocationMetric: enrichment.collocationMetric,
+      metricValue: enrichment.metricValue,
       l1TransferSource: null,
       rationale: item.rationale,
       shownToUser: true,
