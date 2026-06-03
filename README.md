@@ -13,7 +13,7 @@ AI-powered English speaking coach that provides real-time feedback on spoken lan
 - **Database:** PostgreSQL (Neon serverless) via Prisma ORM
 - **Auth:** OIDC + PKCE (external auth server, RS256 JWT)
 - **Storage:** Cloudflare R2 (temporary audio)
-- **AI Pipeline:** OpenAI Whisper (transcription) → Azure Speech (pronunciation assessment) → Claude Haiku (analysis + synthesis)
+- **AI Pipeline:** OpenAI Whisper (transcription) → Corpus lookup (frequency, CEFR, collocations) → Azure Speech (pronunciation assessment) → Claude Haiku (corpus-grounded analysis + synthesis) → Hybrid scoring (corpus confirms/overrides LLM)
 - **Pronunciation:** Azure Speech SDK (phoneme accuracy, prosody, speaking rate, L1 interference detection)
 - **Queue:** QStash (async processing with retry, parallel per-chunk pipeline)
 - **Hosting:** Vercel
@@ -53,7 +53,7 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 1. **Record** — AudioWorklet captures PCM audio, automatically splitting into 2-minute chunks with 5-second overlap for seamless stitching
 2. **Upload** — Each chunk uploads to R2 via presigned URL while recording continues; progressive results appear as chunks complete
 3. **Process** — QStash triggers parallel per-chunk pipelines (Whisper transcription + Azure pronunciation assessment + Claude analysis), then a fan-in synthesis pass deduplicates and merges insights across the full session
-4. **Results** — Eleven scored dimensions: 8 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication, register & pragmatics) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Includes a functional-load-ranked Priority Sounds list (highest-intelligibility-impact errors first, with production rules and IPA examples), a 3-band word-level Pronunciation Accuracy map, IPA phoneme detail, prosody feedback, L1 interference coaching, an optional Accent Polish section for low-impact refinements, register/pragmatics feedback with hedging suggestions, and naturalness detection (flags formulaic phrases and suggests native-sounding alternatives)
+4. **Results** — Eleven scored dimensions: 8 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication, register & pragmatics) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Vocabulary and naturalness scores are corpus-grounded — word frequency, CEFR levels, and collocation attestation from 140k+ academic reference rows inform Claude's scoring, and a hybrid decision rule can confirm or override LLM judgments. Includes a functional-load-ranked Priority Sounds list, a 3-band word-level Pronunciation Accuracy map, IPA phoneme detail, prosody feedback, L1 interference coaching, register/pragmatics feedback with hedging suggestions, and naturalness detection (flags formulaic phrases and suggests native-sounding alternatives with corpus-backed confidence tiers)
 5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, CEFR level estimation badge with longitudinal sparkline, 10-axis skill radar chart with C2 threshold overlay, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
 7. **Fluency Training** — 4-3-2 Timed Fluency exercise: repeat the same topic across 3 rounds (4→3→2 minutes) to build automaticity. Countdown timer with grace period, 3-round WPM comparison with SVG bar charts, and session history with progression tracking
@@ -63,7 +63,7 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md) — Version history (71 releases)
+- [Changelog](CHANGELOG.md) — Version history (74 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
@@ -126,7 +126,7 @@ src/
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
+├── lib/              # Shared utilities (AI, analysis, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

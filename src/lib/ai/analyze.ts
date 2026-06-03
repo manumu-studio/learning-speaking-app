@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { getAnthropicClient } from '@/lib/ai/client';
 import { buildSystemPrompt, buildUserPrompt } from './analyzePrompts';
+import type { AnalyzeTranscriptOptions } from './analyzeTranscript.types';
 
 export const transcriptionArtefactSchema = z.object({
   word: z.string(),
@@ -205,18 +206,14 @@ export function applyInsightGuardrails(insights: Insight[]): Insight[] {
  * On cache hit the Claude call is skipped entirely. Post-parse guardrails are applied via
  * {@link applyInsightGuardrails} before the result is returned or persisted.
  *
- * @param transcript - Raw transcript text produced by Whisper (may contain `⟨?...?⟩` markers).
- * @param focusMetricKey - Optional metric key the user is currently training; biases the `focusNext` field.
- * @param pronunciationSummary - Optional Azure pronunciation context (accuracy score, weak phonemes, L1 tags).
- * @param promptUsed - Optional speaking-prompt text shown to the user; included as context in the user message.
+ * @param options - Transcript, optional focus metric, pronunciation context, prompt, and corpus evidence.
  * @returns A validated `AnalysisResult` with insights, metrics, CEFR signals, and coaching labels.
  */
 export async function analyzeTranscript(
-  transcript: string,
-  focusMetricKey?: string | null,
-  pronunciationSummary?: PronunciationSummary | null,
-  promptUsed?: string | null,
+  options: AnalyzeTranscriptOptions,
 ): Promise<AnalysisResult> {
+  const { transcript, focusMetricKey, pronunciationSummary, promptUsed, corpusEvidence } = options;
+
   const { hashTranscript, getCachedAnalysis, setCachedAnalysis } = await import(
     '@/lib/ai/analysisCache'
   );
@@ -230,7 +227,7 @@ export async function analyzeTranscript(
 
   const client = getAnthropicClient();
   const systemPrompt = buildSystemPrompt();
-  const userPrompt = buildUserPrompt(transcript, focusMetricKey, pronunciationSummary, promptUsed);
+  const userPrompt = buildUserPrompt({ transcript, focusMetricKey, pronunciationSummary, promptUsed, corpusEvidence });
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',

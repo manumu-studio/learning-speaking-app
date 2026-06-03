@@ -333,7 +333,7 @@ describe('analyzeTranscript', () => {
     const cached = { ...baseValidResult, ...enrichedFields };
     vi.mocked(getCachedAnalysis).mockResolvedValue(cached);
 
-    const result = await analyzeTranscript('cached transcript');
+    const result = await analyzeTranscript({ transcript: 'cached transcript' });
 
     expect(result).toEqual(cached);
     expect(mockCreate).not.toHaveBeenCalled();
@@ -346,7 +346,7 @@ describe('analyzeTranscript', () => {
       content: [{ type: 'text', text: JSON.stringify(claudeResponse) }],
     });
 
-    const result = await analyzeTranscript('fresh transcript');
+    const result = await analyzeTranscript({ transcript: 'fresh transcript' });
 
     expect(mockCreate).toHaveBeenCalled();
     expect(setCachedAnalysis).toHaveBeenCalledWith('mock-hash', expect.objectContaining({
@@ -361,7 +361,7 @@ describe('analyzeTranscript', () => {
       content: [{ type: 'text', text: JSON.stringify(baseValidResult) }],
     });
 
-    await analyzeTranscript('test transcript');
+    await analyzeTranscript({ transcript: 'test transcript' });
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -394,7 +394,7 @@ describe('analyzeTranscript', () => {
       content: [{ type: 'text', text: JSON.stringify(responseWithSuspectInsight) }],
     });
 
-    const result = await analyzeTranscript('transcript with suspect markers');
+    const result = await analyzeTranscript({ transcript: 'transcript with suspect markers' });
 
     expect(result.insights).toHaveLength(0);
   });

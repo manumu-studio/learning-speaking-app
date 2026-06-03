@@ -97,6 +97,15 @@ vi.mock('@/lib/observability', () => ({
   setSentryRequestContext: vi.fn(),
 }));
 
+vi.mock('@/lib/analysis/buildCorpusEvidence', () => ({
+  buildCorpusEvidence: vi.fn(() => Promise.resolve({
+    vocabulary: new Map(),
+    collocations: [],
+    expressions: [],
+    stats: { totalContentWords: 0, matchedWords: 0, cefrDistribution: {}, avgFreqPerMillion: null },
+  })),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
