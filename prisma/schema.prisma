@@ -62,6 +62,8 @@ model User {
   lexicon           UserWord[]
   fluencySessions   TimedFluencySession[]
   dailySummaries    DailySummary[]
+  dailyConclusions  DailyConclusion[]
+  languageBankItems LanguageBankItem[]
   naturalnessFlags  NaturalnessFlag[]
   patternProfile    PatternProfile?
   settings         UserSettings?
@@ -424,6 +426,54 @@ model DailySummary {
   @@unique([userId, date])
   @@index([userId, date])
   @@map("daily_summaries")
+}
+
+model DailyConclusion {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date              String
+  createdAt         DateTime @default(now())
+
+  conclusionJson    Json
+  renderedFeedback  String   @db.Text
+  topicSentence     String   @db.Text
+
+  sessionCount      Int
+  totalDurationSecs Int
+  overallScore      Float
+  deliveryAvg       Float
+  languageAvg       Float
+  pronunciationAvg  Float
+
+  @@unique([userId, date])
+  @@index([userId, createdAt])
+  @@map("daily_conclusions")
+}
+
+model LanguageBankItem {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  text              String
+  lemmaOrPattern    String?
+  category          String
+  source            String
+
+  usageCount        Int       @default(0)
+  masteryState      String    @default("emerging")
+  isActiveTarget    Boolean   @default(false)
+
+  firstSuggestedAt  DateTime  @default(now())
+  lastUsedAt        DateTime?
+  lastSuggestedAt   DateTime?
+  nextRetargetAt    DateTime?
+
+  @@unique([userId, text])
+  @@index([userId, masteryState])
+  @@index([userId, isActiveTarget])
+  @@map("language_bank_items")
 }
 
 model NaturalnessFlag {

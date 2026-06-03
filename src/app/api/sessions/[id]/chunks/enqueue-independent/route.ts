@@ -89,7 +89,7 @@ async function postHandler(
     overlapSecs,
   });
 
-  return successResponse({ ok: true, chunkIndex }, 201);
+  return successResponse({ sessionId, chunkIndex, status: 'queued' }, 201);
 }
 
 export const POST = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
