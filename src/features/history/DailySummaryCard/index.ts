@@ -1,3 +1,3 @@
-// Barrel export for DailySummaryCard
+// Barrel exports for DailySummaryCard
 export { DailySummaryCard } from './DailySummaryCard';
-export type { DailySummaryCardProps, DailySummaryData } from './DailySummaryCard.types';
+export type { DailySummaryCardProps, DailyConclusionSummary } from './DailySummaryCard.types';
