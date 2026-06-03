@@ -2,6 +2,22 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.65.0] — 2026-06-03
+
+### Added
+- Corpus-grounded analysis: Claude receives word frequency, CEFR levels, and collocation attestation data as structured XML alongside every transcript
+- Hybrid scoring engine: 6-row decision table confirms/overrides LLM naturalness judgments using corpus signal strength (logDice, MI, frequency)
+- Naturalness Tier 2: corpus data upgrades confidence on Claude-flagged collocations, populating `collocationMetric` and `metricValue` fields
+- Batch corpus functions: `batchFindCollocations` and `batchAttestExpressions` for single-query multi-item lookups (no N+1)
+- Transcript candidate extractor: stop-word-filtered content words, adjacent-word bigrams, and 2-4 word ngrams
+- Corpus prompt formatter: generates XML `<corpus-evidence>` section with vocabulary, collocations, expressions, and frequency stats
+- Pipeline observability: new `corpus-lookup` stage logged with timing and match counts
+
+### Changed
+- `analyzeTranscript` and `buildUserPrompt` refactored from positional params to options objects
+- Analysis pipeline now includes a corpus-lookup step before Claude analysis (< 50ms overhead, 3 parallel DB queries)
+- Naturalness confidence gate now supports 3-tier enrichment (deterministic calques → corpus-confirmed → Claude-only)
+
 ## [0.64.0] — 2026-06-03
 
 - **feat:** Corpus foundation — 3 Prisma models (Lexeme, Collocation, MultiWordExpression) with `pg_trgm` GIN indexes

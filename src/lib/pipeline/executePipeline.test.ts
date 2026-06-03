@@ -64,6 +64,15 @@ vi.mock('@/lib/observability', () => ({
   setSentryRequestContext: vi.fn(),
 }));
 
+vi.mock('@/lib/analysis/buildCorpusEvidence', () => ({
+  buildCorpusEvidence: vi.fn(() => Promise.resolve({
+    vocabulary: new Map(),
+    collocations: [],
+    expressions: [],
+    stats: { totalContentWords: 0, matchedWords: 0, cefrDistribution: {}, avgFreqPerMillion: null },
+  })),
+}));
+
 import { executePipeline } from './executePipeline';
 import { transcribeAudio } from '@/lib/ai/whisper';
 import { analyzeTranscript } from '@/lib/ai/analyze';
