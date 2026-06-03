@@ -3,19 +3,17 @@ import { SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { transcribeAudio } from '@/lib/ai/whisper';
 import { gateSegments } from '@/lib/ai/confidenceGating';
-import { analyzeTranscript } from '@/lib/ai/analyze';
-import { buildCorpusEvidence } from '@/lib/analysis/buildCorpusEvidence';
-import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
 import { toPcm16kMonoWav } from '@/lib/audio/transcode';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { startVerbatim, finishVerbatim } from '@/lib/pipeline/runVerbatim';
+import { runGrammarAnalysis } from '@/lib/pipeline/runGrammarAnalysis';
+import { runAnalysis } from '@/lib/pipeline/runAnalysis';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 import {
-  buildPronunciationSummary,
   estimateCefrAndPersist,
   runAzurePronunciation,
 } from '@/lib/pipeline/pipelineHelpers';
@@ -66,94 +64,6 @@ async function runTranscription(
   logger.info({ sessionId, userId, wordCount, gating: gated.stats }, 'Transcription complete');
 
   return { userTranscriptText, analysisTranscriptText, wordCount };
-}
-
-// ---------------------------------------------------------------------------
-// Analysis step
-// ---------------------------------------------------------------------------
-
-interface RunAnalysisOptions {
-  sessionId: string;
-  userId: string;
-  analysisTranscriptText: string;
-  userTranscriptText: string;
-  focusMetricKey: string | null;
-  promptUsed: string | null;
-  pronunciationResult: PronunciationResult | null;
-  analyzeStart: number;
-}
-
-async function runAnalysis(options: RunAnalysisOptions) {
-  const {
-    sessionId,
-    userId,
-    analysisTranscriptText,
-    userTranscriptText,
-    focusMetricKey,
-    promptUsed,
-    pronunciationResult,
-    analyzeStart,
-  } = options;
-  const pronunciationSummary = buildPronunciationSummary(pronunciationResult ?? null);
-
-  const corpusStart = Date.now();
-  const corpusEvidence = await buildCorpusEvidence(analysisTranscriptText);
-  logPipelineStage({
-    sessionId,
-    stage: 'corpus-lookup',
-    durationMs: Date.now() - corpusStart,
-    success: true,
-    metadata: {
-      contentWords: corpusEvidence.stats.totalContentWords,
-      matched: corpusEvidence.stats.matchedWords,
-      collocations: corpusEvidence.collocations.filter((c) => c.lookup !== null).length,
-      expressions: corpusEvidence.expressions.length,
-    },
-  });
-
-  const analysis = await analyzeTranscript({
-    transcript: analysisTranscriptText,
-    focusMetricKey,
-    pronunciationSummary,
-    promptUsed,
-    corpusEvidence,
-  });
-
-  const nerFilterResult = filterTranscriptionArtefacts(analysis.insights, userTranscriptText);
-
-  if (nerFilterResult.filtered.length > 0) {
-    logger.info(
-      {
-        sessionId,
-        userId,
-        filteredCount: nerFilterResult.filtered.length,
-        filterReasons: nerFilterResult.filterReasons,
-      },
-      'NER filter removed transcription false positives',
-    );
-  }
-
-  if (
-    analysis.possible_transcription_artefacts != null &&
-    analysis.possible_transcription_artefacts.length > 0
-  ) {
-    logger.info(
-      { sessionId, userId, artefacts: analysis.possible_transcription_artefacts },
-      'Possible transcription artefacts detected',
-    );
-  }
-
-  logPipelineStage({
-    sessionId,
-    stage: 'analyze',
-    durationMs: Date.now() - analyzeStart,
-    success: true,
-    metadata: { insightCount: nerFilterResult.kept.length },
-  });
-
-  logger.info({ sessionId, userId, insightCount: nerFilterResult.kept.length }, 'Analysis complete');
-
-  return { analysis, insightsForStorage: nerFilterResult.kept };
 }
 
 // ---------------------------------------------------------------------------
@@ -305,6 +215,8 @@ export async function executePipeline(
     // Persist verbatim transcript + divergence spans (ran in parallel above).
     // In `finally` so completed verbatim data is saved even if scoring/analysis throws.
     await finishVerbatim(id, userTranscriptText, verbatimPromise);
+    // Grammar analysis — classify divergence spans, override verbAccuracy (best-effort).
+    await runGrammarAnalysis(id, userTranscriptText);
     await cleanupSessionAudio(id, audioKey, deleteAudio);
   }
 }

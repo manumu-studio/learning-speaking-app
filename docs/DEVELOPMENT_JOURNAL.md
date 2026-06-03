@@ -151,3 +151,6 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.63.0 | [PR-0.63.0](pull-requests/PR-0.63.0.md) | 2026-06-03 | Audit remediation — N+1, VAD, CI split |
 | 0.64.0 | [PR-0.64.0](pull-requests/PR-0.64.0.md) | 2026-06-03 | Corpus foundation — models, seed, query layer |
 | 0.65.0 | [PR-0.65.0](pull-requests/PR-0.65.0.md) | 2026-06-03 | Corpus-grounded scoring — evidence, hybrid engine, Tier 2 |
+| 0.66.0 | [PR-0.66.0](pull-requests/PR-0.66.0.md) | 2026-06-03 | Verbatim ASR — AssemblyAI integration, dual-transcript divergence |
+| 0.67.0 | [ENTRY-74](journal/ENTRY-74.md) | 2026-06-03 | Grammar pipeline — divergence classification, evidence-based verbAccuracy |
+| 0.67.0 | [PR-0.67.0](pull-requests/PR-0.67.0.md) | 2026-06-03 | Grammar pipeline, argumentClosure → Language, GrammarSection UI |
