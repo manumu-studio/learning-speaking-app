@@ -20,11 +20,18 @@
 │                                                            │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  Async Pipeline (triggered via QStash)              │   │
-│  │  1. Download audio from R2                          │   │
-│  │  2. Send to Whisper API → transcript                │   │
-│  │  3. Send transcript to Claude Haiku → insights      │   │
-│  │  4. Store results in Postgres                       │   │
-│  │  5. Delete audio from R2                            │   │
+│  │   1. Download audio from R2                         │   │
+│  │   2. Whisper → display transcript                   │   │
+│  │      (parallel: AssemblyAI → verbatim transcript)   │   │
+│  │   3. Levenshtein divergence detection               │   │
+│  │      (normalized ↔ verbatim word alignment)         │   │
+│  │   4. Corpus lookup (frequency, CEFR, collocations)  │   │
+│  │   5. Azure Speech → pronunciation + prosody         │   │
+│  │   6. Claude Haiku → corpus-grounded analysis        │   │
+│  │   7. Hybrid scoring (corpus confirms/overrides LLM) │   │
+│  │   8. Grammar classification (divergence spans)      │   │
+│  │   9. Store results in Postgres                      │   │
+│  │  10. Delete audio from R2                           │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                            │
 │  Postgres (Neon)  ←→  Prisma ORM                           │

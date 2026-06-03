@@ -111,6 +111,7 @@ model SpeakingSession {
   verbatimTranscript String?   @db.Text  // AssemblyAI Universal-3-Pro raw verbatim output
   verbatimWordCount  Int?                // Word count from the verbatim transcript
   divergenceSpans    Json?               // DivergenceSpan[] — normalized↔verbatim disagreements
+  grammarFlags       Json?               // GrammarFlag[] — classified divergence spans (grammar errors, self-corrections, etc.)
   verbatimProvider   String?             // e.g. "assemblyai"
   transcript          Transcript?
   insights            Insight[]
