@@ -3,7 +3,7 @@
 [![CI](https://github.com/manumu-studio/learning-speaking-app/actions/workflows/ci.yml/badge.svg)](https://github.com/manumu-studio/learning-speaking-app/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/manumu-studio/learning-speaking-app/branch/main/graph/badge.svg)](https://codecov.io/gh/manumu-studio/learning-speaking-app)
 
-AI-powered English speaking coach that provides real-time feedback on spoken language patterns. Record yourself speaking, get transcription and analysis powered by OpenAI Whisper and Claude, and track your improvement over time.
+AI-powered English speaking coach that provides real-time feedback on spoken language patterns. Record yourself speaking, get dual transcription (OpenAI Whisper for the display transcript; AssemblyAI for a verbatim copy that surfaces grammar errors and disfluency patterns) and analysis powered by Claude, and track your improvement over time.
 
 ## Tech Stack
 
@@ -13,7 +13,7 @@ AI-powered English speaking coach that provides real-time feedback on spoken lan
 - **Database:** PostgreSQL (Neon serverless) via Prisma ORM
 - **Auth:** OIDC + PKCE (external auth server, RS256 JWT)
 - **Storage:** Cloudflare R2 (temporary audio)
-- **AI Pipeline:** OpenAI Whisper (transcription) → Corpus lookup (frequency, CEFR, collocations) → Azure Speech (pronunciation assessment) → Claude Haiku (corpus-grounded analysis + synthesis) → Hybrid scoring (corpus confirms/overrides LLM)
+- **AI Pipeline:** OpenAI Whisper (display transcript) + AssemblyAI Universal-3-Pro (verbatim transcript, parallel) → Levenshtein divergence detection (grammar/disfluency candidate spans) → Corpus lookup (frequency, CEFR, collocations) → Azure Speech (pronunciation assessment) → Claude Haiku (corpus-grounded analysis + synthesis) → Hybrid scoring (corpus confirms/overrides LLM)
 - **Pronunciation:** Azure Speech SDK (phoneme accuracy, prosody, speaking rate, L1 interference detection)
 - **Queue:** QStash (async processing with retry, parallel per-chunk pipeline)
 - **Hosting:** Vercel
@@ -126,7 +126,7 @@ src/
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, analysis, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
+├── lib/              # Shared utilities (AI, analysis, analysis/divergence, assemblyai, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/
