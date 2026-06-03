@@ -13,6 +13,7 @@ export function HistoryDayGroup({
   isToday = true,
   baseDelay = 0,
   onDeleteSession,
+  onTapDay,
 }: HistoryDayGroupProps) {
   const [expanded, setExpanded] = useState(isToday);
   const count = sessions.length;
@@ -27,7 +28,10 @@ export function HistoryDayGroup({
       </h3>
 
       {/* Daily summary — shows for any day with completed sessions */}
-      <DailySummaryCard dateKey={dateKey} />
+      <DailySummaryCard
+        dateKey={dateKey}
+        {...(onTapDay !== undefined ? { onTapDay } : {})}
+      />
 
       {/* Session toggle for past days */}
       {!isToday && (

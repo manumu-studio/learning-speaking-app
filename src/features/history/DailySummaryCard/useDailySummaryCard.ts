@@ -1,20 +1,21 @@
-// Hook for lazy-loading a daily summary from the API
-import { useEffect, useState } from 'react';
+// Fetches daily conclusion data for a given date
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
-import type { DailySummaryData } from './DailySummaryCard.types';
+import type { DailyConclusionSummary } from './DailySummaryCard.types';
 
-const DailySummarySchema = z.object({
+const SummarySchema = z.object({
   date: z.string(),
-  deliveryAvg: z.number(),
-  languageAvg: z.number(),
-  pronunciationAvg: z.number(),
-  newWords: z.array(z.string()),
-  feedback: z.string(),
+  overallScore: z.number(),
+  totalDurationSecs: z.number(),
+  topicSentence: z.string(),
   sessionCount: z.number(),
+  conclusionData: z.object({
+    activeTargetsTomorrow: z.array(z.string()),
+  }),
 });
 
 export function useDailySummaryCard(dateKey: string) {
-  const [summary, setSummary] = useState<DailySummaryData | null>(null);
+  const [summary, setSummary] = useState<DailyConclusionSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,19 +27,28 @@ export function useDailySummaryCard(dateKey: string) {
       setError(null);
 
       try {
-        const res = await fetch(`/api/users/me/daily-summaries?date=${dateKey}`);
+        const res = await fetch(`/api/daily/${dateKey}`);
+
+        if (res.status === 404) {
+          if (!cancelled) setIsLoading(false);
+          return;
+        }
         if (!res.ok) {
-          if (res.status === 404) {
-            setIsLoading(false);
-            return;
-          }
           throw new Error(`Failed to load summary (${res.status})`);
         }
 
         const json: unknown = await res.json();
-        const parsed = DailySummarySchema.parse(json);
+        const parsed = SummarySchema.parse(json);
+
         if (!cancelled) {
-          setSummary(parsed);
+          setSummary({
+            date: parsed.date,
+            overallScore: parsed.overallScore,
+            totalDurationSecs: parsed.totalDurationSecs,
+            topicSentence: parsed.topicSentence,
+            sessionCount: parsed.sessionCount,
+            activeTargetsTomorrow: parsed.conclusionData.activeTargetsTomorrow,
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -52,7 +62,9 @@ export function useDailySummaryCard(dateKey: string) {
     }
 
     void fetchSummary();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dateKey]);
 
   return { summary, isLoading, error };

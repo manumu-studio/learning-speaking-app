@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   WAV_HEADER_SIZE,
   encodePcmToWav,
+  encodePcmToWavBlob,
   float32ToInt16,
   samplesToDurationSecs,
   writeWavHeader,
@@ -39,5 +40,13 @@ describe('wavEncoder', () => {
   it('computes duration from sample count', () => {
     expect(samplesToDurationSecs(16000)).toBe(1);
     expect(samplesToDurationSecs(32000, 16000)).toBe(2);
+  });
+
+  it('encodes PCM samples into a WAV Blob with audio/wav MIME type', () => {
+    const samples = new Int16Array([0, 500, -500]);
+    const blob = encodePcmToWavBlob(samples);
+
+    expect(blob.type).toBe('audio/wav');
+    expect(blob.size).toBe(WAV_HEADER_SIZE + samples.byteLength);
   });
 });

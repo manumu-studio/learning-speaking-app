@@ -2,6 +2,21 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.63.0] — 2026-06-03
+
+- **feat:** Daily Conclusion engine — structured daily aggregation with pillar deltas, wins/struggles detection, and AI coaching narrative
+- **feat:** Language Bank — 4-tier mastery tracking (emerging → mastered), weekday-rotated daily suggestions (12 items, 4 active targets), usage scanning from transcripts, 2-day recycle logic
+- **feat:** Prepositional verb bank — 20 curated Spanish-L1 calque targets (depend on, consist of, etc.) with L1 error patterns
+- **feat:** Phrasal verb bank — 20 academic/professional register phrasal verbs (carry out, look into, etc.) with separability and register tags
+- **feat:** Language Bank Panel — suggestion pills with category colors, mastery badges with progress indicators, active target cards with progress bars
+- **feat:** Language Bank API — GET /api/daily/language-bank (items + active targets), POST feedback (usage tracking, target swapping, dismissal)
+- **feat:** Subtle DailySummaryCard — redesigned from 3-pillar chips to muted overview with overall score, topic sentence, and "use tomorrow" pills
+- **feat:** Day detail page (`/history/day/[date]`) — meta-session view with speech quality, pronunciation, general feedback, and Language Bank sections
+- **feat:** Grounded topic sentence — combines deterministic intent labels with Claude Haiku natural phrasing
+- **feat:** On-demand lazy generation — conclusions computed and cached when user views history
+- **feat:** Pipeline cache invalidation — DailyConclusion cleared alongside DailySummary when new sessions complete
+- **change:** DailySummaryCard now fetches from `/api/daily/[date]` instead of `/api/users/me/daily-summaries`
+
 ## [0.62.0] — 2026-06-03
 
 - **feat:** Functional-load pronunciation ranking — phoneme and structural errors are now ranked by intelligibility impact (`weight × frequency`), surfacing the highest-leverage fixes first instead of treating all errors equally

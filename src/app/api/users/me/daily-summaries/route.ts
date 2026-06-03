@@ -1,3 +1,4 @@
+// DEPRECATED: Use GET /api/daily/[date] instead (richer DailyConclusion with structured JSON)
 // GET /api/users/me/daily-summaries — compute or return cached daily pillar averages + AI feedback
 import { z } from 'zod';
 import { auth } from '@/features/auth/auth';

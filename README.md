@@ -58,7 +58,8 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
 7. **Fluency Training** — 4-3-2 Timed Fluency exercise: repeat the same topic across 3 rounds (4→3→2 minutes) to build automaticity. Countdown timer with grace period, 3-round WPM comparison with SVG bar charts, and session history with progression tracking
 8. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions, detects when you use them in future sessions, and schedules them for spaced review (SM-2) with a tabbed review-queue page; collocation detection flags multi-word phrases worth learning; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
-9. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
+9. **Daily Conclusion** — End-of-day aggregation engine computes pillar deltas, detects wins and struggles from metrics/naturalness/pronunciation data, and renders an AI coaching narrative with a grounded topic sentence. History shows a subtle daily card; tapping opens a day detail meta-session view
+10. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
 
 ## Documentation
 
@@ -121,10 +122,11 @@ src/
 │   ├── fluency/      # 4-3-2 timed fluency training (TimedRecording, FluencyComparison, FluencySessionList)
 │   ├── prompts/      # Prompt library UI (60+ prompts, multi-filter, format badges)
 │   ├── recording/    # Audio recording and upload
+│   ├── history/      # Daily conclusion card, day detail view
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, auth, CEFR, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness)
+├── lib/              # Shared utilities (AI, auth, CEFR, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/
