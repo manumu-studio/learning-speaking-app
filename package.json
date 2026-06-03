@@ -102,12 +102,13 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
     "vitest-axe": "^0.1.0",
-    "vitest-mock-extended": "^3.1.1"
+    "vitest-mock-extended": "^3.1.1",
+    "xlsx": "^0.18.5"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --max-warnings 0",
-      "bash -c 'npx tsc --noEmit'"
+      "bash -c 'npx tsc -p tsconfig.build.json --noEmit'"
     ]
   }
 }

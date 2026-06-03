@@ -1,4 +1,4 @@
-# CI pipeline — type check, lint, build on PRs to main
+# CI pipeline — parallel jobs for fast feedback
 name: CI
 
 on:
@@ -12,51 +12,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Type Check + Lint + Test + Build
+  lint-typecheck:
+    name: Lint + Type Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 5
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+      - run: npm ci
+      - run: npm audit --audit-level=high --omit=dev
+      - run: npx prisma generate
+      - run: npx tsc -p tsconfig.build.json --noEmit
+      - run: npm run lint
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Security audit
-        run: npm audit --audit-level=high --omit=dev
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Lint
-        run: npm run lint
-
-      # Dedicated unit test step (Vitest, no coverage) — fast signal before thresholded coverage run
-      - name: Run unit tests
-        run: npm run test
-
-      - name: Run tests with coverage (enforce Vitest thresholds)
-        run: npm run test:coverage
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+  test-coverage:
+    name: Tests + Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run test:coverage
+      - uses: codecov/codecov-action@v4
         with:
           file: ./coverage/lcov.info
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  build-bundle:
+    name: Build + Bundle Size
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
+      NEXTAUTH_SECRET: "ci-placeholder-secret-minimum-32-characters-long"
+      NEXTAUTH_URL: "http://localhost:3000"
+      AUTH_CLIENT_ID: "ci-placeholder"
+      AUTH_CLIENT_SECRET: "ci-placeholder"
+      APP_URL: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
       - name: Build and check bundle size
         run: |
           set -o pipefail
@@ -80,22 +90,8 @@ jobs:
               process.exit(1);
             }
           "
-        env:
-          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
-          NEXTAUTH_SECRET: "ci-placeholder-secret-minimum-32-characters-long"
-          NEXTAUTH_URL: "http://localhost:3000"
-          AUTH_CLIENT_ID: "ci-placeholder"
-          AUTH_CLIENT_SECRET: "ci-placeholder"
-          APP_URL: "http://localhost:3000"
-
       - name: Smoke test (health check)
         env:
-          DATABASE_URL: 'postgresql://test:test@localhost:5432/test'
-          NEXTAUTH_SECRET: 'ci-test-secret-that-is-at-least-32-chars-long-ok'
-          NEXTAUTH_URL: 'http://localhost:3000'
-          AUTH_CLIENT_ID: 'ci-test'
-          AUTH_CLIENT_SECRET: 'ci-test-secret'
-          APP_URL: 'http://localhost:3000'
           NODE_ENV: 'production'
         run: |
           npm start &
@@ -124,10 +120,8 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: check
+    needs: [lint-typecheck, test-coverage, build-bundle]
     env:
-      # Real Postgres (service below) — required because (app) layout calls syncUser → Prisma on every request
-      # 127.0.0.1 avoids Node resolving localhost to ::1 while the service is IPv4-only
       DATABASE_URL: "postgresql://e2e:e2e@127.0.0.1:5432/e2e"
       NEXTAUTH_SECRET: "ci-placeholder-secret-minimum-32-characters-long"
       NEXTAUTH_URL: "http://localhost:3000"
@@ -150,32 +144,17 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Apply database migrations
-        run: npx prisma migrate deploy
-
-      - name: Run E2E tests
-        run: npx playwright test
-
-      - name: Upload test artifacts
-        uses: actions/upload-artifact@v7
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report

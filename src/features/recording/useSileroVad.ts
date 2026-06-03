@@ -2,6 +2,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { z } from 'zod';
 import type {
   UseSileroVadReturn,
   VadPreflightResult,
@@ -37,6 +38,23 @@ type VadModule = {
     audioFileToArray: (blob: Blob) => Promise<{ audio: Float32Array; sampleRate: number }>;
   };
 };
+
+// Runtime guard for the dynamically imported vad-web module shape
+const VadModuleSchema = z.object({
+  NonRealTimeVAD: z.object({ new: z.function() }),
+  utils: z.object({ audioFileToArray: z.function() }),
+});
+
+function isVadModule(raw: unknown): raw is VadModule {
+  return VadModuleSchema.safeParse(raw).success;
+}
+
+function loadVadModule(raw: unknown): VadModule {
+  if (!isVadModule(raw)) {
+    throw new Error('vad-web module shape mismatch — expected NonRealTimeVAD.new and utils.audioFileToArray');
+  }
+  return raw;
+}
 
 function analyzeSegments(
   segments: SpeechSegment[],
@@ -98,7 +116,7 @@ export function useSileroVad(): UseSileroVadReturn {
 
     setStatus('loading');
     loadPromiseRef.current = (async () => {
-      const vadModule = (await import('@ricky0123/vad-web')) as VadModule;
+      const vadModule = loadVadModule(await import('@ricky0123/vad-web'));
       const instance = await vadModule.NonRealTimeVAD.new({ modelURL: VAD_MODEL_URL });
       vadRef.current = instance;
       return instance;
@@ -113,7 +131,7 @@ export function useSileroVad(): UseSileroVadReturn {
         const vad = await loadVad();
         setStatus('running');
 
-        const vadModule = (await import('@ricky0123/vad-web')) as VadModule;
+        const vadModule = loadVadModule(await import('@ricky0123/vad-web'));
         const { audio, sampleRate } = await vadModule.utils.audioFileToArray(blob);
         const segments: SpeechSegment[] = [];
 
