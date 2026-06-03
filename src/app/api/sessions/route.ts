@@ -40,20 +40,24 @@ async function fetchPagedSessions(where: SessionWhereClause, userId: string, lim
     take: limit + 1,
     select: {
       id: true, status: true, intentLabel: true, topic: true,
-      durationSecs: true, summary: true, createdAt: true,
+      durationSecs: true, summary: true, createdAt: true, isOnboarding: true,
       metrics: { select: { key: true, score: true } },
     },
   });
   const hasMore = rows.length > limit;
   const pageItems = hasMore ? rows.slice(0, limit) : rows;
-  const withWorkout = await Promise.all(
-    pageItems.map(async (s) => {
-      const workoutNumber = await prisma.speakingSession.count({
-        where: { userId, createdAt: { lte: s.createdAt }, isOnboarding: false },
-      });
-      return { ...s, workoutNumber };
-    }),
-  );
+  const oldest = pageItems.at(-1);
+  const base = oldest
+    ? await prisma.speakingSession.count({
+        where: { userId, isOnboarding: false, createdAt: { lt: oldest.createdAt } },
+      })
+    : 0;
+  let running = base;
+  const ascending = [...pageItems].reverse().map((s) => {
+    if (!s.isOnboarding) running += 1;
+    return { ...s, workoutNumber: running };
+  });
+  const withWorkout = ascending.reverse();
   return { items: withWorkout, hasMore };
 }
 

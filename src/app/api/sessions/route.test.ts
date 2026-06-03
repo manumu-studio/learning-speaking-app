@@ -274,4 +274,42 @@ describe('GET /api/sessions', () => {
 
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
   });
+
+  it('computes workoutNumber correctly with mixed onboarding sessions', async () => {
+    mockAuth.mockResolvedValue({
+      user: { externalId: 'ext-1', email: 'a@b.com', name: 'Test' },
+      expires: '',
+    } as never);
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      externalId: 'ext-1',
+    } as never);
+
+    // 5 sessions: newest→oldest, #2 and #4 are onboarding (should be skipped in numbering)
+    const sessions = [
+      { id: 's5', status: 'DONE', intentLabel: null, topic: null, durationSecs: 60, summary: null, createdAt: new Date('2026-06-05'), isOnboarding: false, metrics: [] },
+      { id: 's4', status: 'DONE', intentLabel: null, topic: null, durationSecs: 60, summary: null, createdAt: new Date('2026-06-04'), isOnboarding: true, metrics: [] },
+      { id: 's3', status: 'DONE', intentLabel: null, topic: null, durationSecs: 60, summary: null, createdAt: new Date('2026-06-03'), isOnboarding: false, metrics: [] },
+      { id: 's2', status: 'DONE', intentLabel: null, topic: null, durationSecs: 60, summary: null, createdAt: new Date('2026-06-02'), isOnboarding: true, metrics: [] },
+      { id: 's1', status: 'DONE', intentLabel: null, topic: null, durationSecs: 60, summary: null, createdAt: new Date('2026-06-01'), isOnboarding: false, metrics: [] },
+    ];
+
+    prismaMock.speakingSession.findMany.mockResolvedValueOnce(sessions as never);
+    // Base count: non-onboarding sessions older than s1 (oldest in page) = 0
+    prismaMock.speakingSession.count
+      .mockResolvedValueOnce(0)   // base count for workout walk
+      .mockResolvedValueOnce(5);  // total count for response
+
+    const response = await GET(new Request('http://localhost/api/sessions'));
+    const body = await response.json() as { sessions: Array<{ id: string; workoutNumber: number }> };
+
+    // 3 non-onboarding sessions: s1=#1, s3=#2, s5=#3 — onboarding sessions inherit the running count
+    expect(body.sessions.map((s) => ({ id: s.id, wn: s.workoutNumber }))).toEqual([
+      { id: 's5', wn: 3 },
+      { id: 's4', wn: 2 },
+      { id: 's3', wn: 2 },
+      { id: 's2', wn: 1 },
+      { id: 's1', wn: 1 },
+    ]);
+  });
 });
