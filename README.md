@@ -63,7 +63,7 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md) — Version history (70 releases)
+- [Changelog](CHANGELOG.md) — Version history (71 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
@@ -126,7 +126,7 @@ src/
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, auth, CEFR, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
+├── lib/              # Shared utilities (AI, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

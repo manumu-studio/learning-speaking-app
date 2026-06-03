@@ -117,3 +117,6 @@ test-results/
 .auth-state.json.planning/
 .planning/
 *.tsbuildinfo.build
+
+# Corpus source datasets (large — seeded via scripts/seed-corpus.ts)
+/data/

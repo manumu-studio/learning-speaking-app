@@ -2,6 +2,14 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.64.0] — 2026-06-03
+
+- **feat:** Corpus foundation — 3 Prisma models (Lexeme, Collocation, MultiWordExpression) with `pg_trgm` GIN indexes
+- **feat:** Seed script ingests 8 academic datasets → 140,886 rows (87,926 lexemes, 52,233 collocations, 757 MWEs)
+- **feat:** Query layer — `lookupLexeme`, `batchLookup`, `findCollocation`, `attestExpression` with deterministic source-priority resolution
+- **fix:** Source priority was nondeterministic (iterated DB return order instead of SOURCE_PRIORITY array order)
+- **chore:** `.gitignore` excludes `data/` (136 MB corpus source datasets)
+
 ## [0.63.0] — 2026-06-03
 
 - **feat:** Daily Conclusion engine — structured daily aggregation with pillar deltas, wins/struggles detection, and AI coaching narrative
