@@ -278,8 +278,11 @@ CREATED → UPLOADED → TRANSCRIBING → ANALYZING → DONE
 2. TRANSCRIBE (webhook)
    ├── Download from R2
    ├── Status → TRANSCRIBING
-   ├── Whisper API → transcript
-   ├── Store transcript
+   ├── Whisper API → display transcript  ─┐ (parallel)
+   ├── AssemblyAI Universal-3-Pro         ├── both fire concurrently
+   │   → verbatim transcript (best-effort)┘
+   ├── Levenshtein word-alignment → divergence spans (insertions/deletions/substitutions)
+   ├── Store display transcript + verbatim fields (verbatimTranscript, verbatimWordCount, divergenceSpans, verbatimProvider)
    └── Delete audio from R2
 
 3. ANALYZE (same handler)
@@ -334,9 +337,10 @@ LAUNCH_MODE=
 | Service | Cost |
 |---------|------|
 | Whisper (10 min) | ~$0.06 |
+| AssemblyAI Universal-3-Pro (10 min) | ~$0.035 |
 | Claude Haiku | ~$0.003 |
 | R2 + DB | ~$0.00 |
-| **Total** | **~$0.063** |
+| **Total** | **~$0.098** |
 
 ## Future: Personalization
 

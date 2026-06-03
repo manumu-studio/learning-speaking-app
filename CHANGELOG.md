@@ -2,6 +2,15 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.66.0] — 2026-06-03
+
+### Added
+- Verbatim transcription: AssemblyAI Universal-3-Pro runs in parallel with Whisper and produces a disfluency-preserving transcript (fillers, false starts, repetitions, self-corrections) that Whisper normalises away
+- Dual-transcript divergence detection: Levenshtein word-alignment diffs the verbatim transcript against the Whisper display transcript to find divergence spans (insertions, deletions, substitutions) — candidates for downstream grammar-error and disfluency classification
+- `ASSEMBLYAI_API_KEY` environment variable (optional); pipeline degrades gracefully to Whisper-only when absent
+- 4 nullable fields on `SpeakingSession`: `verbatimTranscript`, `verbatimWordCount`, `divergenceSpans` (JSON), `verbatimProvider`
+- Additive Prisma migration `20260603215734_add_verbatim_asr_fields` (non-breaking; all columns nullable)
+
 ## [0.65.0] — 2026-06-03
 
 ### Added
