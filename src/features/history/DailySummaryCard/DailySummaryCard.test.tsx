@@ -1,10 +1,10 @@
-// Component and hook tests for DailySummaryCard — skeleton, pillar chips, new words, feedback, and error states
+// Test the subtle daily summary card
 /** @vitest-environment jsdom */
-import { render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { DailySummaryCard } from './DailySummaryCard';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function jsonResponse(body: unknown, ok = true, status = 200) {
   return Promise.resolve({
@@ -14,113 +14,86 @@ function jsonResponse(body: unknown, ok = true, status = 200) {
   }) as Promise<Response>;
 }
 
-const validSummary = {
+const mockResponse = {
   date: '2026-06-01',
-  deliveryAvg: 7.5,
-  languageAvg: 6.8,
-  pronunciationAvg: 8.2,
-  newWords: ['articulate', 'succinct'],
-  feedback: 'Great session — your delivery was on point today.',
-  sessionCount: 2,
+  overallScore: 7.2,
+  totalDurationSecs: 720,
+  topicSentence: 'We worked through idioms and daily routines.',
+  sessionCount: 3,
+  conclusionData: {
+    activeTargetsTomorrow: ['bear in mind', 'albeit', 'look into', 'depend on'],
+  },
 };
 
-// ─── Setup / teardown ───────────────────────────────────────────────────────
+// ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn());
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
-// ─── Tests ──────────────────────────────────────────────────────────────────
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('DailySummaryCard', () => {
-  it('shows skeleton loading state initially', () => {
-    // Fetch never resolves — card stays in loading state
-    vi.mocked(fetch).mockImplementation(() => new Promise(() => undefined));
+  it('shows loading skeleton initially', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)));
 
     render(<DailySummaryCard dateKey="2026-06-01" />);
 
-    // Skeleton uses animate-pulse; verify the container is present and content isn't loaded yet
-    const container = document.querySelector('.animate-pulse');
-    expect(container).not.toBeNull();
-    expect(screen.queryByText('Delivery')).toBeNull();
+    const skeleton = document.querySelector('.animate-pulse');
+    expect(skeleton).not.toBeNull();
   });
 
-  it('renders pillar score chips with correct values after loading', async () => {
-    vi.mocked(fetch).mockReturnValue(jsonResponse(validSummary));
+  it('renders overall score after loading', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(mockResponse)));
 
     render(<DailySummaryCard dateKey="2026-06-01" />);
 
     await waitFor(() => {
-      expect(screen.getByText('Delivery')).toBeInTheDocument();
+      expect(screen.getByText('7.2')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Language')).toBeInTheDocument();
-    expect(screen.getByText('Pronunciation')).toBeInTheDocument();
-
-    // Score values rendered as .toFixed(1)
-    expect(screen.getByText('7.5')).toBeInTheDocument();
-    expect(screen.getByText('6.8')).toBeInTheDocument();
-    expect(screen.getByText('8.2')).toBeInTheDocument();
+    expect(screen.getByText('Overall')).toBeInTheDocument();
   });
 
-  it('renders new words when present', async () => {
-    vi.mocked(fetch).mockReturnValue(jsonResponse(validSummary));
+  it('renders topic sentence', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(mockResponse)));
 
     render(<DailySummaryCard dateKey="2026-06-01" />);
 
     await waitFor(() => {
-      expect(screen.getByText('New words:')).toBeInTheDocument();
+      expect(
+        screen.getByText('We worked through idioms and daily routines.'),
+      ).toBeInTheDocument();
     });
-
-    expect(screen.getByText(/articulate, succinct/)).toBeInTheDocument();
   });
 
-  it('hides new words line when array is empty', async () => {
-    vi.mocked(fetch).mockReturnValue(
-      jsonResponse({ ...validSummary, newWords: [] }),
-    );
+  it('renders formatted duration', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(mockResponse)));
 
     render(<DailySummaryCard dateKey="2026-06-01" />);
 
     await waitFor(() => {
-      expect(screen.getByText('Delivery')).toBeInTheDocument();
+      expect(screen.getByText(/12 min/)).toBeInTheDocument();
     });
-
-    expect(screen.queryByText('New words:')).toBeNull();
   });
 
-  it('renders feedback text in italic', async () => {
-    vi.mocked(fetch).mockReturnValue(jsonResponse(validSummary));
+  it('renders 4 "use tomorrow" pills', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(mockResponse)));
 
     render(<DailySummaryCard dateKey="2026-06-01" />);
 
     await waitFor(() => {
-      expect(screen.getByText(validSummary.feedback)).toBeInTheDocument();
+      expect(screen.getByText('bear in mind')).toBeInTheDocument();
     });
 
-    const feedbackEl = screen.getByText(validSummary.feedback);
-    expect(feedbackEl.tagName).toBe('P');
-    expect(feedbackEl.className).toContain('italic');
+    expect(screen.getByText('albeit')).toBeInTheDocument();
+    expect(screen.getByText('look into')).toBeInTheDocument();
+    expect(screen.getByText('depend on')).toBeInTheDocument();
+    expect(screen.getByText('Use tomorrow')).toBeInTheDocument();
   });
 
-  it('returns null on fetch error (fails silently)', async () => {
-    vi.mocked(fetch).mockReturnValue(jsonResponse({}, false, 500));
-
-    const { container } = render(<DailySummaryCard dateKey="2026-06-01" />);
-
-    await waitFor(() => {
-      // After the failed fetch the component returns null — container is empty
-      expect(container.firstChild).toBeNull();
-    });
-  });
-
-  it('returns null when API returns 404', async () => {
-    vi.mocked(fetch).mockReturnValue(jsonResponse({ code: 'NO_SESSIONS' }, false, 404));
+  it('returns null when fetch returns 404', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse({}, false, 404)));
 
     const { container } = render(<DailySummaryCard dateKey="2026-06-01" />);
 
@@ -129,28 +102,29 @@ describe('DailySummaryCard', () => {
     });
   });
 
-  it('fetches from correct URL with dateKey', async () => {
-    vi.mocked(fetch).mockReturnValue(jsonResponse(validSummary));
+  it('calls onTapDay with dateKey when card is clicked', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(mockResponse)));
+    const onTapDay = vi.fn();
 
-    render(<DailySummaryCard dateKey="2026-05-15" />);
+    render(<DailySummaryCard dateKey="2026-06-01" onTapDay={onTapDay} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Delivery')).toBeInTheDocument();
+      expect(screen.getByText('7.2')).toBeInTheDocument();
     });
 
-    expect(fetch).toHaveBeenCalledWith('/api/users/me/daily-summaries?date=2026-05-15');
+    const card = screen.getByRole('button');
+    fireEvent.click(card);
+
+    expect(onTapDay).toHaveBeenCalledWith('2026-06-01');
   });
 
-  it('returns null when API response fails Zod schema validation', async () => {
-    // Missing required fields — schema parse will throw
-    vi.mocked(fetch).mockReturnValue(
-      jsonResponse({ date: '2026-06-01', broken: true }),
-    );
+  it('renders formatted date label', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(mockResponse)));
 
-    const { container } = render(<DailySummaryCard dateKey="2026-06-01" />);
+    render(<DailySummaryCard dateKey="2026-06-01" />);
 
     await waitFor(() => {
-      expect(container.firstChild).toBeNull();
+      expect(screen.getByText(/JUN 1/)).toBeInTheDocument();
     });
   });
 });

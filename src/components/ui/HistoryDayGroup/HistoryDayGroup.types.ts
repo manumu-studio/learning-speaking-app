@@ -8,4 +8,5 @@ export interface HistoryDayGroupProps {
   isToday?: boolean;
   baseDelay?: number;
   onDeleteSession?: (id: string) => void;
+  onTapDay?: (date: string) => void;
 }

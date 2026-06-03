@@ -1,0 +1,173 @@
+// Curated list of high-value phrasal verbs for C1→C2 academic/professional register
+
+export interface PhrasalVerb {
+  verb: string;
+  particle: string;
+  separable: boolean;
+  meaning: string;
+  register: 'formal' | 'neutral' | 'informal';
+  example: string;
+}
+
+export const PHRASAL_VERBS: readonly PhrasalVerb[] = [
+  {
+    verb: 'carry',
+    particle: 'out',
+    separable: true,
+    meaning: 'conduct',
+    register: 'neutral',
+    example: 'The team carried out a thorough analysis.',
+  },
+  {
+    verb: 'bring',
+    particle: 'up',
+    separable: true,
+    meaning: 'mention',
+    register: 'neutral',
+    example: 'She brought up an important point during the meeting.',
+  },
+  {
+    verb: 'look',
+    particle: 'into',
+    separable: false,
+    meaning: 'investigate',
+    register: 'neutral',
+    example: 'We need to look into the root cause of the problem.',
+  },
+  {
+    verb: 'set',
+    particle: 'up',
+    separable: true,
+    meaning: 'establish',
+    register: 'neutral',
+    example: 'They set up a working group to address the issue.',
+  },
+  {
+    verb: 'point',
+    particle: 'out',
+    separable: true,
+    meaning: 'indicate',
+    register: 'neutral',
+    example: 'The reviewer pointed out several inconsistencies.',
+  },
+  {
+    verb: 'figure',
+    particle: 'out',
+    separable: true,
+    meaning: 'determine',
+    register: 'neutral',
+    example: 'We still need to figure out the best approach.',
+  },
+  {
+    verb: 'come',
+    particle: 'up with',
+    separable: false,
+    meaning: 'devise',
+    register: 'neutral',
+    example: 'The team came up with an innovative solution.',
+  },
+  {
+    verb: 'break',
+    particle: 'down',
+    separable: true,
+    meaning: 'analyze',
+    register: 'neutral',
+    example: 'Let me break down the key components for you.',
+  },
+  {
+    verb: 'take',
+    particle: 'on',
+    separable: true,
+    meaning: 'undertake',
+    register: 'neutral',
+    example: 'She took on additional responsibilities last quarter.',
+  },
+  {
+    verb: 'follow',
+    particle: 'up',
+    separable: false,
+    meaning: 'continue',
+    register: 'neutral',
+    example: 'I will follow up with the client next week.',
+  },
+  {
+    verb: 'lay',
+    particle: 'out',
+    separable: true,
+    meaning: 'present',
+    register: 'formal',
+    example: 'The report lays out the key findings clearly.',
+  },
+  {
+    verb: 'draw',
+    particle: 'on',
+    separable: false,
+    meaning: 'utilize',
+    register: 'formal',
+    example: 'This approach draws on established research methods.',
+  },
+  {
+    verb: 'rule',
+    particle: 'out',
+    separable: true,
+    meaning: 'exclude',
+    register: 'neutral',
+    example: 'We cannot rule out other contributing factors.',
+  },
+  {
+    verb: 'pick',
+    particle: 'up',
+    separable: true,
+    meaning: 'acquire',
+    register: 'neutral',
+    example: 'She picked up the skill quickly through practice.',
+  },
+  {
+    verb: 'stand',
+    particle: 'out',
+    separable: false,
+    meaning: 'excel',
+    register: 'neutral',
+    example: 'This candidate stands out for her analytical skills.',
+  },
+  {
+    verb: 'turn',
+    particle: 'out',
+    separable: false,
+    meaning: 'prove',
+    register: 'neutral',
+    example: 'The approach turned out to be more effective than expected.',
+  },
+  {
+    verb: 'back',
+    particle: 'up',
+    separable: true,
+    meaning: 'support',
+    register: 'neutral',
+    example: 'These findings back up our initial hypothesis.',
+  },
+  {
+    verb: 'build',
+    particle: 'on',
+    separable: false,
+    meaning: 'develop',
+    register: 'neutral',
+    example: 'This research builds on earlier work in the field.',
+  },
+  {
+    verb: 'put',
+    particle: 'forward',
+    separable: true,
+    meaning: 'propose',
+    register: 'formal',
+    example: 'She put forward a compelling argument for the change.',
+  },
+  {
+    verb: 'work',
+    particle: 'out',
+    separable: true,
+    meaning: 'resolve',
+    register: 'neutral',
+    example: 'We need to work out the details before proceeding.',
+  },
+] as const;

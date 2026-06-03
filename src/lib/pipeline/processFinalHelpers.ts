@@ -121,15 +121,20 @@ export function isJsonArray(value: Prisma.JsonValue | null): value is Prisma.Jso
 }
 
 /**
- * Deletes the cached DailySummary for a user's session date so it regenerates
+ * Deletes cached daily data for a user's session date so it regenerates
  * on next history view. Failures are logged but never rethrown — pipeline must continue.
  */
 export async function invalidateDailySummary(userId: string, sessionCreatedAt: Date): Promise<void> {
   try {
     const dateStr = sessionCreatedAt.toISOString().split('T')[0] as string;
-    await prisma.dailySummary.deleteMany({
-      where: { userId, date: new Date(`${dateStr}T00:00:00.000Z`) },
-    });
+    await Promise.all([
+      prisma.dailySummary.deleteMany({
+        where: { userId, date: new Date(`${dateStr}T00:00:00.000Z`) },
+      }),
+      prisma.dailyConclusion.deleteMany({
+        where: { userId, date: dateStr },
+      }),
+    ]);
   } catch (err) {
     logger.error({ err, userId }, 'Failed to invalidate daily summary');
   }

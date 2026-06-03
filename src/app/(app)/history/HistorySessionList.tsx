@@ -3,6 +3,7 @@
 
 import type { RefObject } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { HistoryDayGroup } from '@/components/ui/HistoryDayGroup';
 import type { DayGroup } from '@/features/session/useSessionHistory.types';
 
@@ -52,6 +53,8 @@ export function HistorySessionList({
   onDeleteSession,
 }: HistorySessionListProps) {
   const today = new Date().toISOString().split('T')[0];
+  const router = useRouter();
+
   return (
     <>
       {dayGroups.map((group, groupIndex) => (
@@ -63,6 +66,7 @@ export function HistorySessionList({
           isToday={group.dateKey === today}
           baseDelay={groupIndex * 100}
           onDeleteSession={onDeleteSession}
+          onTapDay={(date) => router.push(`/history/day/${date}`)}
         />
       ))}
 
