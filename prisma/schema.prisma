@@ -502,3 +502,63 @@ model NaturalnessFlag {
   @@index([userId, createdAt])
   @@map("naturalness_flags")
 }
+
+// ─── Corpus Reference Tables (PACKET-57) ────────────────────────────
+
+// Single-word frequency + CEFR level from NGSL, NAWL, SUBTLEX, CEFR-J, Octanove
+model Lexeme {
+  id             String  @id @default(cuid())
+  lemma          String
+  pos            String  @default("")
+  freqPerMillion Float?
+  spokenFreqPerM Float?
+  rank           Int?
+  zipf           Float?
+  cefr           String?
+  sfi            Float?
+  source         String
+
+  @@unique([lemma, pos, source])
+  @@index([lemma])
+  @@map("lexemes")
+}
+
+// Word-pair associations from ACL and COCA
+model Collocation {
+  id           String  @id @default(cuid())
+  headLemma    String
+  headPos      String?
+  collocate    String
+  collocatePos String?
+  relation     String?
+  freq         Int?
+  mi           Float?
+  logDice      Float?
+  tScore       Float?
+  source       String
+
+  @@unique([headLemma, collocate, source])
+  @@index([headLemma])
+  @@index([headLemma, collocate])
+  @@map("collocations")
+}
+
+// Phrasal verbs (PHaVE) and academic formulas (AFL)
+model MultiWordExpression {
+  id          String  @id @default(cuid())
+  canonical   String
+  lemmaKey    String
+  type        String
+  freq        Float?
+  spokenFreq  Float?
+  writtenFreq Float?
+  ftw         Float?
+  cefr        String?
+  senseNote   String? @db.Text
+  source      String
+
+  @@unique([canonical, type, source])
+  @@index([lemmaKey])
+  @@index([canonical])
+  @@map("multi_word_expressions")
+}
