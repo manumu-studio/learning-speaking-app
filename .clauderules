@@ -14,7 +14,7 @@ When building a feature (the user says "build", "continue building", or similar)
 - Follow all TypeScript standards and component patterns from `.cursorrules`
 - Run quality gates after every significant change:
   ```bash
-  npx tsc --noEmit
+  npm run typecheck   # NEVER bare `npx tsc` — pins project tsc + tsconfig.build.json
   npm run build
   npm run lint
   npm test
@@ -150,7 +150,7 @@ If the audit finds a metric count that doesn't match, a feature missing from how
 
 ## Quality Gates (must pass before shipping)
 ```bash
-npx tsc --noEmit       # Zero type errors
+npm run typecheck      # Zero type errors — NEVER bare `npx tsc` (pins tsc + tsconfig.build.json)
 npm run build          # Clean build
 npm run lint           # Zero warnings
 npm test               # All passing

@@ -10,6 +10,7 @@ import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
 import { toPcm16kMonoWav } from '@/lib/audio/transcode';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
+import { startVerbatim, finishVerbatim } from '@/lib/pipeline/runVerbatim';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
@@ -271,6 +272,8 @@ export async function executePipeline(
 
   // Steps 3–4: Download and transcode audio
   const audioBuffer = await getAudio(audioKey);
+  // Kick off verbatim transcription in parallel with Whisper + scoring (best-effort).
+  const verbatimPromise = startVerbatim(audioKey);
   const pcmBuffer = await toPcm16kMonoWav(audioBuffer);
 
   // Step 5: Mark TRANSCRIBING
@@ -299,6 +302,9 @@ export async function executePipeline(
       startTime,
     });
   } finally {
+    // Persist verbatim transcript + divergence spans (ran in parallel above).
+    // In `finally` so completed verbatim data is saved even if scoring/analysis throws.
+    await finishVerbatim(id, userTranscriptText, verbatimPromise);
     await cleanupSessionAudio(id, audioKey, deleteAudio);
   }
 }

@@ -18,6 +18,12 @@ vi.mock('@/lib/storage/r2', () => ({
   deleteAudio: vi.fn(),
 }));
 
+// Verbatim path is tested separately in runVerbatim.test.ts — no-op here so existing cases are unaffected.
+vi.mock('@/lib/pipeline/runVerbatim', () => ({
+  startVerbatim: vi.fn(() => Promise.resolve(null)),
+  finishVerbatim: vi.fn(() => Promise.resolve()),
+}));
+
 vi.mock('@/features/session/updatePatternProfile', () => ({
   updatePatternProfile: vi.fn(),
 }));
@@ -77,6 +83,7 @@ import { executePipeline } from './executePipeline';
 import { transcribeAudio } from '@/lib/ai/whisper';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
+import { startVerbatim, finishVerbatim } from '@/lib/pipeline/runVerbatim';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 
 // ---------------------------------------------------------------------------
@@ -172,6 +179,19 @@ describe('executePipeline', () => {
       ([args]) => (args as { data: { status?: string } }).data.status === SessionStatus.DONE
     );
     expect(doneCall).toBeDefined();
+  });
+
+  it('wires the verbatim transcription step into the pipeline (parallel + persisted)', async () => {
+    // Arrange
+    setupHappyPath({ status: SessionStatus.UPLOADED });
+
+    // Act
+    await executePipeline('session-1', 'production');
+
+    // Assert — verbatim is kicked off and finished (guards against the wiring being removed).
+    // Counts accumulate across tests (no per-test mock reset in this file), so assert "called".
+    expect(startVerbatim).toHaveBeenCalled();
+    expect(finishVerbatim).toHaveBeenCalled();
   });
 
   it('production mode: session with DONE status throws invalid state error', async () => {

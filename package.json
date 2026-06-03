@@ -1,6 +1,6 @@
 {
   "name": "learning-speaking-app",
-  "version": "0.65.0",
+  "version": "0.66.0",
   "private": true,
   "engines": {
     "node": ">=20.0.0"
@@ -38,6 +38,7 @@
     "@upstash/qstash": "^2.9.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "assemblyai": "^4.33.3",
     "clsx": "^2.1.1",
     "compromise": "^14.15.0",
     "difflib": "^0.2.4",
