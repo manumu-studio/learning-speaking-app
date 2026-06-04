@@ -8,6 +8,8 @@ import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { deleteAudio, getAudio } from '@/lib/storage/r2';
+import { startVerbatim } from '@/lib/pipeline/runVerbatim';
+import type { VerbatimResult } from '@/lib/assemblyai/transcribe';
 import { toInputJson } from '@/lib/prismaJson';
 
 export interface ChunkIndependentInput {
@@ -129,6 +131,7 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
     });
 
     const audioBuffer = await getAudio(storageKey);
+    const verbatimPromise = startVerbatim(storageKey);
     const whisperResult = await transcribeWavChunk(
       audioBuffer,
       `session-${sessionId}-chunk-${chunkIndex}.wav`,
@@ -159,6 +162,8 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
 
     const insightsJson = await runChunkAnalysis({ sessionId, chunkIndex, transcriptText });
 
+    const verbatimResult: VerbatimResult | null = await verbatimPromise;
+
     await prisma.chunkResult.update({
       where: { sessionId_chunkIndex: { sessionId, chunkIndex } },
       data: {
@@ -168,6 +173,8 @@ export async function processChunkIndependent(input: ChunkIndependentInput): Pro
         words: toInputJson(words),
         pronunciationReport,
         insights: insightsJson,
+        verbatimText: verbatimResult?.text ?? null,
+        verbatimWords: verbatimResult ? toInputJson(verbatimResult.words) : Prisma.JsonNull,
       },
     });
 
