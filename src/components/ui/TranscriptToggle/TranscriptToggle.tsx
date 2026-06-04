@@ -2,10 +2,18 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { PhonemeDetail } from '@/components/ui/PhonemeDetail';
 import { useTranscriptToggle } from './useTranscriptToggle';
 import type { TranscriptView } from './useTranscriptToggle';
 import type { TranscriptToggleProps } from './TranscriptToggle.types';
+import type { WordPronunciation } from '@/components/ui/PronunciationSection';
+
+const TOKEN_PATTERN = /(\r\n|\n|\s+|[\p{L}\p{N}'-]+|[^\s\p{L}\p{N}'-]+)/gu;
+
+function normalizeWord(text: string): string {
+  return text.toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, '');
+}
 
 function highlightWords(text: string, words: string[]): ReactNode[] {
   if (words.length === 0) return [text];
@@ -65,17 +73,128 @@ function ToggleButton({
   );
 }
 
+interface PronunciationToken {
+  readonly text: string;
+  readonly word: WordPronunciation | null;
+}
+
+function buildPronunciationTokens(text: string, words: readonly WordPronunciation[]): PronunciationToken[] {
+  const tokens = text.match(TOKEN_PATTERN) ?? [];
+  let cursor = 0;
+  return tokens.map((token) => {
+    const normalized = normalizeWord(token);
+    const current = normalized.length > 0 ? words[cursor] : undefined;
+    if (normalized.length > 0) cursor += 1;
+    if (current === undefined || normalizeWord(current.display ?? current.word) !== normalized) {
+      return { text: token, word: null };
+    }
+    return { text: token, word: current };
+  });
+}
+
+function PronunciationMap({
+  text,
+  words,
+}: {
+  text: string;
+  words: WordPronunciation[];
+}) {
+  const [expandedWord, setExpandedWord] = useState<WordPronunciation | null>(null);
+  const tokens = useMemo(() => buildPronunciationTokens(text, words), [text, words]);
+
+  return (
+    <div className="space-y-3">
+      <p className="whitespace-pre-wrap">
+        {tokens.map((token, index) => {
+          if (token.word === null) {
+            return <span key={`${token.text}-${index}`}>{token.text}</span>;
+          }
+          return (
+            <button
+              key={`${token.text}-${index}`}
+              type="button"
+              className="rounded px-0.5 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30"
+              onClick={() => setExpandedWord(token.word)}
+            >
+              {token.text}
+            </button>
+          );
+        })}
+      </p>
+      {expandedWord !== null && (
+        <PhonemeDetail word={expandedWord} onClose={() => setExpandedWord(null)} />
+      )}
+    </div>
+  );
+}
+
+function TranscriptTabs({
+  hasPronunciationMap,
+  hasImprovedText,
+  wordCount,
+  view,
+  selectView,
+}: {
+  hasPronunciationMap: boolean;
+  hasImprovedText: boolean;
+  wordCount: number | null;
+  view: TranscriptView;
+  selectView: (view: TranscriptView) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2" role="tablist" aria-label="Transcript version">
+      {hasPronunciationMap && (
+        <ToggleButton label="Pronunciation map" active={view === 'pronunciation'} value="pronunciation" onSelect={selectView} />
+      )}
+      <ToggleButton label="Your words" active={view === 'original'} value="original" onSelect={selectView} />
+      {hasImprovedText && (
+        <ToggleButton label="Improved" active={view === 'improved'} value="improved" onSelect={selectView} />
+      )}
+      {wordCount !== null && (
+        <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">
+          {wordCount} words
+        </span>
+      )}
+    </div>
+  );
+}
+
+function TranscriptPanel({
+  originalText,
+  highlightedImproved,
+  pronunciationWords,
+  view,
+  hasImprovedText,
+}: {
+  originalText: string;
+  highlightedImproved: ReactNode[];
+  pronunciationWords: WordPronunciation[];
+  view: TranscriptView;
+  hasImprovedText: boolean;
+}) {
+  if (view === 'pronunciation' && pronunciationWords.length > 0) {
+    return <PronunciationMap text={originalText} words={pronunciationWords} />;
+  }
+  if (view === 'improved' && hasImprovedText) {
+    return <p className="whitespace-pre-wrap">{highlightedImproved}</p>;
+  }
+  return <p className="whitespace-pre-wrap">{originalText}</p>;
+}
+
 export function TranscriptToggle({
   originalText,
   improvedText,
   wordsUsed,
   wordCount,
+  pronunciationWords = [],
   animationDelay = 0,
 }: TranscriptToggleProps) {
-  const { view, selectView } = useTranscriptToggle();
+  const hasPronunciationMap = pronunciationWords.length > 0;
+  const hasImprovedText = improvedText !== null && improvedText.trim().length > 0;
+  const { view, selectView } = useTranscriptToggle(hasPronunciationMap ? 'pronunciation' : 'original');
 
   const highlightedImproved = useMemo(
-    () => highlightWords(improvedText, wordsUsed),
+    () => (improvedText === null ? [] : highlightWords(improvedText, wordsUsed)),
     [improvedText, wordsUsed],
   );
 
@@ -84,40 +203,28 @@ export function TranscriptToggle({
       className="animate-fade-in space-y-3"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
-      {/* Toggle tabs */}
-      <div className="flex items-center gap-2" role="tablist" aria-label="Transcript version">
-        <ToggleButton
-          label="Your words"
-          active={view === 'original'}
-          value="original"
-          onSelect={selectView}
-        />
-        <ToggleButton
-          label="Improved"
-          active={view === 'improved'}
-          value="improved"
-          onSelect={selectView}
-        />
-        {wordCount !== null && (
-          <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">
-            {wordCount} words
-          </span>
-        )}
-      </div>
+      <TranscriptTabs
+        hasPronunciationMap={hasPronunciationMap}
+        hasImprovedText={hasImprovedText}
+        wordCount={wordCount}
+        view={view}
+        selectView={selectView}
+      />
 
-      {/* Transcript content */}
       <div
         role="tabpanel"
         className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
       >
-        {view === 'original' ? (
-          <p className="whitespace-pre-wrap">{originalText}</p>
-        ) : (
-          <p className="whitespace-pre-wrap">{highlightedImproved}</p>
-        )}
+        <TranscriptPanel
+          originalText={originalText}
+          highlightedImproved={highlightedImproved}
+          pronunciationWords={pronunciationWords}
+          view={view}
+          hasImprovedText={hasImprovedText}
+        />
       </div>
 
-      {view === 'improved' && wordsUsed.length > 0 && (
+      {view === 'improved' && hasImprovedText && wordsUsed.length > 0 && (
         <p className="text-xs text-slate-400 dark:text-slate-500">
           {wordsUsed.length} vocab {wordsUsed.length === 1 ? 'upgrade' : 'upgrades'} applied
         </p>
