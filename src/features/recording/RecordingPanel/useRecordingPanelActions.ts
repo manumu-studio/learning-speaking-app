@@ -105,8 +105,10 @@ export function useRecordingPanelActions({
 
   useEffect(() => {
     if (captureState !== 'stopped' || isCompleting) { return; }
-    void finalizeSession({ completeSession, duration, addSession, setIsCompleting, pushRoute: router.push });
-  }, [addSession, captureState, completeSession, duration, isCompleting, router, setIsCompleting]);
+    void waitForInFlightUploads().then(() =>
+      finalizeSession({ completeSession, duration, addSession, setIsCompleting, pushRoute: router.push }),
+    );
+  }, [addSession, captureState, completeSession, duration, isCompleting, router, setIsCompleting, waitForInFlightUploads]);
 
   return { handleCancelPress, handleCancelModalDismiss, handleDiscardSession, handleFinishEarly };
 }
