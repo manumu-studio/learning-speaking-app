@@ -5,12 +5,10 @@ import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { VocabSuggestions } from '@/components/ui/VocabSuggestions';
 import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
 import { FocusHighlight } from '@/components/ui/FocusHighlight';
-import { AnnotatedTranscript } from '@/components/ui/AnnotatedTranscript';
 import { TranscriptToggle } from '@/components/ui/TranscriptToggle';
 import {
   PronunciationSection,
 } from '@/components/ui/PronunciationSection';
-import { WordColorMap } from '@/components/ui/WordColorMap';
 import { ProsodyPanel } from '@/components/ui/ProsodyPanel';
 import { ProsodyFeedback } from '@/components/ui/ProsodyFeedback';
 import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
@@ -64,7 +62,7 @@ export function LanguageFeedbackSection({
   const vocabSuggestions = deriveVocabSuggestions(session.insights);
 
   return (
-    <CollapsibleSection title="Language Feedback" count={session.insights.length} animationDelay={200}>
+    <CollapsibleSection title="Speech Quality" count={session.insights.length} animationDelay={200}>
       <div className="flex flex-col gap-4">
         <CategoryInsightsSection title="Grammar" insights={grouped.grammar} baseDelay={220} />
         {session.grammarFlags && session.grammarFlags.length > 0 && (
@@ -131,7 +129,6 @@ interface PronunciationFeedbackSectionProps {
   pronunciationHistory: HistoryItem[];
   pitchState: PitchContourState;
   pronunciationSectionDelay: number;
-  wordColorMapDelay: number;
   prosodyPanelDelay: number;
 }
 
@@ -141,7 +138,6 @@ export function PronunciationFeedbackSection({
   pronunciationHistory,
   pitchState,
   pronunciationSectionDelay,
-  wordColorMapDelay,
   prosodyPanelDelay,
 }: PronunciationFeedbackSectionProps) {
   const { priority, polish } = splitByPriority(rankByFunctionalLoad(pronunciationReport.words));
@@ -169,14 +165,11 @@ export function PronunciationFeedbackSection({
           phonemes={aggregatePhonemes(pronunciationReport.words)}
           animationDelay={pronunciationSectionDelay + 50}
         />
-        <CollapsibleSection title="Word Color Map" defaultOpen={false}>
-          <WordColorMap words={pronunciationReport.words} animationDelay={wordColorMapDelay} />
-        </CollapsibleSection>
         <CollapsibleSection title="Prosody Feedback" defaultOpen={false}>
           <ProsodyFeedback
             words={pronunciationReport.words}
             prosodyScore={pronunciationReport.prosodyScore}
-            animationDelay={wordColorMapDelay + 50}
+            animationDelay={prosodyPanelDelay + 50}
           />
         </CollapsibleSection>
         <ProsodyPanel
@@ -226,24 +219,14 @@ export function TranscriptSection({
 
   return (
     <CollapsibleSection title="Annotated Transcript" defaultOpen={false} animationDelay={transcriptDelay}>
-      {session.transcript.improvedText && session.transcript.wordsUsed.length > 0 ? (
-        <TranscriptToggle
-          originalText={session.transcript.text}
-          improvedText={session.transcript.improvedText}
-          wordsUsed={session.transcript.wordsUsed}
-          wordCount={session.transcript.wordCount}
-          animationDelay={transcriptDelay}
-        />
-      ) : (
-        <AnnotatedTranscript
-          text={session.transcript.text}
-          wordCount={session.transcript.wordCount}
-          insights={session.insights}
-          metrics={session.metrics ?? []}
-          animationDelay={transcriptDelay}
-          embedded
-        />
-      )}
+      <TranscriptToggle
+        originalText={session.transcript.text}
+        improvedText={session.transcript.improvedText}
+        wordsUsed={session.transcript.wordsUsed}
+        wordCount={session.transcript.wordCount}
+        pronunciationWords={session.pronunciationReport?.words ?? []}
+        animationDelay={transcriptDelay}
+      />
     </CollapsibleSection>
   );
 }

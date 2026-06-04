@@ -144,7 +144,6 @@ function SessionOverallView({
           pronunciationHistory={pronunciationHistory}
           pitchState={pitchState}
           pronunciationSectionDelay={delays.pronunciationSectionDelay}
-          wordColorMapDelay={delays.wordColorMapDelay}
           prosodyPanelDelay={delays.prosodyPanelDelay}
         />
       )}

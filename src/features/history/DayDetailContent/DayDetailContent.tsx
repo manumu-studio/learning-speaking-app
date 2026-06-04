@@ -1,19 +1,23 @@
-// Day detail view — meta-session with aggregated scores, wins, struggles, and sections
+// Day detail view — renders a completed day as a five-section meta-session
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Container } from '@/components/ui/Container';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
-import { LanguageBankPanel } from '@/features/daily/LanguageBankPanel';
+import { Container } from '@/components/ui/Container';
+import { PhonemeDetail } from '@/components/ui/PhonemeDetail';
+import type { WordPronunciation } from '@/components/ui/PronunciationSection';
 import { useDayDetailContent } from './useDayDetailContent';
 import type { DayDetailContentProps } from './DayDetailContent.types';
-import type { DailyResponse } from './useDayDetailContent';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import type {
+  DayDetailData,
+  DayFeedbackItem,
+  DayTranscriptSession,
+  DayTranscriptToken,
+} from '@/lib/daily/dayDetail/buildDayDetailData.types';
 
 function formatFullDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -22,253 +26,242 @@ function formatFullDate(dateStr: string): string {
 }
 
 function formatMinutes(totalSecs: number): string {
-  const mins = Math.round(totalSecs / 60);
-  return `${mins} min`;
+  return `${Math.round(totalSecs / 60)} min`;
 }
-
-function formatDelta(delta: number | null): string | null {
-  if (delta === null) return null;
-  return delta >= 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 export function DayDetailSkeleton() {
   return (
     <Container>
-      <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-800 mb-6" />
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-6 animate-pulse mb-4">
-        <div className="h-3 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
-        <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded mt-3" />
-        <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded mt-3" />
+      <div className="mb-6 h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+      <div className="mb-4 rounded-lg border border-gray-200 p-6 dark:border-gray-800">
+        <div className="h-3 w-48 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="mt-3 h-8 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
       </div>
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="mb-3 h-12 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-900" />
-      ))}
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="h-12 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-900" />
+        ))}
+      </div>
     </Container>
   );
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
-
-function DayHero({ data }: { data: DailyResponse }) {
+function DayHero({ data }: { data: DayDetailData }) {
   return (
-    <div className="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 p-6 bg-white dark:bg-black">
-      <div className="text-xs text-gray-500 uppercase tracking-wide">
-        {formatFullDate(data.date)} · {data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''} · {formatMinutes(data.totalDurationSecs)}
-      </div>
-      <div className="mt-2 flex items-baseline gap-3">
+    <section className="mt-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-black">
+      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        {formatFullDate(data.hero.date)} · {data.hero.sessionCount} session{data.hero.sessionCount === 1 ? '' : 's'} · {formatMinutes(data.hero.totalDurationSecs)}
+      </p>
+      <div className="mt-2 flex flex-wrap items-baseline gap-3">
         <span className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-          {data.overallScore.toFixed(1)}
+          {data.hero.overallScore?.toFixed(1) ?? '--'}
         </span>
-        <span className="text-sm text-gray-500">Overall</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">Overall</span>
+        <span className="text-sm text-gray-400 dark:text-gray-500">{data.hero.totalWords} words</span>
       </div>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-        {data.topicSentence}
+      <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+        {data.hero.topicSentence}
       </p>
-    </div>
+      {data.hero.focusAreas.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {data.hero.focusAreas.map((area) => (
+            <span key={area} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+              {area}
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
-// ─── Speech Quality section ───────────────────────────────────────────────────
-
-const PILLAR_LABELS: Record<'delivery' | 'language' | 'pronunciation', string> = {
-  delivery: 'Delivery',
-  language: 'Language',
-  pronunciation: 'Pronunciation',
-};
-
-function SpeechQualitySection({ data }: { data: DailyResponse }) {
-  const { conclusionData } = data;
-  const pillars = (['delivery', 'language', 'pronunciation'] as const).map((key) => ({
-    key,
-    label: PILLAR_LABELS[key],
-    score: conclusionData.pillarScores[key],
-    delta: conclusionData.metricDeltas[key],
-  }));
-
+function FeedbackItems({ items }: { items: readonly DayFeedbackItem[] }) {
+  if (items.length === 0) return null;
   return (
-    <CollapsibleSection title="Speech Quality" defaultOpen animationDelay={100}>
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        {pillars.map((pillar) => {
-          const deltaStr = formatDelta(pillar.delta);
-          return (
-            <div key={pillar.key}>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{pillar.label}</div>
-              <div className="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
-                {pillar.score.toFixed(1)}
+    <ul className="mt-2 space-y-2">
+      {items.map((item) => (
+        <li key={`${item.title}-${item.detail}`} className="rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900/60">
+          <div className="font-medium text-gray-900 dark:text-gray-100">{item.title}</div>
+          <p className="mt-1 text-gray-600 dark:text-gray-400">{item.detail}</p>
+          {item.evidence !== null && <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{item.evidence}</p>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SessionsSection({ data }: { data: DayDetailData }) {
+  return (
+    <CollapsibleSection title="Sessions" defaultOpen count={data.sessions.length}>
+      <ul className="space-y-2">
+        {data.sessions.map((session) => (
+          <li key={session.id}>
+            <Link href={session.href} className="block rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Session {session.sessionNumber} · {session.timeLabel}
+                </span>
+                <span className="text-xs text-gray-400">{formatMinutes(session.durationSecs)}</span>
               </div>
-              {deltaStr !== null && (
-                <div className={`text-xs mt-0.5 ${pillar.delta !== null && pillar.delta > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                  {deltaStr}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {conclusionData.wins.length > 0 && (
-        <div className="space-y-1 mb-3">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Wins</div>
-          {conclusionData.wins.map((w) => (
-            <div key={w.tag} className="text-sm text-gray-700 dark:text-gray-300">
-              ✦ {w.detail}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {conclusionData.struggles.length > 0 && (
-        <div className="space-y-1">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Areas to work on</div>
-          {conclusionData.struggles.map((s) => (
-            <div key={s.tag} className="text-sm text-gray-700 dark:text-gray-300">
-              · {s.detail} ({s.count}×)
-            </div>
-          ))}
-        </div>
-      )}
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{session.topic}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                {session.pronunciationMetric !== null && <span>{session.pronunciationMetric.label}: {session.pronunciationMetric.value}</span>}
+                {session.speechMetric !== null && <span>{session.speechMetric.label}: {session.speechMetric.value}</span>}
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </CollapsibleSection>
   );
 }
 
-// ─── Pronunciation section ────────────────────────────────────────────────────
-
-function PronunciationSection({ data }: { data: DailyResponse }) {
-  const delta = data.conclusionData.metricDeltas.pronunciation;
-  const deltaStr = formatDelta(delta);
-  const isPositive = delta !== null && delta > 0;
-
+function CategorySection({ data, kind }: { data: DayDetailData; kind: 'speech' | 'pronunciation' }) {
+  const section = kind === 'speech' ? data.speechQuality : data.pronunciation;
+  const title = kind === 'speech' ? 'Speech Quality' : 'Pronunciation & Intonation';
   return (
-    <CollapsibleSection title="Pronunciation & Intonation" animationDelay={200}>
-      <div className="mb-3 flex items-baseline gap-2">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Score</span>
-        <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {data.pronunciationAvg.toFixed(1)}
-        </span>
-        {deltaStr !== null && (
-          <span className={`text-sm ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
-            {deltaStr}
-          </span>
-        )}
-      </div>
-      {/* TODO (44T-B): surface per-session PrioritySounds data at day level */}
-      <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-        Per-session pronunciation details are available in individual session views.
-      </p>
-    </CollapsibleSection>
-  );
-}
-
-// ─── General Feedback section ─────────────────────────────────────────────────
-
-function GeneralFeedbackSection({ data }: { data: DailyResponse }) {
-  const { conclusionData, renderedFeedback } = data;
-
-  return (
-    <CollapsibleSection title="General Feedback" animationDelay={300}>
-      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-        {renderedFeedback}
-      </p>
-
-      {conclusionData.keyInsights.length > 0 && (
-        <div className="mt-3 space-y-1">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Key insights
+    <CollapsibleSection title={title} defaultOpen={kind === 'speech'} count={section.categories.length}>
+      <div className="space-y-4">
+        {section.categories.map((category) => (
+          <div key={category.key} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0 dark:border-gray-800">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{category.label}</h3>
+              {category.score !== null && <span className="text-sm text-gray-500">{category.score.toFixed(1)}</span>}
+            </div>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{category.summary}</p>
+            <FeedbackItems items={category.items} />
           </div>
-          {conclusionData.keyInsights.map((insight) => (
-            <div key={insight} className="text-sm text-gray-600 dark:text-gray-400">
-              · {insight}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {conclusionData.focusTomorrow.length > 0 && (
-        <div className="mt-3 space-y-1">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Focus tomorrow
-          </div>
-          {conclusionData.focusTomorrow.map((f) => (
-            <div key={f.tag} className="text-sm text-gray-600 dark:text-gray-400">
-              → {f.tag}: {f.reason}
-            </div>
-          ))}
-        </div>
-      )}
-    </CollapsibleSection>
-  );
-}
-
-// ─── Use Tomorrow pills ───────────────────────────────────────────────────────
-
-function UseTomorrowPills({ targets }: { targets: string[] }) {
-  if (targets.length === 0) return null;
-
-  return (
-    <div className="mt-6 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
-      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-        Use tomorrow
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {targets.map((t) => (
-          <span
-            key={t}
-            className="text-sm px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-          >
-            {t}
-          </span>
         ))}
       </div>
+    </CollapsibleSection>
+  );
+}
+
+function GeneralFeedbackSection({ data }: { data: DayDetailData }) {
+  const feedback = data.generalFeedback;
+  return (
+    <CollapsibleSection title="General Feedback">
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+        {feedback.summary || feedback.emptyState || 'No day-level feedback is available yet.'}
+      </p>
+      {feedback.activeTargets.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {feedback.activeTargets.map((target) => (
+            <span key={target.text} className="rounded-full bg-emerald-50 px-3 py-1 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+              {target.text}
+            </span>
+          ))}
+        </div>
+      )}
+      <FeedbackItems items={feedback.suggestionWords.map((word) => ({
+        title: word.text,
+        detail: word.reason,
+        tone: 'neutral',
+        evidence: word.family,
+      }))} />
+    </CollapsibleSection>
+  );
+}
+
+function toWordPronunciation(token: DayTranscriptToken): WordPronunciation | null {
+  if (token.pronunciation === null) return null;
+  return {
+    word: token.text,
+    display: token.pronunciation.display,
+    accuracyScore: token.pronunciation.accuracyScore,
+    errorType: token.pronunciation.errorType,
+    offsetMs: 0,
+    durationMs: 0,
+    phonemes: token.pronunciation.phonemes,
+    l1Tags: token.pronunciation.l1Tags,
+    breakErrorTypes: token.pronunciation.breakErrorTypes,
+    intonationErrorTypes: token.pronunciation.intonationErrorTypes,
+    monotonePitchDelta: token.pronunciation.monotonePitchDelta,
+  };
+}
+
+function TranscriptSession({ session }: { session: DayTranscriptSession }) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const mode = session.modes[0];
+  if (mode === undefined) return null;
+  return (
+    <div className="rounded-lg border border-gray-100 p-3 dark:border-gray-800">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{session.title}</h3>
+      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{session.topic}</p>
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+        {mode.tokens.map((token, index) => {
+          const word = toWordPronunciation(token);
+          if (word === null) return <span key={`${token.text}-${index}`}>{token.text}</span>;
+          return (
+            <button key={`${token.text}-${index}`} type="button" className="rounded px-0.5 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30" onClick={() => setExpandedIndex(index)}>
+              {token.text}
+            </button>
+          );
+        })}
+      </p>
+      {expandedIndex !== null && mode.tokens[expandedIndex] !== undefined && (
+        <div className="mt-3">
+          <PhonemeDetail word={toWordPronunciation(mode.tokens[expandedIndex]) ?? {
+            word: '',
+            accuracyScore: 0,
+            errorType: 'None',
+            offsetMs: 0,
+            durationMs: 0,
+            phonemes: [],
+            l1Tags: [],
+            breakErrorTypes: [],
+            intonationErrorTypes: [],
+            monotonePitchDelta: null,
+          }} onClose={() => setExpandedIndex(null)} />
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+function TranscriptSection({ data }: { data: DayDetailData }) {
+  return (
+    <CollapsibleSection title="Transcript" count={data.transcript.sessions.length}>
+      <div className="space-y-3">
+        {data.transcript.sessions.map((session) => (
+          <TranscriptSession key={session.sessionId} session={session} />
+        ))}
+        {data.transcript.emptyState !== null && <p className="text-sm text-gray-500">{data.transcript.emptyState}</p>}
+      </div>
+    </CollapsibleSection>
+  );
+}
 
 export function DayDetailContent({ date }: DayDetailContentProps) {
   const { data, isLoading, error } = useDayDetailContent(date);
-
   if (isLoading) return <DayDetailSkeleton />;
-
   if (error !== null || data === null) {
     return (
       <Container>
-        <Link
-          href="/history"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-        >
-          ← Back to History
-        </Link>
-        <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          {error ?? 'No data found for this day.'}
-        </div>
+        <BackLink />
+        <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">{error ?? 'No data found for this day.'}</p>
       </Container>
     );
   }
-
   return (
     <Container>
-      <Link
-        href="/history"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-      >
-        ← Back to History
-      </Link>
-
+      <BackLink />
       <DayHero data={data} />
-
       <div className="mt-4 space-y-2">
-        <SpeechQualitySection data={data} />
-        <PronunciationSection data={data} />
+        <SessionsSection data={data} />
+        <CategorySection data={data} kind="speech" />
+        <CategorySection data={data} kind="pronunciation" />
         <GeneralFeedbackSection data={data} />
-        <CollapsibleSection title="Language Bank" animationDelay={400}>
-          <LanguageBankPanel dateKey={date} />
-        </CollapsibleSection>
+        <TranscriptSection data={data} />
       </div>
-
-      <UseTomorrowPills targets={data.conclusionData.activeTargetsTomorrow} />
     </Container>
+  );
+}
+
+function BackLink() {
+  return (
+    <Link href="/history" className="inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+      ← Back to History
+    </Link>
   );
 }

@@ -139,7 +139,7 @@ describe('SessionResultsPage', () => {
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
 
     await screen.findByText('Strong session overall.');
-    const languageBtn = screen.getByRole('button', { name: /Language Feedback/i });
+    const languageBtn = screen.getByRole('button', { name: /Speech Quality/i });
     await user.click(languageBtn);
 
     const grammarBtn = await screen.findByRole('button', { name: /Grammar/i });
@@ -156,7 +156,7 @@ describe('SessionResultsPage', () => {
     render(<SessionResultsPage params={Promise.resolve({ id: 'sess-test' })} />);
 
     await screen.findByText('Strong session overall.');
-    const languageBtn = screen.getByRole('button', { name: /Language Feedback/i });
+    const languageBtn = screen.getByRole('button', { name: /Speech Quality/i });
     await user.click(languageBtn);
 
     const grammarBtn = await screen.findByRole('button', { name: /Grammar/i });
