@@ -1,5 +1,6 @@
 // Type definitions for useSessionStatus hook
 import type { GrammarFlag } from '@/lib/analysis/grammar';
+import type { DivergenceSpan } from '@/lib/analysis/divergence/divergence.types';
 
 /** Normalised metric row attached to a session detail payload (mirrors `MetricSnapshot` in the API). */
 export interface SessionMetricSnapshot {
@@ -119,6 +120,10 @@ export interface SessionDetail {
   } | null;
   naturalness?: NaturalnessFlagDetail[];
   grammarFlags?: GrammarFlag[];
+  verbatimTranscript?: string | undefined;
+  verbatimWordCount?: number | undefined;
+  divergenceSpans?: DivergenceSpan[] | undefined;
+  verbatimProvider?: string | undefined;
   workoutNumber?: number;
 }
 

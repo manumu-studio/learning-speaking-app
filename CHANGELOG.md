@@ -2,6 +2,19 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.69.0] — 2026-06-04
+
+### Added
+- Transcript comparison: side-by-side Whisper (cleaned) vs verbatim (AssemblyAI) view with divergence highlighting
+- DivergenceHighlighter component: color-coded `<mark>` spans for insertions (blue), deletions (red), substitutions (amber)
+- TranscriptComparison component: two-column layout with word count badges and difference stats
+- Compare tab in TranscriptToggle: appears only when verbatim transcript data is available
+- Feature flag `NEXT_PUBLIC_SHOW_TRANSCRIPT_COMPARISON` (default `true`) to gate the Compare tab
+- 12 new tests covering DivergenceHighlighter, TranscriptComparison, and Compare tab integration
+
+### Notes
+- Temporary evaluation feature — removal checklist in `docs/removal/PACKET-50-removal-checklist.md`
+
 ## [0.68.0] — 2026-06-04
 
 ### Added

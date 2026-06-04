@@ -34,6 +34,60 @@ describe('TranscriptToggle', () => {
     expect(screen.getByRole('button', { name: 'Hello' })).toBeInTheDocument();
   });
 
+  it('shows Compare tab when verbatim text is provided', () => {
+    render(
+      <TranscriptToggle
+        originalText="I think so"
+        improvedText={null}
+        wordsUsed={[]}
+        wordCount={3}
+        verbatimText="uh I think so"
+        verbatimWordCount={4}
+        divergenceSpans={[
+          { start: 0, end: 1, verbatimText: 'uh', normalizedText: '', type: 'insertion', confidence: 0.9 },
+        ]}
+        verbatimProvider="assemblyai"
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: 'Compare' })).toBeInTheDocument();
+  });
+
+  it('renders TranscriptComparison when Compare tab is active', () => {
+    render(
+      <TranscriptToggle
+        originalText="I think so"
+        improvedText={null}
+        wordsUsed={[]}
+        wordCount={3}
+        verbatimText="uh I think so"
+        verbatimWordCount={4}
+        divergenceSpans={[
+          { start: 0, end: 1, verbatimText: 'uh', normalizedText: '', type: 'insertion', confidence: 0.9 },
+        ]}
+        verbatimProvider="assemblyai"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Compare' }));
+
+    expect(screen.getByText('Whisper (cleaned)')).toBeInTheDocument();
+    expect(screen.getByText('AssemblyAI (verbatim)')).toBeInTheDocument();
+  });
+
+  it('hides Compare tab when no verbatim text', () => {
+    render(
+      <TranscriptToggle
+        originalText="I think so"
+        improvedText={null}
+        wordsUsed={[]}
+        wordCount={3}
+      />,
+    );
+
+    expect(screen.queryByRole('tab', { name: 'Compare' })).not.toBeInTheDocument();
+  });
+
   it('opens phoneme detail when a pronunciation word is clicked', () => {
     render(
       <TranscriptToggle

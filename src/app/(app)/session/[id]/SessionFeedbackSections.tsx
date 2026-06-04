@@ -226,6 +226,10 @@ export function TranscriptSection({
         wordCount={session.transcript.wordCount}
         pronunciationWords={session.pronunciationReport?.words ?? []}
         animationDelay={transcriptDelay}
+        verbatimText={session.verbatimTranscript ?? undefined}
+        verbatimWordCount={session.verbatimWordCount ?? undefined}
+        divergenceSpans={session.divergenceSpans ?? undefined}
+        verbatimProvider={session.verbatimProvider ?? undefined}
       />
     </CollapsibleSection>
   );
