@@ -2,10 +2,10 @@
 
 import { useState, useCallback, useMemo } from 'react';
 
-export type TranscriptView = 'original' | 'improved';
+export type TranscriptView = 'pronunciation' | 'original' | 'improved';
 
-export function useTranscriptToggle() {
-  const [view, setView] = useState<TranscriptView>('original');
+export function useTranscriptToggle(defaultView: TranscriptView = 'original') {
+  const [view, setView] = useState<TranscriptView>(defaultView);
 
   const selectView = useCallback((next: TranscriptView) => {
     setView(next);

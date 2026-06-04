@@ -13,6 +13,7 @@ export interface SessionMetricSnapshot {
 
 export type WordPronunciationDetail = {
   word: string;
+  display?: string | null | undefined;
   accuracyScore: number;
   errorType: string;
   offsetMs: number;

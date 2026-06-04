@@ -6,6 +6,10 @@ import { HistorySessionCard } from '@/components/ui/HistorySessionCard';
 import { DailySummaryCard } from '@/features/history/DailySummaryCard';
 import type { HistoryDayGroupProps } from './HistoryDayGroup.types';
 
+function isBeforeDailyCutoff(): boolean {
+  return new Date().getHours() < 22;
+}
+
 export function HistoryDayGroup({
   dayLabel,
   dateKey,
@@ -15,7 +19,8 @@ export function HistoryDayGroup({
   onDeleteSession,
   onTapDay,
 }: HistoryDayGroupProps) {
-  const [expanded, setExpanded] = useState(isToday);
+  const showOpenToday = isToday && isBeforeDailyCutoff();
+  const [expanded, setExpanded] = useState(showOpenToday);
   const count = sessions.length;
   const countLabel = count === 1 ? '1 session' : `${count} sessions`;
 
@@ -27,14 +32,14 @@ export function HistoryDayGroup({
         <span>{countLabel}</span>
       </h3>
 
-      {/* Daily summary — shows for any day with completed sessions */}
-      <DailySummaryCard
-        dateKey={dateKey}
-        {...(onTapDay !== undefined ? { onTapDay } : {})}
-      />
+      {!showOpenToday && (
+        <DailySummaryCard
+          dateKey={dateKey}
+          {...(onTapDay !== undefined ? { onTapDay } : {})}
+        />
+      )}
 
-      {/* Session toggle for past days */}
-      {!isToday && (
+      {!showOpenToday && (
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}

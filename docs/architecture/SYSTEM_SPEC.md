@@ -251,6 +251,7 @@ model NaturalnessFlag {
 | DELETE | /api/sessions/:id | Yes | Delete session + data |
 | POST | /api/internal/process | QStash sig | Pipeline webhook (production) |
 | POST | /api/dev/process | None (dev only) | Pipeline webhook (development, NODE_ENV check) |
+| GET | /api/daily/:date | Yes | Closed-day daily conclusion + day detail read model |
 | POST | /api/launch/validate | None | QR token validation (launch mode) |
 | GET | /api/auth/federated-signout | Auth cookie | Clear local cookies + redirect to auth RP logout |
 | POST | /api/naturalness/:flagId/feedback | Yes | Submit user feedback on a naturalness flag |
@@ -306,6 +307,20 @@ CREATED → UPLOADED → TRANSCRIBING → ANALYZING → DONE
    ├── QStash retries 3x exponential
    └── After 3 fails → stays FAILED
 ```
+
+## Daily Meta-Session Read Model
+
+History keeps the current local day open until the 10pm cutoff. Before that cutoff, today's group renders the completed session list directly and `GET /api/daily/:date` returns `DAY_OPEN` instead of generating a conclusion. Future dates are also rejected.
+
+Closed and past days are handled as meta-sessions. The daily API first ensures a cached `DailyConclusion` exists, then builds a fresh `dayDetail` payload from completed sessions scoped to the authenticated `userId` and the requested UTC date window. The cached conclusion supplies the hero/topic narrative and active coaching target, while the read model derives visible sections from the latest session rows:
+
+- Sessions — completed sessions sorted by time with topic, duration, summary, and score highlights
+- Speech Quality — grammar, vocabulary, structure, register, naturalness, and word-bank groups
+- Pronunciation & Intonation — day score, priority sounds, rhythm/intonation, prosody detail, practice, and accent polish
+- General Feedback — summary, suggestion words, grouped word bank, and active targets
+- Transcript — pronunciation map, original words, and improved transcript modes per session
+
+All daily detail queries must remain user-scoped. Naturalness flags are limited to rows for the same user that were shown to the user, and language-bank data is read from that user's items only.
 
 ## Environment Variables
 

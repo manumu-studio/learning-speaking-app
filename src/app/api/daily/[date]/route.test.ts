@@ -23,6 +23,9 @@ vi.mock('@/lib/daily', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/daily')>();
   return { ...actual, generateDailyConclusion: vi.fn() };
 });
+vi.mock('@/lib/daily/dayDetail', () => ({
+  buildDayDetailData: vi.fn(),
+}));
 vi.mock('@/lib/observability', () => ({
   withObservability: (h: (req: Request, ctx: unknown) => Promise<Response>) => h,
 }));
@@ -30,9 +33,11 @@ vi.mock('@/lib/observability', () => ({
 import { GET } from './route';
 import { auth } from '@/features/auth/auth';
 import { generateDailyConclusion } from '@/lib/daily';
+import { buildDayDetailData } from '@/lib/daily/dayDetail';
 
 const mockAuth = vi.mocked(auth);
 const mockGenerateDailyConclusion = vi.mocked(generateDailyConclusion);
+const mockBuildDayDetailData = vi.mocked(buildDayDetailData);
 
 const mockSession = {
   user: { externalId: 'ext-1', email: 'user@test.com', name: 'Test User' },
@@ -64,6 +69,53 @@ const mockConclusionRecord = {
   sessionCount: 3,
 };
 
+const mockDayDetail = {
+  hero: {
+    date: '2026-06-01',
+    overallScore: 7.2,
+    sessionCount: 3,
+    totalDurationSecs: 720,
+    totalWords: 180,
+    focusAreas: ['verbAccuracy'],
+    topicSentence: 'We worked through presentation skills.',
+    pillarScores: { delivery: 7.5, language: 7.8, pronunciation: 6.3 },
+  },
+  sessions: [],
+  speechQuality: {
+    categories: [],
+    sourceAvailability: {
+      pronunciation: true,
+      naturalness: false,
+      corpus: false,
+      verbatim: false,
+      grammar: false,
+      languageBank: false,
+    },
+  },
+  pronunciation: {
+    categories: [],
+    sourceAvailability: {
+      pronunciation: true,
+      naturalness: false,
+      corpus: false,
+      verbatim: false,
+      grammar: false,
+      languageBank: false,
+    },
+  },
+  generalFeedback: {
+    summary: 'Strong session today! Great delivery.',
+    suggestionWords: [],
+    wordBank: [],
+    activeTargets: [],
+    emptyState: null,
+  },
+  transcript: {
+    sessions: [],
+    emptyState: null,
+  },
+};
+
 function makeRequest(date: string): Request {
   return new Request(`http://localhost/api/daily/${date}`);
 }
@@ -74,6 +126,7 @@ function makeRouteCtx(date: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockBuildDayDetailData.mockResolvedValue(mockDayDetail);
 });
 
 describe('GET /api/daily/[date]', () => {
@@ -109,6 +162,18 @@ describe('GET /api/daily/[date]', () => {
     expect(body.code).toBe('NO_SESSIONS');
   });
 
+  it('does not generate current or future open days', async () => {
+    mockAuth.mockResolvedValue(mockSession as never);
+
+    const response = await GET(makeRequest('2999-01-01'), makeRouteCtx('2999-01-01'));
+    const body = await response.json() as { code: string };
+
+    expect(response.status).toBe(404);
+    expect(body.code).toBe('DAY_OPEN');
+    expect(mockGenerateDailyConclusion).not.toHaveBeenCalled();
+    expect(mockBuildDayDetailData).not.toHaveBeenCalled();
+  });
+
   it('returns 200 with cached conclusion (no regeneration)', async () => {
     mockAuth.mockResolvedValue(mockSession as never);
     prismaMock.user.findUnique.mockResolvedValueOnce(mockUser as never);
@@ -125,6 +190,7 @@ describe('GET /api/daily/[date]', () => {
       sessionCount: number;
       renderedFeedback: string;
       conclusionData: typeof mockConclusionData;
+      dayDetail: typeof mockDayDetail;
     };
 
     expect(response.status).toBe(200);
@@ -132,6 +198,7 @@ describe('GET /api/daily/[date]', () => {
     expect(body.overallScore).toBe(7.2);
     expect(body.sessionCount).toBe(3);
     expect(body.renderedFeedback).toBe('Strong session today! Great delivery.');
+    expect(body.dayDetail.hero.sessionCount).toBe(3);
     expect(mockGenerateDailyConclusion).toHaveBeenCalledTimes(1);
   });
 
@@ -162,5 +229,6 @@ describe('GET /api/daily/[date]', () => {
     expect(body.sessionCount).toBe(3);
     expect(body.renderedFeedback).toBe('Strong session today! Great delivery.');
     expect(body.conclusionData).toEqual(mockConclusionData);
+    expect(mockBuildDayDetailData).toHaveBeenCalledWith({ userId: 'user-1', date: '2026-06-01' });
   });
 });
