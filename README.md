@@ -53,17 +53,17 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 1. **Record** — AudioWorklet captures PCM audio, automatically splitting into 2-minute chunks with 5-second overlap for seamless stitching
 2. **Upload** — Each chunk uploads to R2 via presigned URL while recording continues; progressive results appear as chunks complete
 3. **Process** — QStash triggers parallel per-chunk pipelines (Whisper transcription + Azure pronunciation assessment + Claude analysis), then a fan-in synthesis pass deduplicates and merges insights across the full session
-4. **Results** — Eleven scored dimensions: 8 language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, filler usage, lexical sophistication, register & pragmatics) + 3 pronunciation metrics (accuracy, prosody, speaking rate). Vocabulary and naturalness scores are corpus-grounded — word frequency, CEFR levels, and collocation attestation from 140k+ academic reference rows inform Claude's scoring, and a hybrid decision rule can confirm or override LLM judgments. Includes a functional-load-ranked Priority Sounds list, a 3-band word-level Pronunciation Accuracy map, IPA phoneme detail, prosody feedback, L1 interference coaching, register/pragmatics feedback with hedging suggestions, and naturalness detection (flags formulaic phrases and suggests native-sounding alternatives with corpus-backed confidence tiers)
+4. **Results** — Eleven scored dimensions across 3 pillars: Delivery (filler usage, speaking rate), Language (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, lexical sophistication, register & pragmatics), and Pronunciation (accuracy, prosody). Vocabulary and naturalness scores are corpus-grounded — word frequency, CEFR levels, and collocation attestation from 140k+ academic reference rows inform Claude's scoring, and a hybrid decision rule can confirm or override LLM judgments. Includes a functional-load-ranked Priority Sounds list, a 3-band word-level Pronunciation Accuracy map, IPA phoneme detail, prosody feedback, L1 interference coaching, register/pragmatics feedback with hedging suggestions, and naturalness detection (flags formulaic phrases and suggests native-sounding alternatives with corpus-backed confidence tiers)
 5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, CEFR level estimation badge with longitudinal sparkline, 10-axis skill radar chart with C2 threshold overlay, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
 7. **Fluency Training** — 4-3-2 Timed Fluency exercise: repeat the same topic across 3 rounds (4→3→2 minutes) to build automaticity. Countdown timer with grace period, 3-round WPM comparison with SVG bar charts, and session history with progression tracking
 8. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions, detects when you use them in future sessions, and schedules them for spaced review (SM-2) with a tabbed review-queue page; collocation detection flags multi-word phrases worth learning; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
-9. **Daily Conclusion** — End-of-day aggregation engine computes pillar deltas, detects wins and struggles from metrics/naturalness/pronunciation data, and renders an AI coaching narrative with a grounded topic sentence. History shows a subtle daily card; tapping opens a day detail meta-session view
+9. **Daily Conclusion** — The current day stays open until the 10pm local cutoff so live sessions remain visible. Closed days use a daily meta-session read model that combines completed sessions into Sessions, Speech Quality, Pronunciation & Intonation, General Feedback, and Transcript sections. The cached AI conclusion provides the topic sentence and coaching narrative while the detail view stays grounded in scoped session data
 10. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md) — Version history (74 releases)
+- [Changelog](CHANGELOG.md) — Version history (75 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
@@ -122,11 +122,11 @@ src/
 │   ├── fluency/      # 4-3-2 timed fluency training (TimedRecording, FluencyComparison, FluencySessionList)
 │   ├── prompts/      # Prompt library UI (60+ prompts, multi-filter, format badges)
 │   ├── recording/    # Audio recording and upload
-│   ├── history/      # Daily conclusion card, day detail view
+│   ├── history/      # Daily conclusion card, day detail meta-session view
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, analysis, analysis/divergence, analysis/grammar, assemblyai, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily)
+├── lib/              # Shared utilities (AI, analysis, analysis/divergence, analysis/grammar, assemblyai, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily/dayDetail)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

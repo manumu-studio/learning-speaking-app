@@ -5,12 +5,54 @@ import { prisma } from '@/lib/prisma';
 import { errorResponse, successResponse } from '@/lib/api';
 import { withObservability } from '@/lib/observability';
 import { generateDailyConclusion } from '@/lib/daily';
+import { buildDayDetailData } from '@/lib/daily/dayDetail';
 import { resolveUser } from '@/app/api/users/me/daily-summaries/route.helpers';
+import type { DayDetailData } from '@/lib/daily/dayDetail';
+import type { DailyConclusionData } from '@/lib/daily';
 import type { ObservabilityContext } from '@/lib/observability';
 
 const DateParamSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD');
+
+const DAILY_CUTOFF_HOUR = 22;
+
+function localDateKey(now: Date): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isClosedDay(date: string, now = new Date()): boolean {
+  const today = localDateKey(now);
+  if (date < today) return true;
+  if (date > today) return false;
+  return now.getHours() >= DAILY_CUTOFF_HOUR;
+}
+
+function legacyResponse(input: {
+  conclusionData: DailyConclusionData;
+  renderedFeedback: string;
+  sessionCount: number;
+  dayDetail: DayDetailData;
+}) {
+  const { conclusionData, renderedFeedback, sessionCount, dayDetail } = input;
+  return {
+    date: conclusionData.date,
+    isClosed: true,
+    overallScore: conclusionData.overallScore,
+    totalDurationSecs: conclusionData.totalDurationSecs,
+    topicSentence: conclusionData.topicSentence,
+    renderedFeedback,
+    sessionCount,
+    deliveryAvg: conclusionData.pillarScores.delivery,
+    languageAvg: conclusionData.pillarScores.language,
+    pronunciationAvg: conclusionData.pillarScores.pronunciation,
+    conclusionData,
+    dayDetail,
+  };
+}
 
 async function handler(
   _req: Request,
@@ -29,6 +71,10 @@ async function handler(
   }
   const date = parsed.data;
 
+  if (!isClosedDay(date)) {
+    return errorResponse('Day is still open', 'DAY_OPEN', 404);
+  }
+
   const user = await resolveUser(session.user.externalId);
   if (!user) {
     return errorResponse('User not found', 'USER_NOT_FOUND', 404);
@@ -39,28 +85,27 @@ async function handler(
     return errorResponse('No sessions for this date', 'NO_SESSIONS', 404);
   }
 
-  const record = await prisma.dailyConclusion.findUnique({
-    where: { userId_date: { userId: user.id, date } },
-    select: {
-      renderedFeedback: true,
-      sessionCount: true,
-    },
-  });
+  const [record, dayDetail] = await Promise.all([
+    prisma.dailyConclusion.findUnique({
+      where: { userId_date: { userId: user.id, date } },
+      select: {
+        renderedFeedback: true,
+        sessionCount: true,
+      },
+    }),
+    buildDayDetailData({ userId: user.id, date }),
+  ]);
 
-  const { conclusionData } = result;
+  if (dayDetail === null) {
+    return errorResponse('No sessions for this date', 'NO_SESSIONS', 404);
+  }
 
-  return successResponse({
-    date: conclusionData.date,
-    overallScore: conclusionData.overallScore,
-    totalDurationSecs: conclusionData.totalDurationSecs,
-    topicSentence: conclusionData.topicSentence,
-    renderedFeedback: record?.renderedFeedback ?? conclusionData.topicSentence,
-    sessionCount: record?.sessionCount ?? 0,
-    deliveryAvg: conclusionData.pillarScores.delivery,
-    languageAvg: conclusionData.pillarScores.language,
-    pronunciationAvg: conclusionData.pillarScores.pronunciation,
-    conclusionData,
-  });
+  return successResponse(legacyResponse({
+    conclusionData: result.conclusionData,
+    renderedFeedback: record?.renderedFeedback ?? result.conclusionData.topicSentence,
+    sessionCount: record?.sessionCount ?? dayDetail.hero.sessionCount,
+    dayDetail,
+  }));
 }
 
 export const GET = (req: Request, routeCtx: { params: Promise<{ date: string }> }) =>

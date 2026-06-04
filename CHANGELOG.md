@@ -2,6 +2,19 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.68.0] — 2026-06-04
+
+### Added
+- Daily meta-session read model: assembles completed sessions, speech quality, pronunciation patterns, general feedback, and transcript modes from raw session data
+- Day detail response on `GET /api/daily/[date]` with user-scoped `dayDetail` payload and closed-day status
+- Five-section day detail view: Sessions, Speech Quality, Pronunciation & Intonation, General Feedback, and Transcript
+- Transcript pronunciation map mode for session results, with word-level pronunciation detail available inside the transcript toggle
+
+### Changed
+- History keeps today's sessions open before the 10pm local cutoff; closed/past days render the daily card and detail affordance
+- Session results rename Language Feedback to Speech Quality and merge the standalone word color map into the transcript experience
+- Daily conclusion generation remains cached, while the visible day detail is rebuilt from the latest scoped session data
+
 ## [0.67.0] — 2026-06-03
 
 ### Added

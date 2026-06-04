@@ -64,6 +64,7 @@ const sessionDetailSchema = z.object({
     words: z.array(
       z.object({
         word: z.string(),
+        display: z.string().nullable().optional(),
         accuracyScore: z.number(),
         errorType: z.string(),
         offsetMs: z.number(),
