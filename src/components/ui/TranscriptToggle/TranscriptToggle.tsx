@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { PhonemeDetail } from '@/components/ui/PhonemeDetail';
+import { TranscriptComparison } from '@/features/session/TranscriptComparison';
 import { useTranscriptToggle } from './useTranscriptToggle';
 import type { TranscriptView } from './useTranscriptToggle';
 import type { TranscriptToggleProps } from './TranscriptToggle.types';
@@ -128,27 +129,49 @@ function PronunciationMap({
   );
 }
 
+function VocabUpgradeFooter({
+  view,
+  hasImprovedText,
+  wordsUsed,
+}: {
+  view: TranscriptView;
+  hasImprovedText: boolean;
+  wordsUsed: string[];
+}) {
+  if (view !== 'improved' || !hasImprovedText || wordsUsed.length === 0) return null;
+  return (
+    <p className="text-xs text-slate-400 dark:text-slate-500">
+      {wordsUsed.length} vocab {wordsUsed.length === 1 ? 'upgrade' : 'upgrades'} applied
+    </p>
+  );
+}
+
 function TranscriptTabs({
   hasPronunciationMap,
   hasImprovedText,
+  hasVerbatim,
   wordCount,
   view,
   selectView,
 }: {
   hasPronunciationMap: boolean;
   hasImprovedText: boolean;
+  hasVerbatim: boolean;
   wordCount: number | null;
   view: TranscriptView;
   selectView: (view: TranscriptView) => void;
 }) {
   return (
-    <div className="flex items-center gap-2" role="tablist" aria-label="Transcript version">
+    <div className="flex items-center gap-2 flex-wrap" role="tablist" aria-label="Transcript version">
       {hasPronunciationMap && (
         <ToggleButton label="Pronunciation map" active={view === 'pronunciation'} value="pronunciation" onSelect={selectView} />
       )}
       <ToggleButton label="Your words" active={view === 'original'} value="original" onSelect={selectView} />
       {hasImprovedText && (
         <ToggleButton label="Improved" active={view === 'improved'} value="improved" onSelect={selectView} />
+      )}
+      {hasVerbatim && (
+        <ToggleButton label="Compare" active={view === 'compare'} value="compare" onSelect={selectView} />
       )}
       {wordCount !== null && (
         <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">
@@ -188,9 +211,15 @@ export function TranscriptToggle({
   wordCount,
   pronunciationWords = [],
   animationDelay = 0,
+  verbatimText,
+  verbatimWordCount,
+  divergenceSpans,
+  verbatimProvider,
 }: TranscriptToggleProps) {
   const hasPronunciationMap = pronunciationWords.length > 0;
   const hasImprovedText = improvedText !== null && improvedText.trim().length > 0;
+  const comparisonEnabled = process.env.NEXT_PUBLIC_SHOW_TRANSCRIPT_COMPARISON !== 'false';
+  const hasVerbatim = comparisonEnabled && verbatimText !== undefined && verbatimText.length > 0;
   const { view, selectView } = useTranscriptToggle(hasPronunciationMap ? 'pronunciation' : 'original');
 
   const highlightedImproved = useMemo(
@@ -206,29 +235,37 @@ export function TranscriptToggle({
       <TranscriptTabs
         hasPronunciationMap={hasPronunciationMap}
         hasImprovedText={hasImprovedText}
+        hasVerbatim={hasVerbatim}
         wordCount={wordCount}
         view={view}
         selectView={selectView}
       />
 
-      <div
-        role="tabpanel"
-        className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-      >
-        <TranscriptPanel
-          originalText={originalText}
-          highlightedImproved={highlightedImproved}
-          pronunciationWords={pronunciationWords}
-          view={view}
-          hasImprovedText={hasImprovedText}
+      {view === 'compare' && hasVerbatim ? (
+        <TranscriptComparison
+          whisperText={originalText}
+          verbatimText={verbatimText}
+          divergenceSpans={divergenceSpans ?? []}
+          whisperWordCount={wordCount}
+          verbatimWordCount={verbatimWordCount ?? null}
+          verbatimProvider={verbatimProvider ?? null}
         />
-      </div>
-
-      {view === 'improved' && hasImprovedText && wordsUsed.length > 0 && (
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          {wordsUsed.length} vocab {wordsUsed.length === 1 ? 'upgrade' : 'upgrades'} applied
-        </p>
+      ) : (
+        <div
+          role="tabpanel"
+          className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+        >
+          <TranscriptPanel
+            originalText={originalText}
+            highlightedImproved={highlightedImproved}
+            pronunciationWords={pronunciationWords}
+            view={view}
+            hasImprovedText={hasImprovedText}
+          />
+        </div>
       )}
+
+      <VocabUpgradeFooter view={view} hasImprovedText={hasImprovedText} wordsUsed={wordsUsed} />
     </div>
   );
 }

@@ -34,6 +34,7 @@ const envSchema = z.object({
   SENTRY_ORG: z.string().min(1).optional(),
   SENTRY_PROJECT: z.string().min(1).optional(),
   APP_VERSION: z.string().optional(),
+  NEXT_PUBLIC_SHOW_TRANSCRIPT_COMPARISON: z.string().optional().default('true'),
 });
 
 export const env = envSchema.parse(process.env);

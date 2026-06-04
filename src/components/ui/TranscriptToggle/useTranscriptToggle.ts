@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 
-export type TranscriptView = 'pronunciation' | 'original' | 'improved';
+export type TranscriptView = 'pronunciation' | 'original' | 'improved' | 'compare';
 
 export function useTranscriptToggle(defaultView: TranscriptView = 'original') {
   const [view, setView] = useState<TranscriptView>(defaultView);
