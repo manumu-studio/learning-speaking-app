@@ -44,6 +44,10 @@ vi.mock('@/lib/ai/l1Spanish', () => ({
   tagSpanishL1: vi.fn((words: unknown[]) => words),
 }));
 
+vi.mock('@/lib/pipeline/runVerbatim', () => ({
+  startVerbatim: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('@/lib/ai/analyze', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/ai/analyze')>();
   return {
@@ -57,6 +61,7 @@ import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { transcribeWavChunk } from '@/lib/ai/whisper';
 import { assessPronunciation } from '@/lib/ai/azurePronunciation';
 import { analyzeTranscript } from '@/lib/ai/analyze';
+import { startVerbatim } from '@/lib/pipeline/runVerbatim';
 import { processChunkIndependent } from '../processChunkIndependent';
 
 const mockPrisma = vi.mocked(prisma);
@@ -65,6 +70,7 @@ const mockDeleteAudio = vi.mocked(deleteAudio);
 const mockTranscribe = vi.mocked(transcribeWavChunk);
 const mockPronunciation = vi.mocked(assessPronunciation);
 const mockAnalyze = vi.mocked(analyzeTranscript);
+const mockStartVerbatim = vi.mocked(startVerbatim);
 
 const baseInput = {
   sessionId: 'sess-1',
@@ -210,6 +216,50 @@ describe('processChunkIndependent', () => {
     expect(mockPrisma.chunkResult.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: 'DONE' }),
+      }),
+    );
+  });
+
+  it('stores verbatim text and words when AssemblyAI succeeds', async () => {
+    setupHappyPath();
+    mockStartVerbatim.mockResolvedValue({
+      text: 'uh hello world this is a test',
+      words: [
+        { text: 'uh', start: 0, end: 200, confidence: 0.7 },
+        { text: 'hello', start: 300, end: 600, confidence: 0.95 },
+      ],
+      wordCount: 2,
+      provider: 'assemblyai',
+    });
+
+    await processChunkIndependent(baseInput);
+
+    expect(mockPrisma.chunkResult.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'DONE',
+          verbatimText: 'uh hello world this is a test',
+          verbatimWords: expect.arrayContaining([
+            expect.objectContaining({ text: 'uh', confidence: 0.7 }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('stores null verbatim fields when AssemblyAI fails', async () => {
+    setupHappyPath();
+    mockStartVerbatim.mockResolvedValue(null);
+
+    await processChunkIndependent(baseInput);
+
+    expect(mockPrisma.chunkResult.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'DONE',
+          verbatimText: null,
+          verbatimWords: Prisma.JsonNull,
+        }),
       }),
     );
   });

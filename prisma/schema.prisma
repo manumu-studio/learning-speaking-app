@@ -176,6 +176,8 @@ model ChunkResult {
   words               Json?
   pronunciationReport Json?
   insights            Json?
+  verbatimText        String?           @db.Text
+  verbatimWords       Json?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 

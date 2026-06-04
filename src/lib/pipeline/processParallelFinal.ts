@@ -18,6 +18,8 @@ import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
 import { estimateCefr } from '@/lib/cefr/estimateCefr';
+import { runGrammarAnalysis } from '@/lib/pipeline/runGrammarAnalysis';
+import { stitchVerbatimAndPersist } from '@/lib/pipeline/stitchVerbatim';
 import { isJsonArray, invalidateDailySummary } from './processFinalHelpers';
 import { insightSchema } from '@/lib/ai/analyze';
 import type { ChunkResult } from '@prisma/client';
@@ -342,6 +344,9 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     hasPartialResults,
     createdAt: session.createdAt,
   });
+
+  await stitchVerbatimAndPersist(sessionId, stitchedTranscript, doneChunks);
+  await runGrammarAnalysis(sessionId, stitchedTranscript);
 
   logPipelineStage({
     sessionId,
