@@ -54,6 +54,11 @@ FETCH_HEAD
 
 # Project map
 /PROJECT_MAP.md
+/CONTEXT.md
+
+# External agent configs
+/.agents/
+/.codex/
 
 # Cursor rules
 /.cursorrules
@@ -64,8 +69,10 @@ FETCH_HEAD
 # session prompts
 /docs/session-prompts/
 
-# CLAUDE.md
+# AI rules (local, not pushed)
+/AGENTS.md
 /docs/CLAUDE.md
+/docs/ai/
 
 # DEVELOPMENT_PLAYBOOK.md
 /docs/DEVELOPMENT_PLAYBOOK.md
@@ -105,7 +112,7 @@ reports/
 
 # Audit trigger (ephemeral, consumed by Claude Code)
 .audit-trigger
-
+.clauderules
 # Sandbox routes (UX iteration copies — never commit)
 src/app/(app)/history2/
 src/app/(app)/*2/
