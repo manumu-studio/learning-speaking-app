@@ -1,142 +1,132 @@
-// Builds day-only general feedback, suggestion words, word bank, and active targets
-import { DailyConclusionDataSchema } from '@/lib/daily/generateDailyConclusion.types';
+// Builds day-level general feedback from a DayEvidenceBundle — deterministic, no AI calls
 import type {
   DayActiveTarget,
   DayGeneralFeedbackData,
   DaySuggestionWord,
   DayWordBankGroup,
 } from './buildDayDetailData.types';
+import type { DayEvidenceBundle } from './buildDayEvidenceBundle';
+import { buildDaySummaryNarrative } from './buildDaySummaryNarrative';
+import { buildSuggestionWords } from './buildSuggestionWords';
 
 const TARGET_COUNT = 4;
-const FAMILY_COUNT = 4;
 
-export interface GeneralFeedbackWordBankInput {
-  readonly text: string;
-  readonly category: string;
-  readonly source: string;
-  readonly usageCount: number;
-  readonly masteryState: string;
-  readonly isActiveTarget: boolean;
+// ---------------------------------------------------------------------------
+// Active targets (highest-impact from the 16 suggestion words)
+// ---------------------------------------------------------------------------
+
+// Maps language/delivery metric keys to suggestion word families.
+// Pronunciation metrics (pronunciationAccuracy, prosodyScore) are excluded —
+// active targets are language-oriented; pronunciation weakness doesn't inform word choice.
+const METRIC_TO_FAMILY: Record<string, string> = {
+  connectorRepetition: 'connector',
+  structuralVariety: 'connector',
+  vocabularyPrecision: 'collocation',
+  verbAccuracy: 'verb',
+  lexicalSophistication: 'adjectiveAdverb',
+  registerPragmatics: 'collocation',
+  argumentClosure: 'connector',
+  speakingRate: 'verb',
+  fillerUsage: 'connector',
+};
+
+function buildActiveTargets(
+  suggestionWords: readonly DaySuggestionWord[],
+  bundle: DayEvidenceBundle,
+): DayActiveTarget[] {
+  const focusFamilies = new Set(
+    bundle.focusAreas.map((key) => METRIC_TO_FAMILY[key]).filter((f): f is string => f !== undefined),
+  );
+  const ranked = [...suggestionWords].sort((a, b) => {
+    const aRelevant = focusFamilies.has(a.family) ? 0 : 1;
+    const bRelevant = focusFamilies.has(b.family) ? 0 : 1;
+    if (aRelevant !== bRelevant) return aRelevant - bRelevant;
+    const sourceOrder = a.source === 'fallback_pool' ? 1 : 0;
+    const bSourceOrder = b.source === 'fallback_pool' ? 1 : 0;
+    return sourceOrder - bSourceOrder;
+  });
+  return ranked.slice(0, TARGET_COUNT).map((word) => ({
+    text: word.text,
+    reason: word.reason,
+  }));
 }
 
-export interface BuildDayGeneralFeedbackInput {
-  readonly date: string;
-  readonly renderedFeedback: string | null;
-  readonly conclusionJson: unknown;
-  readonly wordBankItems: readonly GeneralFeedbackWordBankInput[];
-}
+// ---------------------------------------------------------------------------
+// Word bank builder
+// ---------------------------------------------------------------------------
 
-function dayOfWeek(date: string): number {
-  const parsed = new Date(`${date}T00:00:00Z`);
-  return Number.isNaN(parsed.getTime()) ? 1 : parsed.getUTCDay();
-}
-
-function verbMode(date: string): 'phrasal_verb' | 'prepositional_verb' | 'verb' {
-  const modes = ['phrasal_verb', 'prepositional_verb', 'verb'] as const;
-  const index = dayOfWeek(date) % modes.length;
-  return modes[index] ?? 'verb';
-}
-
-function adjectiveAdverbMode(date: string): 'adjective' | 'adverb' {
-  return dayOfWeek(date) % 2 === 0 ? 'adverb' : 'adjective';
-}
-
-function familyForCategory(category: string): DaySuggestionWord['family'] | null {
+function familyForCategory(category: string): string {
   if (category === 'collocation') return 'collocation';
   if (category === 'connector') return 'connector';
   if (category === 'adjective' || category === 'adverb') return 'adjectiveAdverb';
-  if (category === 'verb' || category === 'prepositional_verb' || category === 'phrasal_verb') return 'verb';
-  return null;
+  return 'verb';
 }
 
-function reasonFor(item: GeneralFeedbackWordBankInput): string {
-  if (item.isActiveTarget) return 'Active target for tomorrow.';
-  if (item.usageCount === 0) return 'High-value item not used yet.';
-  return `Used ${item.usageCount} time(s); keep consolidating it.`;
-}
+function buildWordBank(
+  suggestionWords: readonly DaySuggestionWord[],
+  existingItems: DayEvidenceBundle['existingBankItems'],
+): DayWordBankGroup[] {
+  const groups = new Map<string, Array<{
+    text: string;
+    masteryState: string;
+    usageCount: number;
+    isActiveTarget: boolean;
+  }>>();
 
-function byPriority(a: GeneralFeedbackWordBankInput, b: GeneralFeedbackWordBankInput): number {
-  if (a.isActiveTarget !== b.isActiveTarget) return a.isActiveTarget ? -1 : 1;
-  if (a.usageCount !== b.usageCount) return a.usageCount - b.usageCount;
-  return a.text.localeCompare(b.text);
-}
-
-function pickFamily(
-  items: readonly GeneralFeedbackWordBankInput[],
-  family: DaySuggestionWord['family'],
-  categoryFilter: (category: string) => boolean,
-): DaySuggestionWord[] {
-  return items
-    .filter((item) => categoryFilter(item.category))
-    .sort(byPriority)
-    .slice(0, FAMILY_COUNT)
-    .map((item) => ({
-      text: item.text,
-      family,
-      reason: reasonFor(item),
-      source: item.source,
-    }));
-}
-
-function buildSuggestionWords(
-  date: string,
-  items: readonly GeneralFeedbackWordBankInput[],
-): DaySuggestionWord[] {
-  const rotatingModifier = adjectiveAdverbMode(date);
-  const rotatingVerb = verbMode(date);
-  return [
-    ...pickFamily(items, 'collocation', (category) => category === 'collocation'),
-    ...pickFamily(items, 'connector', (category) => category === 'connector'),
-    ...pickFamily(items, 'adjectiveAdverb', (category) => category === rotatingModifier),
-    ...pickFamily(items, 'verb', (category) => category === rotatingVerb),
-  ];
-}
-
-function buildWordBank(items: readonly GeneralFeedbackWordBankInput[]): DayWordBankGroup[] {
-  const groups = new Map<string, GeneralFeedbackWordBankInput[]>();
-  for (const item of items) {
-    const family = familyForCategory(item.category) ?? 'verb';
-    const bucket = groups.get(family) ?? [];
-    bucket.push(item);
-    groups.set(family, bucket);
+  // Add suggestion words as "new" items
+  for (const word of suggestionWords) {
+    const bucket = groups.get(word.family) ?? [];
+    bucket.push({
+      text: word.text,
+      masteryState: 'new',
+      usageCount: 0,
+      isActiveTarget: false,
+    });
+    groups.set(word.family, bucket);
   }
-  return [...groups.entries()].map(([label, groupItems]) => ({
+
+  // Merge existing bank items
+  for (const item of existingItems) {
+    const label = familyForCategory(item.category);
+    const bucket = groups.get(label) ?? [];
+    const alreadyExists = bucket.some((b) => b.text === item.text);
+    if (!alreadyExists) {
+      bucket.push({
+        text: item.text,
+        masteryState: item.masteryState,
+        usageCount: item.usageCount,
+        isActiveTarget: item.isActiveTarget,
+      });
+    }
+    groups.set(label, bucket);
+  }
+
+  return [...groups.entries()].map(([label, items]) => ({
     label,
-    items: groupItems.sort(byPriority).map((item) => ({
-      text: item.text,
-      masteryState: item.masteryState,
-      usageCount: item.usageCount,
-      isActiveTarget: item.isActiveTarget,
-    })),
+    items: items.sort((a, b) => {
+      if (a.isActiveTarget !== b.isActiveTarget) return a.isActiveTarget ? -1 : 1;
+      if (a.usageCount !== b.usageCount) return a.usageCount - b.usageCount;
+      return a.text.localeCompare(b.text);
+    }),
   }));
 }
 
-function buildActiveTargets(
-  conclusionJson: unknown,
-  items: readonly GeneralFeedbackWordBankInput[],
-): DayActiveTarget[] {
-  const parsed = DailyConclusionDataSchema.safeParse(conclusionJson);
-  const conclusionTargets = parsed.success ? parsed.data.activeTargetsTomorrow : [];
-  const focusReasons = new Map(
-    parsed.success ? parsed.data.focusTomorrow.map((focus) => [focus.tag, focus.reason]) : [],
-  );
-  const targets = conclusionTargets.length > 0
-    ? conclusionTargets
-    : items.filter((item) => item.isActiveTarget).sort(byPriority).map((item) => item.text);
-  return targets.slice(0, TARGET_COUNT).map((text) => ({
-    text,
-    reason: focusReasons.get(text) ?? 'Tomorrow target.',
-  }));
-}
+// ---------------------------------------------------------------------------
+// Main export
+// ---------------------------------------------------------------------------
 
-/** Builds the day-only General Feedback section from cached conclusion and word-bank evidence. */
-export function buildDayGeneralFeedback(input: BuildDayGeneralFeedbackInput): DayGeneralFeedbackData {
-  const parsed = DailyConclusionDataSchema.safeParse(input.conclusionJson);
-  const summary = input.renderedFeedback ?? (parsed.success ? parsed.data.keyInsights.join(' ') : '');
-  const suggestionWords = buildSuggestionWords(input.date, input.wordBankItems);
-  const wordBank = buildWordBank(input.wordBankItems);
-  const activeTargets = buildActiveTargets(input.conclusionJson, input.wordBankItems);
-  const hasContent = summary.length > 0 || suggestionWords.length > 0 || wordBank.length > 0 || activeTargets.length > 0;
+/** Builds the day-level General Feedback section from aggregated session evidence. */
+export function buildDayGeneralFeedback(bundle: DayEvidenceBundle): DayGeneralFeedbackData {
+  const summary = buildDaySummaryNarrative(bundle);
+  const suggestionWords = buildSuggestionWords(bundle);
+  const wordBank = buildWordBank(suggestionWords, bundle.existingBankItems);
+  const activeTargets = buildActiveTargets(suggestionWords, bundle);
+
+  const hasContent = summary.length > 0
+    || suggestionWords.length > 0
+    || wordBank.length > 0
+    || activeTargets.length > 0;
+
   return {
     summary,
     suggestionWords,

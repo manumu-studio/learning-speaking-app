@@ -7,8 +7,14 @@ const SummarySchema = z.object({
   date: z.string(),
   overallScore: z.number(),
   totalDurationSecs: z.number(),
+  totalWords: z.number().optional().default(0),
   topicSentence: z.string(),
   sessionCount: z.number(),
+  pillarScores: z.object({
+    delivery: z.number(),
+    language: z.number(),
+    pronunciation: z.number(),
+  }).optional().default({ delivery: 0, language: 0, pronunciation: 0 }),
   conclusionData: z.object({
     activeTargetsTomorrow: z.array(z.string()),
   }),
@@ -45,9 +51,11 @@ export function useDailySummaryCard(dateKey: string) {
             date: parsed.date,
             overallScore: parsed.overallScore,
             totalDurationSecs: parsed.totalDurationSecs,
+            totalWords: parsed.totalWords,
             topicSentence: parsed.topicSentence,
             sessionCount: parsed.sessionCount,
             activeTargetsTomorrow: parsed.conclusionData.activeTargetsTomorrow,
+            pillarScores: parsed.pillarScores,
           });
         }
       } catch (err) {

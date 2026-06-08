@@ -1,18 +1,18 @@
 // Session results "done" view — orchestrates language feedback, pronunciation, transcript sections
 'use client';
 
+import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { SessionHeader } from '@/components/ui/SessionHeader';
 import { PersonalRecordBanner } from '@/components/ui/PersonalRecordBanner';
 import { ChunkBreakdown } from '@/components/ui/ChunkBreakdown';
 import type { PitchContourState } from '@/components/ui/PitchContour';
-import type { VocabItem } from '@/components/ui/VocabProgress';
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
 import type { SessionDetail } from '@/features/session/useSessionStatus.types';
 import type { PersonalRecord } from '@/lib/personalRecords.types';
 import styles from './SessionResults.module.css';
 import { PillarHeroRow } from './PillarHeroRow';
-import { LanguageFeedbackSection, PronunciationFeedbackSection, TranscriptSection } from './SessionFeedbackSections';
+import { LanguageFeedbackSection, PronunciationFeedbackSection, TranscriptOnlySection } from './SessionFeedbackSections';
 import type { FocusComparison } from './sessionResults.helpers';
 import { useSessionDoneViewModel } from './useSessionDoneViewModel';
 
@@ -21,7 +21,6 @@ interface SessionDoneViewProps {
   personalRecords: PersonalRecord[];
   focusComparison: FocusComparison | null;
   pronunciationHistory: HistoryItem[];
-  vocabItems: VocabItem[];
   pitchState: PitchContourState;
   resultsView: 'overall' | 'segments';
   setResultsView: (view: 'overall' | 'segments') => void;
@@ -32,12 +31,11 @@ export function SessionDoneView({
   personalRecords,
   focusComparison,
   pronunciationHistory,
-  vocabItems,
   pitchState,
   resultsView,
   setResultsView,
 }: SessionDoneViewProps) {
-  const { pronunciationReport, delays, drill, hasChunkBreakdown } = useSessionDoneViewModel(
+  const { pronunciationReport, delays, hasChunkBreakdown } = useSessionDoneViewModel(
     session,
     focusComparison,
   );
@@ -75,13 +73,10 @@ export function SessionDoneView({
           <SessionOverallView
             session={session}
             personalRecords={personalRecords}
-            focusComparison={focusComparison}
             pronunciationHistory={pronunciationHistory}
-            vocabItems={vocabItems}
             pitchState={pitchState}
             pronunciationReport={pronunciationReport}
             delays={delays}
-            drill={drill}
           />
         )}
       </div>
@@ -89,31 +84,25 @@ export function SessionDoneView({
   );
 }
 
-import type { AnimationDelays, DrillViewModel } from './useSessionDoneViewModel';
+import type { AnimationDelays } from './useSessionDoneViewModel';
 import type { PronunciationReport } from '@/components/ui/PronunciationSection';
 
 interface SessionOverallViewProps {
   session: SessionDetail;
   personalRecords: PersonalRecord[];
-  focusComparison: FocusComparison | null;
   pronunciationHistory: HistoryItem[];
-  vocabItems: VocabItem[];
   pitchState: PitchContourState;
   pronunciationReport: PronunciationReport | null;
   delays: AnimationDelays;
-  drill: DrillViewModel;
 }
 
 function SessionOverallView({
   session,
   personalRecords,
-  focusComparison,
   pronunciationHistory,
-  vocabItems,
   pitchState,
   pronunciationReport,
   delays,
-  drill,
 }: SessionOverallViewProps) {
   return (
     <>
@@ -125,19 +114,9 @@ function SessionOverallView({
         <PillarHeroRow metrics={session.metrics} />
       )}
 
-      <LanguageFeedbackSection
-        session={session}
-        vocabItems={vocabItems}
-        focusComparison={focusComparison}
-        focusHighlightDelay={delays.focusHighlightDelay}
-        focusBannerDelay={delays.focusBannerDelay}
-        weakestSnapshot={drill.weakestSnapshot}
-        drillConfig={drill.drillConfig}
-        weakestLabel={drill.weakestLabel}
-        onStartDrill={drill.onStartDrill}
-      />
+      <LanguageFeedbackSection session={session} />
 
-      {pronunciationReport !== null && (
+      {pronunciationReport !== null ? (
         <PronunciationFeedbackSection
           session={session}
           pronunciationReport={pronunciationReport}
@@ -146,11 +125,18 @@ function SessionOverallView({
           pronunciationSectionDelay={delays.pronunciationSectionDelay}
           prosodyPanelDelay={delays.prosodyPanelDelay}
         />
-      )}
+      ) : session.transcript ? (
+        <TranscriptOnlySection session={session} transcriptDelay={delays.transcriptDelay} />
+      ) : null}
 
-      {session.transcript && (
-        <TranscriptSection session={session} transcriptDelay={delays.transcriptDelay} />
-      )}
+      <div className="mt-6 text-center">
+        <Link
+          href={`/logs/session/${session.id}`}
+          className="text-xs text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+        >
+          View evidence →
+        </Link>
+      </div>
     </>
   );
 }

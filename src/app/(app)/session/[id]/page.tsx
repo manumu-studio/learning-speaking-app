@@ -45,7 +45,6 @@ function SessionContent({
     personalRecords,
     focusComparison,
     pronunciationHistory,
-    vocabItems,
     resultsView,
     setResultsView,
     pitchState,
@@ -70,7 +69,6 @@ function SessionContent({
         personalRecords={personalRecords}
         focusComparison={focusComparison}
         pronunciationHistory={pronunciationHistory}
-        vocabItems={vocabItems}
         pitchState={pitchState}
         resultsView={resultsView}
         setResultsView={setResultsView}

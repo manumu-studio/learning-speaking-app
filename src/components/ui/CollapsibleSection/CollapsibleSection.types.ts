@@ -10,4 +10,6 @@ export interface CollapsibleSectionProps {
   animationDelay?: number;
   /** Optional id suffix for aria-controls — auto-generated when omitted */
   sectionId?: string;
+  /** Optional element rendered after the title (e.g. score badge) */
+  extra?: ReactNode;
 }

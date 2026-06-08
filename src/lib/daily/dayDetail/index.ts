@@ -3,6 +3,7 @@ export { buildDayDetailData } from './buildDayDetailData';
 export { buildDaySessions } from './buildDaySessions';
 export { buildDaySpeechQuality } from './buildDaySpeechQuality';
 export { buildDayPronunciation } from './buildDayPronunciation';
+export { buildDayEvidenceBundle } from './buildDayEvidenceBundle';
 export { buildDayGeneralFeedback } from './buildDayGeneralFeedback';
 export { buildDayTranscript } from './buildDayTranscript';
 export {

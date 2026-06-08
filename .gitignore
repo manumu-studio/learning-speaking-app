@@ -69,10 +69,14 @@ FETCH_HEAD
 # session prompts
 /docs/session-prompts/
 
-# AI rules (local, not pushed)
-/AGENTS.md
+# CLAUDE.md
 /docs/CLAUDE.md
+
+# AI research/methodology (archived, not active)
 /docs/ai/
+
+# AGENTS.md (passive compatibility pointer)
+/AGENTS.md
 
 # DEVELOPMENT_PLAYBOOK.md
 /docs/DEVELOPMENT_PLAYBOOK.md
@@ -107,12 +111,13 @@ FETCH_HEAD
 
 # Claude Code
 .claude/
+.clauderules
+.playwright-mcp/
 
 reports/
 
 # Audit trigger (ephemeral, consumed by Claude Code)
 .audit-trigger
-.clauderules
 # Sandbox routes (UX iteration copies — never commit)
 src/app/(app)/history2/
 src/app/(app)/*2/

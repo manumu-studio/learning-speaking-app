@@ -1,5 +1,6 @@
 // Tests for pure day-detail section builders and schema compatibility.
 import { describe, expect, it } from 'vitest';
+import type { DayEvidenceBundle } from './buildDayEvidenceBundle';
 import { buildDayGeneralFeedback } from './buildDayGeneralFeedback';
 import { buildDayPronunciation } from './buildDayPronunciation';
 import { buildDaySessions } from './buildDaySessions';
@@ -210,45 +211,42 @@ describe('day detail section builders', () => {
   });
 
   it('builds general feedback suggestions, grouped word bank, and active targets', () => {
-    const feedback = buildDayGeneralFeedback({
+    const bundle: DayEvidenceBundle = {
       date: '2026-06-04',
-      renderedFeedback: null,
-      conclusionJson: {
-        date: '2026-06-04',
-        overallScore: 7.6,
-        totalDurationSecs: 180,
-        topicSentence: 'You sounded clearer in strategic updates.',
-        pillarScores: { delivery: 7, language: 8, pronunciation: 7.5 },
-        metricDeltas: { delivery: null, language: 0.4, pronunciation: -0.1 },
-        wins: [],
-        struggles: [],
-        persistentStruggles: [],
-        improvedSinceYesterday: [],
-        newVocabSpotted: [],
-        focusTomorrow: [{ tag: 'depend on', reason: 'Replace a common Spanish transfer pattern.' }],
-        activeTargetsTomorrow: ['depend on'],
-        keyInsights: ['Your vocabulary choices were more precise.'],
-        tone: 'supportive_neutral',
-      },
-      wordBankItems: [
+      sessionCount: 1,
+      totalWords: 180,
+      pillarScores: { delivery: 7, language: 8, pronunciation: 7.5 },
+      focusAreas: ['verbAccuracy', 'connectorRepetition'],
+      allInsights: [
+        { category: 'vocabulary', pattern: 'establish', detail: 'A more precise formal verb.', suggestion: 'Try establish instead of make.' },
+        { category: 'structure', pattern: 'closing move', detail: 'End with a concrete next step.', suggestion: 'Summarize the implication.' },
+      ],
+      allMetrics: [
+        { key: 'vocabularyPrecision', score: 8 },
+        { key: 'verbAccuracy', score: 4.6 },
+      ],
+      grammarIssues: [],
+      naturalnessFlags: [
+        { originalPhrase: 'make a process', suggestedPhrase: 'establish a process', flagType: 'weak_collocation', rationale: 'Corpus-backed collocation.' },
+      ],
+      pronunciationSummary: { avgAccuracy: null, avgFluency: null, avgProsody: null, prioritySounds: [], repeatedSounds: [] },
+      wordsUsedToday: [],
+      existingBankItems: [
         { text: 'depend on', category: 'prepositional_verb', source: 'bank', usageCount: 0, masteryState: 'emerging', isActiveTarget: true },
         { text: 'therefore', category: 'connector', source: 'bank', usageCount: 1, masteryState: 'learning', isActiveTarget: false },
         { text: 'strategic alignment', category: 'collocation', source: 'corpus', usageCount: 0, masteryState: 'emerging', isActiveTarget: false },
         { text: 'smoothly', category: 'adverb', source: 'bank', usageCount: 2, masteryState: 'learning', isActiveTarget: false },
       ],
-    });
+    };
 
-    expect(feedback.summary).toBe('Your vocabulary choices were more precise.');
-    expect(feedback.suggestionWords.map((word) => word.family)).toEqual([
-      'collocation',
-      'connector',
-      'adjectiveAdverb',
-      'verb',
-    ]);
-    expect(feedback.activeTargets[0]).toEqual({
-      text: 'depend on',
-      reason: 'Replace a common Spanish transfer pattern.',
-    });
+    const feedback = buildDayGeneralFeedback(bundle);
+
+    expect(feedback.summary.length).toBeGreaterThan(100);
+    expect(feedback.summary).toContain('1 session');
+    expect(feedback.suggestionWords).toHaveLength(16);
+    const families = [...new Set(feedback.suggestionWords.map((word) => word.family))];
+    expect(families.sort()).toEqual(['adjectiveAdverb', 'collocation', 'connector', 'verb']);
+    expect(feedback.activeTargets.length).toBeLessThanOrEqual(4);
     expect(feedback.wordBank.map((group) => group.label)).toContain('verb');
   });
 
@@ -272,6 +270,8 @@ describe('day detail section builders', () => {
             accuracyScore: 92,
             errorType: 'None',
             wordIndex: 0,
+            offsetMs: 100,
+            durationMs: 350,
             phonemes: [],
             l1Tags: [],
             breakErrorTypes: [],
@@ -284,6 +284,8 @@ describe('day detail section builders', () => {
             accuracyScore: 80,
             errorType: 'Mispronunciation',
             wordIndex: 1,
+            offsetMs: 500,
+            durationMs: 400,
             phonemes: [],
             l1Tags: ['final_consonant'],
             breakErrorTypes: [],
@@ -296,6 +298,8 @@ describe('day detail section builders', () => {
             accuracyScore: 48,
             errorType: 'Omission',
             wordIndex: 2,
+            offsetMs: 1000,
+            durationMs: 300,
             phonemes: [],
             l1Tags: [],
             breakErrorTypes: [],
@@ -343,9 +347,17 @@ describe('day detail section builders', () => {
     const pronunciation = buildDayPronunciation({ reports: [], sourceAvailability });
     const generalFeedback = buildDayGeneralFeedback({
       date: '2026-06-04',
-      renderedFeedback: '',
-      conclusionJson: null,
-      wordBankItems: [],
+      sessionCount: 1,
+      totalWords: 3,
+      pillarScores: { delivery: null, language: null, pronunciation: null },
+      focusAreas: [],
+      allInsights: [],
+      allMetrics: [],
+      grammarIssues: [],
+      naturalnessFlags: [],
+      pronunciationSummary: { avgAccuracy: null, avgFluency: null, avgProsody: null, prioritySounds: [], repeatedSounds: [] },
+      wordsUsedToday: [],
+      existingBankItems: [],
     });
 
     expect(() =>
