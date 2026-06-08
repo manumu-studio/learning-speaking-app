@@ -120,8 +120,8 @@ describe('runGrammarAnalysis', () => {
 
       expect(classifyDivergenceSpans).not.toHaveBeenCalled();
       expect(logger.info).toHaveBeenCalledWith(
-        expect.objectContaining({ sessionId: SESSION_ID }),
-        expect.stringContaining('skipped'),
+        expect.objectContaining({ sessionId: SESSION_ID, reason: 'no-verbatim' }),
+        'grammar-pipeline-skip',
       );
     });
 
@@ -154,8 +154,14 @@ describe('runGrammarAnalysis', () => {
 
       expect(classifyDivergenceSpans).not.toHaveBeenCalled();
       expect(logger.info).toHaveBeenCalledWith(
-        expect.objectContaining({ sessionId: SESSION_ID }),
-        expect.stringContaining('skipped'),
+        expect.objectContaining({ sessionId: SESSION_ID, reason: 'zero-spans' }),
+        'grammar-pipeline-skip',
+      );
+      expect(prisma.speakingSession.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: SESSION_ID },
+          data: { grammarFlags: [] },
+        }),
       );
     });
   });
@@ -185,6 +191,20 @@ describe('runGrammarAnalysis', () => {
 
       expect(classifyDivergenceSpans).toHaveBeenCalledWith(
         expect.objectContaining({ corpusEvidence: null }),
+      );
+    });
+
+    it('uses provided filtered verbatim transcript instead of raw DB transcript', async () => {
+      setupHappyPath();
+
+      await runGrammarAnalysis(SESSION_ID, NORMALIZED, {
+        verbatimTranscript: 'FILTERED: I goed home yesterday.',
+      });
+
+      expect(classifyDivergenceSpans).toHaveBeenCalledWith(
+        expect.objectContaining({
+          verbatimTranscript: 'FILTERED: I goed home yesterday.',
+        }),
       );
     });
 
@@ -255,6 +275,27 @@ describe('runGrammarAnalysis', () => {
         'Grammar analysis complete',
       );
     });
+
+    it('persists grammarFlags: [] (not null) when classifier returns empty array', async () => {
+      setupHappyPath();
+      vi.mocked(classifyDivergenceSpans).mockResolvedValue([]);
+      vi.mocked(scoreVerbAccuracy).mockReturnValue({
+        score: 10,
+        level: 'excellent' as const,
+        note: '0 grammar error(s) found.',
+        errorCount: 0,
+        totalSpans: 1,
+      });
+
+      await runGrammarAnalysis(SESSION_ID, NORMALIZED);
+
+      expect(prisma.speakingSession.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: SESSION_ID },
+          data: expect.objectContaining({ grammarFlags: [] }),
+        }),
+      );
+    });
   });
 
   describe('error resilience', () => {
@@ -283,7 +324,7 @@ describe('runGrammarAnalysis', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         expect.objectContaining({ sessionId: SESSION_ID }),
-        expect.stringContaining('Grammar analysis failed'),
+        'grammar-classifier-failed',
       );
     });
 
@@ -301,7 +342,7 @@ describe('runGrammarAnalysis', () => {
       expect(logPipelineStage).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId: SESSION_ID,
-          stage: 'grammar-analysis',
+          stage: 'grammar-classify',
           success: false,
         }),
       );

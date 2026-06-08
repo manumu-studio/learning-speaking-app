@@ -1,26 +1,22 @@
 // Fan-in worker for the parallel chunk pipeline — stitches transcripts, merges pronunciation, synthesizes insights
-import { Prisma, SessionStatus } from '@prisma/client';
+import { SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
-import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { stitchTranscripts } from '@/lib/pipeline/stitchTranscripts';
 import type { ChunkTranscriptInput } from '@/lib/pipeline/stitchTranscripts';
 import { mergePronunciation } from '@/lib/pipeline/mergePronunciation';
 import type { ChunkPronunciationMergeInput } from '@/lib/pipeline/mergePronunciation';
 import { persistPronunciation } from '@/lib/pipeline/persistPronunciation';
 import { synthesizeAnalysis } from '@/lib/ai/synthesize';
-import type { ChunkInsightInput, SynthesisResult } from '@/lib/ai/synthesize';
-import { persistVocabSuggestions } from '@/lib/pipeline/persistVocabSuggestions';
-import { detectVocabUsage } from '@/lib/pipeline/detectVocabUsage';
+import type { ChunkInsightInput } from '@/lib/ai/synthesize';
 import { polishTranscript } from '@/lib/ai/polishTranscript';
-import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { logger } from '@/lib/logger';
 import { logPipelineStage } from '@/lib/observability';
-import { estimateCefr } from '@/lib/cefr/estimateCefr';
 import { runGrammarAnalysis } from '@/lib/pipeline/runGrammarAnalysis';
 import { stitchVerbatimAndPersist } from '@/lib/pipeline/stitchVerbatim';
-import { isJsonArray, invalidateDailySummary } from './processFinalHelpers';
+import { persistSynthesisResults } from '@/lib/pipeline/persistSynthesisResults';
+import { isJsonArray } from './processFinalHelpers';
+import { upsertDeterministicFiller } from '@/lib/pipeline/upsertDeterministicFiller';
 import { insightSchema } from '@/lib/ai/analyze';
 import type { ChunkResult } from '@prisma/client';
 
@@ -103,105 +99,6 @@ async function mergeAndPersistPronunciation(
     rawUtterances: [],
   };
   await persistPronunciation(sessionId, pronResult);
-}
-
-// ---------------------------------------------------------------------------
-// Synthesis persistence helper
-// ---------------------------------------------------------------------------
-
-interface PersistSynthesisOptions {
-  sessionId: string;
-  userId: string;
-  stitchedTranscript: string;
-  synthesis: SynthesisResult;
-  doneChunks: ChunkResult[];
-  hasPartialResults: boolean;
-  createdAt: Date;
-}
-
-/**
- * Persists synthesis results (insights, metrics, vocab, session fields, CEFR)
- * and invalidates the daily summary cache.
- *
- * @param opts - All data needed to write synthesis results to the DB.
- */
-async function persistSynthesisResults(opts: PersistSynthesisOptions): Promise<void> {
-  const { sessionId, userId, stitchedTranscript, synthesis, doneChunks, hasPartialResults, createdAt } = opts;
-
-  const nerFilterResult = filterTranscriptionArtefacts(synthesis.insights, stitchedTranscript);
-
-  await prisma.insight.deleteMany({ where: { sessionId } });
-  if (nerFilterResult.kept.length > 0) {
-    await prisma.insight.createMany({
-      data: nerFilterResult.kept.map((insight) => ({
-        sessionId,
-        category: insight.category,
-        pattern: insight.pattern,
-        detail: insight.detail,
-        frequency: insight.frequency ?? null,
-        severity: insight.severity ?? null,
-        examples: insight.examples ?? Prisma.JsonNull,
-        suggestion: insight.suggestion ?? null,
-      })),
-    });
-  }
-
-  if (synthesis.metrics.length > 0) {
-    const synthesisKeys = synthesis.metrics.map((m) => m.key);
-    await prisma.metricSnapshot.deleteMany({ where: { sessionId, key: { in: synthesisKeys } } });
-    await prisma.metricSnapshot.createMany({
-      data: synthesis.metrics.map((metric) => ({
-        sessionId,
-        key: metric.key,
-        level: metric.level,
-        score: metric.score,
-        note: metric.note,
-      })),
-      skipDuplicates: true,
-    });
-  }
-
-  const totalDurationSecs = doneChunks.reduce(
-    (sum, chunk, index) =>
-      sum + Math.max(0, chunk.durationSecs - (index === 0 ? 0 : chunk.overlapSecs)),
-    0,
-  );
-
-  await prisma.speakingSession.update({
-    where: { id: sessionId },
-    data: {
-      status: SessionStatus.DONE,
-      durationSecs: Math.round(totalDurationSecs),
-      focusNext: synthesis.focusNext,
-      summary: synthesis.summary,
-      intentLabel: synthesis.intentLabel,
-      processedAt: new Date(),
-      ...(hasPartialResults ? { partialResults: true } : {}),
-    },
-  });
-
-  if (synthesis.vocabularySuggestions && synthesis.vocabularySuggestions.length > 0) {
-    await persistVocabSuggestions(userId, sessionId, synthesis.vocabularySuggestions);
-    const rewriteResult = await rewriteTranscript(stitchedTranscript, synthesis.vocabularySuggestions);
-    if (rewriteResult) {
-      await prisma.transcript.update({
-        where: { sessionId },
-        data: { improvedText: rewriteResult.improvedText, wordsUsed: rewriteResult.wordsUsed },
-      });
-    }
-  }
-
-  await updatePatternProfile(userId, nerFilterResult.kept);
-  await detectVocabUsage(userId, sessionId, stitchedTranscript);
-  await invalidateDailySummary(userId, createdAt);
-
-  const cefrEstimate = estimateCefr(synthesis.metrics.map((m) => ({ key: m.key, score: m.score })));
-  if (cefrEstimate !== null) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { estimatedCefrLevel: cefrEstimate.level },
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -326,10 +223,13 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
 
   await mergeAndPersistPronunciation(sessionId, doneChunks);
 
+  const verbatimResult = await stitchVerbatimAndPersist(sessionId, stitchedTranscript, doneChunks);
+
   const chunkInsightInputs = buildChunkInsightInputs(doneChunks);
 
   const synthesis = await synthesizeAnalysis({
     stitchedTranscript,
+    ...(verbatimResult ? { verbatimTranscript: verbatimResult.filtered.text } : {}),
     chunks: chunkInsightInputs,
     focusMetricKey: session.focusMetricKey,
     promptUsed: session.promptUsed,
@@ -345,8 +245,13 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     createdAt: session.createdAt,
   });
 
-  await stitchVerbatimAndPersist(sessionId, stitchedTranscript, doneChunks);
-  await runGrammarAnalysis(sessionId, stitchedTranscript);
+  const filteredVerbatimText = verbatimResult?.filtered.text;
+  if (filteredVerbatimText) await upsertDeterministicFiller(sessionId, filteredVerbatimText);
+
+  await runGrammarAnalysis(
+    sessionId, stitchedTranscript,
+    filteredVerbatimText ? { verbatimTranscript: filteredVerbatimText } : undefined,
+  );
 
   logPipelineStage({
     sessionId,
@@ -355,16 +260,8 @@ export async function processParallelFinal(sessionId: string): Promise<void> {
     success: true,
     metadata: { chunkCount: doneChunks.length, wordCount },
   });
-
   logger.info(
-    {
-      sessionId,
-      userId: session.userId,
-      chunkCount: doneChunks.length,
-      totalChunks: chunkResults.length,
-      hasPartialResults,
-      wordCount,
-    },
+    { sessionId, userId: session.userId, chunkCount: doneChunks.length, totalChunks: chunkResults.length, hasPartialResults, wordCount },
     'Parallel chunk pipeline fan-in complete',
   );
 }

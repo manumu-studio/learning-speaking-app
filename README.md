@@ -13,7 +13,7 @@ AI-powered English speaking coach that provides real-time feedback on spoken lan
 - **Database:** PostgreSQL (Neon serverless) via Prisma ORM
 - **Auth:** OIDC + PKCE (external auth server, RS256 JWT)
 - **Storage:** Cloudflare R2 (temporary audio)
-- **AI Pipeline:** OpenAI Whisper (display transcript) + AssemblyAI Universal-3-Pro (verbatim transcript, parallel) → Levenshtein divergence detection → Corpus lookup (frequency, CEFR, collocations) → Azure Speech (pronunciation assessment) → Claude Haiku (corpus-grounded analysis + synthesis) → Hybrid scoring (corpus confirms/overrides LLM) → Grammar classification (divergence spans classified as errors/self-corrections/artifacts)
+- **AI Pipeline:** OpenAI Whisper (display transcript) + AssemblyAI Universal-3-Pro (verbatim transcript, parallel) → Speaker filtering (coach speech removal) → Levenshtein divergence detection → Corpus lookup (frequency, CEFR, collocations) → Azure Speech (pronunciation assessment) → Claude Haiku (dual-transcript synthesis with source routing) → Deterministic overrides (filler count from verbatim, speaking rate from Azure) → Hybrid scoring (corpus confirms/overrides LLM) → Grammar classification (divergence spans classified as errors/self-corrections/artifacts)
 - **Pronunciation:** Azure Speech SDK (phoneme accuracy, prosody, speaking rate, L1 interference detection)
 - **Queue:** QStash (async processing with retry, parallel per-chunk pipeline)
 - **Hosting:** Vercel
@@ -33,9 +33,11 @@ Browser (AudioWorklet) → 2-min chunks with 5s overlap → Upload each to R2
                                               Fan-in on session complete:
                                               1. Stitch transcripts (overlap dedup via LCS)
                                               2. Merge pronunciation scores (weighted avg)
-                                              3. Claude synthesis → deduplicated session insights
-                                              4. Naturalness detection → formulaic phrase flags + native alternatives
-                                              5. Store in Postgres
+                                              3. Stitch verbatim → speaker filter → divergence
+                                              4. Claude synthesis (dual-transcript, source-routed)
+                                              5. Deterministic overrides (filler count, speaking rate)
+                                              6. Grammar classification + naturalness detection
+                                              7. Store in Postgres
                                                             ↓
 Browser (Results UI) ← Progressive results during recording ← Next.js API
         ↓
@@ -52,8 +54,8 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 
 1. **Record** — AudioWorklet captures PCM audio, automatically splitting into 2-minute chunks with 5-second overlap for seamless stitching
 2. **Upload** — Each chunk uploads to R2 via presigned URL while recording continues; progressive results appear as chunks complete
-3. **Process** — QStash triggers parallel per-chunk pipelines (Whisper transcription + Azure pronunciation assessment + Claude analysis), then a fan-in synthesis pass deduplicates and merges insights across the full session
-4. **Results** — Eleven scored dimensions across 3 pillars: Delivery (filler usage, speaking rate), Language (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, lexical sophistication, register & pragmatics), and Pronunciation (accuracy, prosody). Vocabulary and naturalness scores are corpus-grounded — word frequency, CEFR levels, and collocation attestation from 140k+ academic reference rows inform Claude's scoring, and a hybrid decision rule can confirm or override LLM judgments. Includes a functional-load-ranked Priority Sounds list, a 3-band word-level Pronunciation Accuracy map, IPA phoneme detail, prosody feedback, L1 interference coaching, register/pragmatics feedback with hedging suggestions, and naturalness detection (flags formulaic phrases and suggests native-sounding alternatives with corpus-backed confidence tiers)
+3. **Process** — QStash triggers parallel per-chunk pipelines (Whisper transcription + AssemblyAI verbatim + Azure pronunciation assessment + Claude analysis), then a fan-in pass stitches transcripts, filters coach speech from verbatim, runs source-routed synthesis (Whisper for vocabulary/structure, verbatim for register/naturalness), applies deterministic overrides (filler count, speaking rate), and runs grammar classification
+4. **Results** — Eleven scored dimensions across 3 pillars: Delivery (filler usage from verbatim count, speaking rate from Azure timings), Language (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, lexical sophistication, register & pragmatics), and Pronunciation (accuracy, prosody). Each metric is scored from its correct source — deterministic counts for fillers, Azure timings for speaking rate, verbatim transcript for register/naturalness, Whisper transcript for vocabulary/structure. Vocabulary and naturalness scores are corpus-grounded — word frequency, CEFR levels, and collocation attestation from 140k+ academic reference rows inform Claude's scoring, and a hybrid decision rule can confirm or override LLM judgments. Includes a functional-load-ranked Priority Sounds list, a 3-band word-level Pronunciation Accuracy map, IPA phoneme detail, prosody feedback, L1 interference coaching, register/pragmatics feedback with hedging suggestions, and naturalness detection (flags formulaic phrases and suggests native-sounding alternatives with corpus-backed confidence tiers)
 5. **Dashboard** — Metric trends with sparklines, streak tracking, personal records, CEFR level estimation badge with longitudinal sparkline, 10-axis skill radar chart with C2 threshold overlay, and recent session history
 6. **Training** — AI-generated drills targeting weak metrics; user records a response, evaluated via heuristic + AI scoring
 7. **Fluency Training** — 4-3-2 Timed Fluency exercise: repeat the same topic across 3 rounds (4→3→2 minutes) to build automaticity. Countdown timer with grace period, 3-round WPM comparison with SVG bar charts, and session history with progression tracking

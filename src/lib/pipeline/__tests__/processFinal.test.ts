@@ -36,6 +36,7 @@ vi.mock('@/lib/prisma', () => ({
       deleteMany: vi.fn(),
       createMany: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
+      upsert: vi.fn(),
     },
     user: {
       update: vi.fn(),
@@ -106,10 +107,41 @@ vi.mock('@/lib/analysis/buildCorpusEvidence', () => ({
   })),
 }));
 
+vi.mock('@/lib/pipeline/stitchVerbatim', () => ({
+  stitchVerbatimAndPersist: vi.fn(() => Promise.resolve(null)),
+}));
+
+vi.mock('@/lib/pipeline/runGrammarAnalysis', () => ({
+  runGrammarAnalysis: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@/lib/pipeline/upsertDeterministicFiller', () => ({
+  upsertDeterministicFiller: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@/lib/pipeline/persistVocabSuggestions', () => ({
+  persistVocabSuggestions: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@/lib/pipeline/detectVocabUsage', () => ({
+  detectVocabUsage: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@/lib/cefr/estimateCefr', () => ({
+  estimateCefr: vi.fn(() => null),
+}));
+
+vi.mock('./processFinalHelpers', () => ({
+  isJsonArray: vi.fn((v: unknown) => Array.isArray(v)),
+  invalidateDailySummary: vi.fn(() => Promise.resolve()),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';
 import { synthesizeAnalysis } from '@/lib/ai/synthesize';
+import { upsertDeterministicFiller } from '@/lib/pipeline/upsertDeterministicFiller';
+import { stitchVerbatimAndPersist } from '@/lib/pipeline/stitchVerbatim';
 import { processFinal, processParallelFinal } from '@/lib/pipeline/processFinal';
 
 describe('processFinal', () => {
@@ -473,5 +505,122 @@ describe('processParallelFinal', () => {
         key: { in: ['connectorRepetition'] },
       },
     });
+  });
+
+  it('never deletes speakingRate from metricSnapshot (source-owned by Azure)', async () => {
+    vi.mocked(synthesizeAnalysis).mockResolvedValue({
+      insights: [],
+      metrics: [
+        { key: 'speakingRate', level: 'medium', score: 5, note: 'LLM says 5' },
+        { key: 'connectorRepetition', level: 'high', score: 7, note: 'OK' },
+      ],
+      focusNext: 'Focus',
+      summary: 'Summary',
+      intentLabel: 'Practice',
+      vocabularySuggestions: [],
+    });
+
+    await processParallelFinal('sess-1');
+
+    const deleteCall = vi.mocked(prisma.metricSnapshot.deleteMany).mock.calls;
+    for (const [args] of deleteCall) {
+      const keysDeleted = (args as { where: { key: { in: string[] } } }).where.key.in;
+      expect(keysDeleted).not.toContain('speakingRate');
+    }
+  });
+
+  it('never deletes fillerUsage via synthesis persistence (source-owned by deterministic counter)', async () => {
+    vi.mocked(synthesizeAnalysis).mockResolvedValue({
+      insights: [],
+      metrics: [
+        { key: 'fillerUsage', level: 'low', score: 3, note: 'LLM filler score' },
+        { key: 'structuralVariety', level: 'medium', score: 6, note: 'OK' },
+      ],
+      focusNext: 'Focus',
+      summary: 'Summary',
+      intentLabel: 'Practice',
+      vocabularySuggestions: [],
+    });
+
+    await processParallelFinal('sess-1');
+
+    const deleteCall = vi.mocked(prisma.metricSnapshot.deleteMany).mock.calls;
+    for (const [args] of deleteCall) {
+      const keysDeleted = (args as { where: { key: { in: string[] } } }).where.key.in;
+      expect(keysDeleted).not.toContain('fillerUsage');
+    }
+  });
+
+  it('does not write synthesis fillerUsage to metricSnapshot (deterministic source owns it)', async () => {
+    vi.mocked(synthesizeAnalysis).mockResolvedValue({
+      insights: [],
+      metrics: [
+        { key: 'fillerUsage', level: 'low', score: 2, note: 'LLM says low' },
+        { key: 'connectorRepetition', level: 'medium', score: 6, note: 'OK' },
+      ],
+      focusNext: 'Focus',
+      summary: 'Summary',
+      intentLabel: 'Practice',
+      vocabularySuggestions: [],
+    });
+
+    await processParallelFinal('sess-1');
+
+    const createCall = vi.mocked(prisma.metricSnapshot.createMany).mock.calls;
+    for (const [args] of createCall) {
+      const data = (args as { data: Array<{ key: string }> }).data;
+      const keys = data.map((d) => d.key);
+      expect(keys).not.toContain('fillerUsage');
+    }
+  });
+
+  it('calls upsertDeterministicFiller when verbatim result exists', async () => {
+    vi.mocked(stitchVerbatimAndPersist).mockResolvedValue({
+      rawVerbatimTranscript: 'uh hello um world',
+      rawVerbatimWords: [],
+      rawWordCount: 4,
+      filtered: { text: 'uh hello um world', words: [], wordCount: 4, removedWordCount: 0, filterMethod: 'none' },
+      divergenceSpans: [],
+    });
+
+    await processParallelFinal('sess-1');
+
+    expect(upsertDeterministicFiller).toHaveBeenCalledWith('sess-1', 'uh hello um world');
+  });
+
+  it('does not call upsertDeterministicFiller when verbatim is null', async () => {
+    vi.mocked(stitchVerbatimAndPersist).mockResolvedValue(null);
+
+    await processParallelFinal('sess-1');
+
+    expect(upsertDeterministicFiller).not.toHaveBeenCalled();
+  });
+
+  it('writes non-source-owned metrics normally when synthesis includes mixed keys', async () => {
+    vi.mocked(synthesizeAnalysis).mockResolvedValue({
+      insights: [],
+      metrics: [
+        { key: 'speakingRate', level: 'medium', score: 5, note: 'Azure owns this' },
+        { key: 'fillerUsage', level: 'low', score: 2, note: 'Deterministic owns this' },
+        { key: 'vocabularyPrecision', level: 'high', score: 8, note: 'Whisper-sourced' },
+        { key: 'naturalness', level: 'medium', score: 7, note: 'Verbatim-sourced' },
+      ],
+      focusNext: 'Focus',
+      summary: 'Summary',
+      intentLabel: 'Practice',
+      vocabularySuggestions: [],
+    });
+
+    await processParallelFinal('sess-1');
+
+    const createCall = vi.mocked(prisma.metricSnapshot.createMany).mock.calls;
+    expect(createCall.length).toBe(1);
+    const data = (createCall[0]![0] as { data: Array<{ key: string }> }).data;
+    const writtenKeys = data.map((d) => d.key);
+    expect(writtenKeys).toContain('vocabularyPrecision');
+    expect(writtenKeys).toContain('naturalness');
+    expect(writtenKeys).not.toContain('speakingRate');
+    expect(writtenKeys).not.toContain('fillerUsage');
+    expect(writtenKeys).toHaveLength(2);
   });
 });
