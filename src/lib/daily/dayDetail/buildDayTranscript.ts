@@ -11,6 +11,8 @@ export interface DayTranscriptWordInput {
   readonly accuracyScore: number;
   readonly errorType: string;
   readonly wordIndex: number;
+  readonly offsetMs: number;
+  readonly durationMs: number;
   readonly phonemes: unknown;
   readonly l1Tags: readonly string[];
   readonly breakErrorTypes: readonly string[];
@@ -72,6 +74,8 @@ function pronunciationFor(
           accuracyScore: current.accuracyScore,
           errorType: current.errorType,
           wordIndex: current.wordIndex,
+          offsetMs: current.offsetMs,
+          durationMs: current.durationMs,
           scoreBand: scoreBand(current),
           phonemes: current.phonemes,
           l1Tags: [...current.l1Tags],

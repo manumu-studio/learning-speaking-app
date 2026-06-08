@@ -2,64 +2,37 @@
 'use client';
 
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
-import { VocabSuggestions } from '@/components/ui/VocabSuggestions';
-import { FocusNextBanner } from '@/components/ui/FocusNextBanner';
-import { FocusHighlight } from '@/components/ui/FocusHighlight';
 import { TranscriptToggle } from '@/components/ui/TranscriptToggle';
 import {
   PronunciationSection,
 } from '@/components/ui/PronunciationSection';
 import { ProsodyPanel } from '@/components/ui/ProsodyPanel';
 import { ProsodyFeedback } from '@/components/ui/ProsodyFeedback';
-import { PronunciationTipsCard } from '@/components/ui/PronunciationTipsCard';
 import { PronunciationProgress } from '@/components/ui/PronunciationProgress';
 import { PhonemePatterns } from '@/components/ui/PhonemePatterns';
 import { PrioritySounds } from '@/components/ui/PrioritySounds';
 import { AccentPolish } from '@/components/ui/AccentPolish';
 import { aggregatePhonemes } from '@/lib/pronunciation/aggregatePhonemes';
 import { rankByFunctionalLoad, splitByPriority } from '@/lib/pronunciation/rankByFunctionalLoad';
-import { VocabProgress } from '@/components/ui/VocabProgress';
-import type { VocabItem } from '@/components/ui/VocabProgress';
 import type { HistoryItem } from '@/components/ui/PronunciationProgress';
 import { PracticeSuggestion } from '@/components/ui/PracticeSuggestion';
 import { PitchContour } from '@/components/ui/PitchContour';
 import type { PitchContourState } from '@/components/ui/PitchContour';
 import type { SessionDetail } from '@/features/session/useSessionStatus.types';
-import { DrillRecommendation } from '@/features/training/DrillRecommendation';
-import type { DrillType } from '@/features/training/training.types';
 import type { PronunciationReport } from '@/components/ui/PronunciationSection';
 import { RegisterFeedback } from '@/features/session/RegisterFeedback';
 import { NaturalnessInsights } from '@/features/session/NaturalnessInsights';
-import { CategoryInsightsSection, groupInsightsByCategory, deriveVocabSuggestions } from './CategoryInsightsSection';
+import { CategoryInsightsSection, groupInsightsByCategory } from './CategoryInsightsSection';
 import { GrammarSection } from './GrammarSection';
-import type { FocusComparison } from './sessionResults.helpers';
-import { pickWeakestMetric } from './sessionResults.helpers';
 
 interface LanguageFeedbackSectionProps {
   session: SessionDetail;
-  vocabItems: VocabItem[];
-  focusComparison: FocusComparison | null;
-  focusHighlightDelay: number;
-  focusBannerDelay: number;
-  weakestSnapshot: ReturnType<typeof pickWeakestMetric>;
-  drillConfig: { drillType: DrillType; timeLimit: number } | undefined;
-  weakestLabel: string;
-  onStartDrill: (drillType: DrillType, metricKey: string) => Promise<void>;
 }
 
 export function LanguageFeedbackSection({
   session,
-  vocabItems,
-  focusComparison,
-  focusHighlightDelay,
-  focusBannerDelay,
-  weakestSnapshot,
-  drillConfig,
-  weakestLabel,
-  onStartDrill,
 }: LanguageFeedbackSectionProps) {
   const grouped = groupInsightsByCategory(session.insights);
-  const vocabSuggestions = deriveVocabSuggestions(session.insights);
 
   return (
     <CollapsibleSection title="Speech Quality" count={session.insights.length} animationDelay={200}>
@@ -70,8 +43,6 @@ export function LanguageFeedbackSection({
         )}
         <CategoryInsightsSection title="Vocabulary" insights={grouped.vocabulary} baseDelay={280} />
         <CategoryInsightsSection title="Structure" insights={grouped.structure} baseDelay={340} />
-        <VocabSuggestions suggestions={vocabSuggestions} animationDelay={400} />
-        <VocabProgress items={vocabItems} animationDelay={450} />
         {session.registerFeedback && (
           <CollapsibleSection title="Register & Pragmatics" animationDelay={460}>
             <RegisterFeedback
@@ -97,27 +68,6 @@ export function LanguageFeedbackSection({
             }}
           />
         )}
-        {focusComparison && (
-          <FocusHighlight
-            metricLabel={focusComparison.metricLabel}
-            currentScore={focusComparison.currentScore}
-            previousScore={focusComparison.previousScore}
-            animationDelay={focusHighlightDelay}
-          />
-        )}
-        {weakestSnapshot !== null && drillConfig !== undefined && (
-          <DrillRecommendation
-            drillType={drillConfig.drillType}
-            metricLabel={weakestLabel}
-            timeLimit={drillConfig.timeLimit}
-            onStartDrill={() =>
-              void onStartDrill(drillConfig.drillType, weakestSnapshot.key)
-            }
-          />
-        )}
-        {session.focusNext && (
-          <FocusNextBanner focusNext={session.focusNext} animationDelay={focusBannerDelay} />
-        )}
       </div>
     </CollapsibleSection>
   );
@@ -130,6 +80,7 @@ interface PronunciationFeedbackSectionProps {
   pitchState: PitchContourState;
   pronunciationSectionDelay: number;
   prosodyPanelDelay: number;
+  showTranscript?: boolean;
 }
 
 export function PronunciationFeedbackSection({
@@ -139,11 +90,43 @@ export function PronunciationFeedbackSection({
   pitchState,
   pronunciationSectionDelay,
   prosodyPanelDelay,
+  showTranscript = true,
 }: PronunciationFeedbackSectionProps) {
   const { priority, polish } = splitByPriority(rankByFunctionalLoad(pronunciationReport.words));
 
   return (
-    <CollapsibleSection title="Pronunciation & Intonation" animationDelay={pronunciationSectionDelay}>
+    <CollapsibleSection title="Pronunciation & Intonation" defaultOpen animationDelay={pronunciationSectionDelay}>
+      <div className="space-y-4">
+        <ScoreSummaryGroup
+          session={session}
+          pronunciationReport={pronunciationReport}
+          pronunciationHistory={pronunciationHistory}
+          pronunciationSectionDelay={pronunciationSectionDelay}
+          showTranscript={showTranscript}
+          priority={priority}
+        />
+        <RhythmIntonationGroup
+          session={session}
+          pronunciationReport={pronunciationReport}
+          pronunciationHistory={pronunciationHistory}
+          pitchState={pitchState}
+          prosodyPanelDelay={prosodyPanelDelay}
+          pronunciationSectionDelay={pronunciationSectionDelay}
+          polish={polish}
+        />
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+function ScoreSummaryGroup({
+  session, pronunciationReport, pronunciationHistory,
+  pronunciationSectionDelay, showTranscript, priority,
+}: Pick<PronunciationFeedbackSectionProps, 'session' | 'pronunciationReport' | 'pronunciationHistory' | 'pronunciationSectionDelay' | 'showTranscript'> & {
+  priority: ReturnType<typeof splitByPriority>['priority'];
+}) {
+  return (
+    <CollapsibleSection title="Score Summary" defaultOpen={false}>
       <div className="space-y-4">
         <PronunciationSection
           pronunciationReport={pronunciationReport}
@@ -160,18 +143,44 @@ export function PronunciationFeedbackSection({
               }
             : {})}
         />
-        <PrioritySounds errors={priority} animationDelay={pronunciationSectionDelay + 30} />
+        {showTranscript && session.transcript && (
+          <TranscriptToggle
+            originalText={session.transcript.text}
+            improvedText={session.transcript.improvedText}
+            wordsUsed={session.transcript.wordsUsed}
+            wordCount={session.transcript.wordCount}
+            pronunciationWords={pronunciationReport.words}
+            animationDelay={pronunciationSectionDelay + 20}
+            verbatimText={session.verbatimTranscript ?? undefined}
+            verbatimWordCount={session.verbatimWordCount ?? undefined}
+            divergenceSpans={session.divergenceSpans ?? undefined}
+            verbatimProvider={session.verbatimProvider ?? undefined}
+          />
+        )}
         <PhonemePatterns
           phonemes={aggregatePhonemes(pronunciationReport.words)}
           animationDelay={pronunciationSectionDelay + 50}
         />
-        <CollapsibleSection title="Prosody Feedback" defaultOpen={false}>
-          <ProsodyFeedback
-            words={pronunciationReport.words}
-            prosodyScore={pronunciationReport.prosodyScore}
-            animationDelay={prosodyPanelDelay + 50}
-          />
-        </CollapsibleSection>
+        <PrioritySounds errors={priority} animationDelay={pronunciationSectionDelay + 30} />
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+function RhythmIntonationGroup({
+  session, pronunciationReport, pronunciationHistory, pitchState,
+  prosodyPanelDelay, pronunciationSectionDelay, polish,
+}: Pick<PronunciationFeedbackSectionProps, 'session' | 'pronunciationReport' | 'pronunciationHistory' | 'pitchState' | 'prosodyPanelDelay' | 'pronunciationSectionDelay'> & {
+  polish: ReturnType<typeof splitByPriority>['polish'];
+}) {
+  return (
+    <CollapsibleSection title="Rhythm & Intonation" defaultOpen={false}>
+      <div className="space-y-4">
+        <ProsodyFeedback
+          words={pronunciationReport.words}
+          prosodyScore={pronunciationReport.prosodyScore}
+          animationDelay={prosodyPanelDelay + 50}
+        />
         <ProsodyPanel
           words={pronunciationReport.words}
           speakingRateWpm={pronunciationReport.speakingRateWpm}
@@ -179,36 +188,24 @@ export function PronunciationFeedbackSection({
           animationDelay={prosodyPanelDelay}
         />
         {pitchState.status === 'ready' && 'contour' in pitchState && (
-          <CollapsibleSection title="Pitch Contour" defaultOpen={false}>
-            <PitchContour contour={pitchState.contour} animationDelay={pronunciationSectionDelay + 50} />
-          </CollapsibleSection>
+          <PitchContour contour={pitchState.contour} animationDelay={pronunciationSectionDelay + 50} />
         )}
-        <CollapsibleSection title="Pronunciation Tips" defaultOpen={false}>
-          <PronunciationTipsCard
-            pronunciationReport={pronunciationReport}
-            animationDelay={prosodyPanelDelay + 100}
-          />
-        </CollapsibleSection>
-        <CollapsibleSection title="Practice Suggestion" defaultOpen={false}>
-          <PracticeSuggestion
-            pronunciationReport={pronunciationReport}
-            animationDelay={prosodyPanelDelay + 200}
-          />
-        </CollapsibleSection>
+        <PracticeSuggestion
+          pronunciationReport={pronunciationReport}
+          animationDelay={prosodyPanelDelay + 200}
+        />
         <AccentPolish errors={polish} animationDelay={prosodyPanelDelay + 250} />
-        <CollapsibleSection title="Pronunciation Progress" defaultOpen={false}>
-          <PronunciationProgress
-            currentSessionId={session.id}
-            history={pronunciationHistory}
-            animationDelay={prosodyPanelDelay + 300}
-          />
-        </CollapsibleSection>
+        <PronunciationProgress
+          currentSessionId={session.id}
+          history={pronunciationHistory}
+          animationDelay={prosodyPanelDelay + 300}
+        />
       </div>
     </CollapsibleSection>
   );
 }
 
-export function TranscriptSection({
+export function TranscriptOnlySection({
   session,
   transcriptDelay,
 }: {
@@ -218,7 +215,7 @@ export function TranscriptSection({
   if (!session.transcript) return null;
 
   return (
-    <CollapsibleSection title="Annotated Transcript" defaultOpen={false} animationDelay={transcriptDelay}>
+    <CollapsibleSection title="Pronunciation & Intonation" animationDelay={transcriptDelay}>
       <TranscriptToggle
         originalText={session.transcript.text}
         improvedText={session.transcript.improvedText}

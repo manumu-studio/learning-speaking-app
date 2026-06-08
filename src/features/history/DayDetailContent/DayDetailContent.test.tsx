@@ -97,7 +97,7 @@ beforeEach(() => {
 });
 
 describe('DayDetailContent', () => {
-  it('renders the five top-level meta-session sections', async () => {
+  it('renders four top-level sections (no top-level Transcript)', async () => {
     vi.stubGlobal('fetch', vi.fn(() => jsonResponse({ date: '2026-06-01', isClosed: true, dayDetail })));
 
     render(<DayDetailContent date="2026-06-01" />);
@@ -110,6 +110,31 @@ describe('DayDetailContent', () => {
     expect(screen.getByRole('button', { name: /Speech Quality/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Pronunciation & Intonation/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /General Feedback/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Transcript/i })).toBeInTheDocument();
+  });
+
+  it('renders score badge on pronunciation category', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse({ date: '2026-06-01', isClosed: true, dayDetail })));
+
+    render(<DayDetailContent date="2026-06-01" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('We practiced negotiation skills.')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('82.0')).toBeInTheDocument();
+  });
+
+  it('renders View evidence link', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse({ date: '2026-06-01', isClosed: true, dayDetail })));
+
+    render(<DayDetailContent date="2026-06-01" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('We practiced negotiation skills.')).toBeInTheDocument();
+    });
+
+    const link = screen.getByText('View evidence →');
+    expect(link).toBeInTheDocument();
+    expect(link.closest('a')).toHaveAttribute('href', '/logs/day/2026-06-01');
   });
 });

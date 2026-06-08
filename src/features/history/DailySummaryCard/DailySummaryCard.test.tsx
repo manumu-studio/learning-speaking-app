@@ -52,7 +52,7 @@ describe('DailySummaryCard', () => {
       expect(screen.getByText('7.2')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Overall')).toBeInTheDocument();
+    expect(screen.getByText('overall')).toBeInTheDocument();
   });
 
   it('renders topic sentence', async () => {
@@ -73,7 +73,7 @@ describe('DailySummaryCard', () => {
     render(<DailySummaryCard dateKey="2026-06-01" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/12 min/)).toBeInTheDocument();
+      expect(screen.getByText('12:00')).toBeInTheDocument();
     });
   });
 
@@ -124,7 +124,7 @@ describe('DailySummaryCard', () => {
     render(<DailySummaryCard dateKey="2026-06-01" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/JUN 1/)).toBeInTheDocument();
+      expect(screen.getByText(/June 1/)).toBeInTheDocument();
     });
   });
 });

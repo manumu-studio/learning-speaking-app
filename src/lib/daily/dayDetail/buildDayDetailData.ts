@@ -2,6 +2,7 @@
 import { aggregateDayData } from '@/lib/daily/aggregateDayData';
 import { DailyConclusionDataSchema } from '@/lib/daily/generateDailyConclusion.types';
 import { prisma } from '@/lib/prisma';
+import { buildDayEvidenceBundle } from './buildDayEvidenceBundle';
 import { buildDayGeneralFeedback } from './buildDayGeneralFeedback';
 import { buildDayPronunciation } from './buildDayPronunciation';
 import { buildDaySessions } from './buildDaySessions';
@@ -169,6 +170,8 @@ async function fetchSessions(input: BuildDayDetailDataInput) {
               wordIndex: true,
               accuracyScore: true,
               errorType: true,
+              offsetMs: true,
+              durationMs: true,
               phonemes: true,
               l1Tags: true,
               breakErrorTypes: true,
@@ -244,12 +247,9 @@ export async function buildDayDetailData(
       ),
       sourceAvailability,
     }),
-    generalFeedback: buildDayGeneralFeedback({
-      date: input.date,
-      renderedFeedback: conclusion?.renderedFeedback ?? null,
-      conclusionJson: conclusion?.conclusionJson ?? null,
-      wordBankItems,
-    }),
+    generalFeedback: buildDayGeneralFeedback(
+      buildDayEvidenceBundle(sessions, wordBankItems, input.date),
+    ),
     transcript: buildDayTranscript({
       sessions: sessions.map((session) => ({
         id: session.id,

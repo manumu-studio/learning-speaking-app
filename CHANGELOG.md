@@ -2,6 +2,25 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.70.0] — 2026-06-04
+
+### Fixed
+- `useSessionStatus` Zod schema now parses `verbatimTranscript`, `verbatimWordCount`, `divergenceSpans`, and `verbatimProvider` — Compare tab appears for sessions with verbatim data
+
+### Changed
+- Transcript map moved under Pronunciation & Intonation → Score Summary tabs (session result and day detail)
+- Removed top-level "Annotated Transcript" section from session result page
+- Removed top-level "Transcript" section from day detail page — transcript content now inside pronunciation section
+- Word pronunciation map output unchanged (same colors, score bands, clickable words, detail panel, spacing)
+
+### Added
+- Evidence type contracts (`src/lib/evidence/evidence.types.ts`): `EvidenceSource`, `EvidenceRef`, `EvidenceItem`, `MetricEvidence`, `CorpusEvidenceRef`, `GrammarEvidence`, `PronunciationEvidence`, `NaturalnessEvidence`, `EvidenceBundle`, `PipelineMetadata`
+- Evidence read model builders: metric, transcript, grammar, pronunciation, naturalness, corpus (stub)
+- Session and day evidence orchestrators
+- Logs page: `/logs/session/[id]` and `/logs/day/[date]` — evidence register showing DB-backed evidence
+- "View evidence →" links on session result and day detail pages
+- 10 new tests: verbatim parsing (2), day detail IA (4), evidence contracts (4)
+
 ## [0.69.0] — 2026-06-04
 
 ### Added
