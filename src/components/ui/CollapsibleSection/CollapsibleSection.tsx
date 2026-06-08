@@ -11,6 +11,7 @@ export function CollapsibleSection({
   children,
   animationDelay,
   sectionId,
+  extra,
 }: CollapsibleSectionProps) {
   const autoId = useId();
   const bodyId = sectionId ?? `collapsible-${autoId.replace(/:/g, '')}`;
@@ -42,6 +43,7 @@ export function CollapsibleSection({
               {count}
             </span>
           )}
+          {extra !== undefined && <span className="shrink-0">{extra}</span>}
         </div>
         <span
           className={[

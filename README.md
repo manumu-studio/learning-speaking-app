@@ -59,7 +59,8 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 7. **Fluency Training** — 4-3-2 Timed Fluency exercise: repeat the same topic across 3 rounds (4→3→2 minutes) to build automaticity. Countdown timer with grace period, 3-round WPM comparison with SVG bar charts, and session history with progression tracking
 8. **Intelligence** — Phoneme pattern analysis surfaces your top 5 weakest sounds with IPA symbols; vocabulary tracker persists Claude's word suggestions, detects when you use them in future sessions, and schedules them for spaced review (SM-2) with a tabbed review-queue page; collocation detection flags multi-word phrases worth learning; vocab-enhanced transcript rewrites your speech with suggested words woven in (toggle between "Your words" and "Improved"); Reading Practice generates text targeting your weak sounds
 9. **Daily Conclusion** — The current day stays open until the 10pm local cutoff so live sessions remain visible. Closed days use a daily meta-session read model that combines completed sessions into Sessions, Speech Quality, Pronunciation & Intonation, General Feedback, and Transcript sections. The cached AI conclusion provides the topic sentence and coaching narrative while the detail view stays grounded in scoped session data
-10. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
+10. **Evidence Logs** — Every score and insight traces back to real DB data. The Logs page (`/logs/session/[id]`, `/logs/day/[date]`) shows the evidence register: metric snapshots, transcript spans, grammar flags, pronunciation scores, naturalness flags, corpus matches, and pipeline metadata — with source system attribution (Whisper, AssemblyAI, Azure, Claude, corpus, grammar pipeline)
+11. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
 
 ## Documentation
 
@@ -111,7 +112,7 @@ End-to-end tests (Playwright, Chromium): `npm run test:e2e` — requires Node 20
 ```
 src/
 ├── app/              # Next.js App Router pages and API routes
-│   ├── (app)/        # Authenticated app routes (dashboard, session, drills, history, fluency-training)
+│   ├── (app)/        # Authenticated app routes (dashboard, session, drills, history, fluency-training, logs)
 │   ├── (public)/     # Public routes (landing, launch)
 │   └── api/          # API endpoints (sessions, drills, dashboard, fluency-sessions, pipeline, auth, docs)
 ├── components/ui/    # Reusable UI components (30+ components)
@@ -123,10 +124,11 @@ src/
 │   ├── prompts/      # Prompt library UI (60+ prompts, multi-filter, format badges)
 │   ├── recording/    # Audio recording and upload
 │   ├── history/      # Daily conclusion card, day detail meta-session view
+│   ├── logs/         # Evidence register UI (session and day evidence tables)
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, analysis, analysis/divergence, analysis/grammar, assemblyai, auth, CEFR, corpus, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily/dayDetail)
+├── lib/              # Shared utilities (AI, analysis, analysis/divergence, analysis/grammar, assemblyai, auth, CEFR, corpus, evidence, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily/dayDetail)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/

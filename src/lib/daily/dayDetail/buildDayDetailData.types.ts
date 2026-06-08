@@ -100,7 +100,10 @@ export const DaySuggestionWordSchema = z.object({
   text: z.string(),
   family: z.enum(['collocation', 'connector', 'adjectiveAdverb', 'verb']),
   reason: z.string(),
-  source: z.string(),
+  source: z.enum([
+    'naturalness_flag', 'vocabulary_insight', 'structure_insight',
+    'grammar_insight', 'fallback_pool',
+  ]),
 });
 
 export const DayWordBankGroupSchema = z.object({
@@ -134,6 +137,8 @@ export const DayTranscriptTokenSchema = z.object({
     accuracyScore: z.number(),
     errorType: z.string(),
     wordIndex: z.number().int().nonnegative(),
+    offsetMs: z.number().int().nonnegative(),
+    durationMs: z.number().int().nonnegative(),
     scoreBand: z.enum(['green', 'amber', 'red', 'grayItalic']),
     phonemes: z.unknown(),
     l1Tags: z.array(z.string()),
