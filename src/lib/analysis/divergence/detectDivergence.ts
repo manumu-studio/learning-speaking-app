@@ -14,7 +14,7 @@ function spanType(ops: AlignmentOp[]): DivergenceSpan['type'] {
 }
 
 /** Builds a single DivergenceSpan from a contiguous run of non-match ops. */
-function buildSpan(ops: AlignmentOp[], verbatimWords: VerbatimWord[], fallbackStart: number): DivergenceSpan {
+function buildSpan(ops: AlignmentOp[], verbatimWords: ReadonlyArray<VerbatimWord>, fallbackStart: number): DivergenceSpan {
   const verbatimIdx = ops.map((o) => o.verbatimIndex).filter((n): n is number => n !== null);
   const verbatimTokens = ops.map((o) => o.verbatimToken).filter((t): t is string => t !== null);
   const normalizedTokens = ops.map((o) => o.normalizedToken).filter((t): t is string => t !== null);
@@ -46,7 +46,7 @@ function buildSpan(ops: AlignmentOp[], verbatimWords: VerbatimWord[], fallbackSt
  * @param verbatimWords - AssemblyAI word objects (carry confidence)
  * @returns spans where the two transcripts disagree, ordered by verbatim position
  */
-export function detectDivergence(normalizedText: string, verbatimWords: VerbatimWord[]): DivergenceSpan[] {
+export function detectDivergence(normalizedText: string, verbatimWords: ReadonlyArray<VerbatimWord>): DivergenceSpan[] {
   const normalizedTokens = normalizedText.split(/\s+/).filter((t) => t.length > 0);
   const verbatimTokens = verbatimWords.map((w) => w.text);
   const ops = alignTranscripts(normalizedTokens, verbatimTokens);

@@ -146,4 +146,59 @@ describe('synthesizeAnalysis', () => {
     };
     expect(callArgs.messages?.[0]?.content).toContain('verbAccuracy');
   });
+
+  it('includes verbatim transcript section when verbatimTranscript provided', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: 'text', text: JSON.stringify(validSynthesisResponse) }],
+    });
+
+    await synthesizeAnalysis(buildInput({ verbatimTranscript: 'so um i goed home' }));
+
+    const callArgs = mockCreate.mock.calls[0]?.[0] as {
+      messages?: Array<{ content?: string }>;
+    };
+    expect(callArgs.messages?.[0]?.content).toContain('VERBATIM TRANSCRIPT');
+    expect(callArgs.messages?.[0]?.content).toContain('so um i goed home');
+  });
+
+  it('excludes verbatim section when verbatimTranscript not provided', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: 'text', text: JSON.stringify(validSynthesisResponse) }],
+    });
+
+    await synthesizeAnalysis(buildInput());
+
+    const callArgs = mockCreate.mock.calls[0]?.[0] as {
+      messages?: Array<{ content?: string }>;
+    };
+    expect(callArgs.messages?.[0]?.content).not.toContain('VERBATIM TRANSCRIPT');
+  });
+
+  it('includes source routing instructions with verbatim', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: 'text', text: JSON.stringify(validSynthesisResponse) }],
+    });
+
+    await synthesizeAnalysis(buildInput({ verbatimTranscript: 'so um i goed home' }));
+
+    const callArgs = mockCreate.mock.calls[0]?.[0] as {
+      messages?: Array<{ content?: string }>;
+    };
+    expect(callArgs.messages?.[0]?.content).toContain('SOURCE ROUTING INSTRUCTIONS');
+    expect(callArgs.messages?.[0]?.content).toContain('registerPragmatics');
+    expect(callArgs.messages?.[0]?.content).toContain('naturalness');
+  });
+
+  it('tells LLM not to score deterministic metrics', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: 'text', text: JSON.stringify(validSynthesisResponse) }],
+    });
+
+    await synthesizeAnalysis(buildInput({ verbatimTranscript: 'so um i goed home' }));
+
+    const callArgs = mockCreate.mock.calls[0]?.[0] as {
+      messages?: Array<{ content?: string }>;
+    };
+    expect(callArgs.messages?.[0]?.content).toContain('DO NOT score fillerUsage or speakingRate');
+  });
 });
