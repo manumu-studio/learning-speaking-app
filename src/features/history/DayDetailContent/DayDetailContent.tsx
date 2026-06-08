@@ -1,19 +1,18 @@
 // Day detail view — renders a completed day as a five-section meta-session
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { Container } from '@/components/ui/Container';
-import { PhonemeDetail } from '@/components/ui/PhonemeDetail';
-import type { WordPronunciation } from '@/components/ui/PronunciationSection';
+import { ScoreChip } from '@/components/ui/ScoreChip';
 import { useDayDetailContent } from './useDayDetailContent';
 import type { DayDetailContentProps } from './DayDetailContent.types';
+import { TranscriptMapTabs } from './DayTranscriptSections';
+import { GeneralFeedbackSection } from './DayGeneralFeedbackSection';
 import type {
   DayDetailData,
   DayFeedbackItem,
   DayTranscriptSession,
-  DayTranscriptToken,
 } from '@/lib/daily/dayDetail/buildDayDetailData.types';
 
 function formatFullDate(dateStr: string): string {
@@ -25,8 +24,19 @@ function formatFullDate(dateStr: string): string {
   });
 }
 
-function formatMinutes(totalSecs: number): string {
-  return `${Math.round(totalSecs / 60)} min`;
+function formatDuration(totalSecs: number): string {
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function StatColumn({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 min-w-15">
+      <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+      <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</span>
+    </div>
+  );
 }
 
 export function DayDetailSkeleton() {
@@ -46,26 +56,52 @@ export function DayDetailSkeleton() {
   );
 }
 
+const PILLAR_LABELS = { delivery: 'Delivery', language: 'Language', pronunciation: 'Pronunciation' } as const;
+const PILLAR_KEYS: (keyof typeof PILLAR_LABELS)[] = ['delivery', 'language', 'pronunciation'];
+
 function DayHero({ data }: { data: DayDetailData }) {
+  const { hero } = data;
   return (
-    <section className="mt-4 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-black">
-      <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-        {formatFullDate(data.hero.date)} · {data.hero.sessionCount} session{data.hero.sessionCount === 1 ? '' : 's'} · {formatMinutes(data.hero.totalDurationSecs)}
+    <section className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+        {formatFullDate(hero.date)}
       </p>
-      <div className="mt-2 flex flex-wrap items-baseline gap-3">
-        <span className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-          {data.hero.overallScore?.toFixed(1) ?? '--'}
-        </span>
-        <span className="text-sm text-gray-500 dark:text-gray-400">Overall</span>
-        <span className="text-sm text-gray-400 dark:text-gray-500">{data.hero.totalWords} words</span>
+
+      <p className="text-slate-700 dark:text-slate-300 text-base leading-relaxed mb-5">
+        {hero.topicSentence}
+      </p>
+
+      <div className="flex items-center gap-6 flex-wrap">
+        <StatColumn value={formatDuration(hero.totalDurationSecs)} label="mins" />
+        <StatColumn value={hero.totalWords > 0 ? String(hero.totalWords) : '--'} label="words" />
+        <StatColumn value={String(hero.sessionCount)} label="sessions" />
+        <StatColumn value={hero.overallScore?.toFixed(1) ?? '--'} label="overall" />
       </div>
-      <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-        {data.hero.topicSentence}
-      </p>
-      {data.hero.focusAreas.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {data.hero.focusAreas.map((area) => (
-            <span key={area} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        {PILLAR_KEYS.map((key) => {
+          const score = hero.pillarScores[key];
+          return (
+            <div
+              key={key}
+              className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-800/60"
+            >
+              <span className="text-xs font-medium text-slate-500 dark:text-sky-300/70">
+                {PILLAR_LABELS[key]}
+              </span>
+              <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {score !== null && score > 0 ? score.toFixed(1) : '—'}
+              </span>
+              {score !== null && score > 0 && <ScoreChip score={score} scale="ten" />}
+            </div>
+          );
+        })}
+      </div>
+
+      {hero.focusAreas.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {hero.focusAreas.map((area) => (
+            <span key={area} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300">
               {area}
             </span>
           ))}
@@ -75,18 +111,51 @@ function DayHero({ data }: { data: DayDetailData }) {
   );
 }
 
+const TONE_STYLES = {
+  good: 'border-l-emerald-400 bg-emerald-50/50 dark:border-l-emerald-600 dark:bg-emerald-950/20',
+  watch: 'border-l-amber-400 bg-amber-50/50 dark:border-l-amber-600 dark:bg-amber-950/20',
+  neutral: 'border-l-gray-300 bg-gray-50 dark:border-l-gray-600 dark:bg-gray-900/60',
+} satisfies Record<string, string>;
+
+const TONE_ICONS = { good: '✓', watch: '⚠', neutral: '·' } satisfies Record<string, string>;
+
 function FeedbackItems({ items }: { items: readonly DayFeedbackItem[] }) {
   if (items.length === 0) return null;
   return (
     <ul className="mt-2 space-y-2">
-      {items.map((item) => (
-        <li key={`${item.title}-${item.detail}`} className="rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900/60">
-          <div className="font-medium text-gray-900 dark:text-gray-100">{item.title}</div>
-          <p className="mt-1 text-gray-600 dark:text-gray-400">{item.detail}</p>
-          {item.evidence !== null && <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{item.evidence}</p>}
-        </li>
-      ))}
+      {items.map((item) => {
+        const style = TONE_STYLES[item.tone] ?? TONE_STYLES.neutral;
+        const icon = TONE_ICONS[item.tone] ?? TONE_ICONS.neutral;
+        return (
+          <li key={`${item.title}-${item.detail}`} className={`rounded-lg border-l-4 p-3 text-sm ${style}`}>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 text-xs opacity-60">{icon}</span>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-gray-900 dark:text-gray-100">{item.title}</div>
+                <p className="mt-0.5 text-gray-600 dark:text-gray-400">{item.detail}</p>
+                {item.evidence !== null && (
+                  <p className="mt-1 text-xs italic text-gray-400 dark:text-gray-500">&ldquo;{item.evidence}&rdquo;</p>
+                )}
+              </div>
+            </div>
+          </li>
+        );
+      })}
     </ul>
+  );
+}
+
+function ScoreBadge({ score }: { score: number | null }) {
+  if (score === null) return null;
+  const color = score >= 7
+    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+    : score >= 4
+      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+      : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${color}`}>
+      {score.toFixed(1)}
+    </span>
   );
 }
 
@@ -96,12 +165,12 @@ function SessionsSection({ data }: { data: DayDetailData }) {
       <ul className="space-y-2">
         {data.sessions.map((session) => (
           <li key={session.id}>
-            <Link href={session.href} className="block rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
+            <Link href={session.href} className="block rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   Session {session.sessionNumber} · {session.timeLabel}
                 </span>
-                <span className="text-xs text-gray-400">{formatMinutes(session.durationSecs)}</span>
+                <span className="text-xs text-gray-400">{Math.round(session.durationSecs / 60)} min</span>
               </div>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{session.topic}</p>
               <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -116,121 +185,71 @@ function SessionsSection({ data }: { data: DayDetailData }) {
   );
 }
 
+type AnyDayCategory =
+  | DayDetailData['pronunciation']['categories'][number]
+  | DayDetailData['speechQuality']['categories'][number];
+
 function CategorySection({ data, kind }: { data: DayDetailData; kind: 'speech' | 'pronunciation' }) {
   const section = kind === 'speech' ? data.speechQuality : data.pronunciation;
   const title = kind === 'speech' ? 'Speech Quality' : 'Pronunciation & Intonation';
+  const hasTranscriptMap = kind === 'pronunciation' && data.transcript.sessions.length > 0;
   return (
     <CollapsibleSection title={title} defaultOpen={kind === 'speech'} count={section.categories.length}>
-      <div className="space-y-4">
+      <div className="space-y-2">
         {section.categories.map((category) => (
-          <div key={category.key} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0 dark:border-gray-800">
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{category.label}</h3>
-              {category.score !== null && <span className="text-sm text-gray-500">{category.score.toFixed(1)}</span>}
-            </div>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{category.summary}</p>
-            <FeedbackItems items={category.items} />
-          </div>
+          <PronunciationCategorySlot
+            key={category.key}
+            category={category}
+            transcriptAfter={hasTranscriptMap && category.key === 'scoreSummary'}
+            transcriptSessions={data.transcript.sessions}
+          />
         ))}
       </div>
     </CollapsibleSection>
   );
 }
 
-function GeneralFeedbackSection({ data }: { data: DayDetailData }) {
-  const feedback = data.generalFeedback;
+function PronunciationCategorySlot({
+  category,
+  transcriptAfter,
+  transcriptSessions,
+}: {
+  category: AnyDayCategory;
+  transcriptAfter: boolean;
+  transcriptSessions: readonly DayTranscriptSession[];
+}) {
   return (
-    <CollapsibleSection title="General Feedback">
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-        {feedback.summary || feedback.emptyState || 'No day-level feedback is available yet.'}
-      </p>
-      {feedback.activeTargets.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {feedback.activeTargets.map((target) => (
-            <span key={target.text} className="rounded-full bg-emerald-50 px-3 py-1 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-              {target.text}
-            </span>
-          ))}
-        </div>
+    <>
+      <CategoryCard category={category} />
+      {transcriptAfter && (
+        <CollapsibleSection title="Transcript Map" defaultOpen={false}>
+          <TranscriptMapTabs transcriptSessions={transcriptSessions} />
+        </CollapsibleSection>
       )}
-      <FeedbackItems items={feedback.suggestionWords.map((word) => ({
-        title: word.text,
-        detail: word.reason,
-        tone: 'neutral',
-        evidence: word.family,
-      }))} />
-    </CollapsibleSection>
+    </>
   );
 }
 
-function toWordPronunciation(token: DayTranscriptToken): WordPronunciation | null {
-  if (token.pronunciation === null) return null;
-  return {
-    word: token.text,
-    display: token.pronunciation.display,
-    accuracyScore: token.pronunciation.accuracyScore,
-    errorType: token.pronunciation.errorType,
-    offsetMs: 0,
-    durationMs: 0,
-    phonemes: token.pronunciation.phonemes,
-    l1Tags: token.pronunciation.l1Tags,
-    breakErrorTypes: token.pronunciation.breakErrorTypes,
-    intonationErrorTypes: token.pronunciation.intonationErrorTypes,
-    monotonePitchDelta: token.pronunciation.monotonePitchDelta,
-  };
-}
-
-function TranscriptSession({ session }: { session: DayTranscriptSession }) {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const mode = session.modes[0];
-  if (mode === undefined) return null;
+function CategoryCard({ category }: { category: AnyDayCategory }) {
   return (
-    <div className="rounded-lg border border-gray-100 p-3 dark:border-gray-800">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{session.title}</h3>
-      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{session.topic}</p>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-        {mode.tokens.map((token, index) => {
-          const word = toWordPronunciation(token);
-          if (word === null) return <span key={`${token.text}-${index}`}>{token.text}</span>;
-          return (
-            <button key={`${token.text}-${index}`} type="button" className="rounded px-0.5 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30" onClick={() => setExpandedIndex(index)}>
-              {token.text}
-            </button>
-          );
-        })}
-      </p>
-      {expandedIndex !== null && mode.tokens[expandedIndex] !== undefined && (
-        <div className="mt-3">
-          <PhonemeDetail word={toWordPronunciation(mode.tokens[expandedIndex]) ?? {
-            word: '',
-            accuracyScore: 0,
-            errorType: 'None',
-            offsetMs: 0,
-            durationMs: 0,
-            phonemes: [],
-            l1Tags: [],
-            breakErrorTypes: [],
-            intonationErrorTypes: [],
-            monotonePitchDelta: null,
-          }} onClose={() => setExpandedIndex(null)} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TranscriptSection({ data }: { data: DayDetailData }) {
-  return (
-    <CollapsibleSection title="Transcript" count={data.transcript.sessions.length}>
-      <div className="space-y-3">
-        {data.transcript.sessions.map((session) => (
-          <TranscriptSession key={session.sessionId} session={session} />
-        ))}
-        {data.transcript.emptyState !== null && <p className="text-sm text-gray-500">{data.transcript.emptyState}</p>}
+    <CollapsibleSection
+      title={category.label}
+      defaultOpen={false}
+      extra={<ScoreBadge score={category.score} />}
+    >
+      <div className="space-y-2">
+        {category.summary.length > 0 && (
+          <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{category.summary}</p>
+        )}
+        <FeedbackItems items={category.items} />
+        {category.items.length === 0 && category.summary.length === 0 && category.emptyState !== null && (
+          <p className="text-sm italic text-gray-400 dark:text-gray-500">{category.emptyState}</p>
+        )}
       </div>
     </CollapsibleSection>
   );
 }
+
 
 export function DayDetailContent({ date }: DayDetailContentProps) {
   const { data, isLoading, error } = useDayDetailContent(date);
@@ -252,7 +271,14 @@ export function DayDetailContent({ date }: DayDetailContentProps) {
         <CategorySection data={data} kind="speech" />
         <CategorySection data={data} kind="pronunciation" />
         <GeneralFeedbackSection data={data} />
-        <TranscriptSection data={data} />
+      </div>
+      <div className="mt-6 text-center">
+        <Link
+          href={`/logs/day/${date}`}
+          className="text-xs text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+        >
+          View evidence →
+        </Link>
       </div>
     </Container>
   );

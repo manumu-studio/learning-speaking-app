@@ -122,6 +122,47 @@ describe('useSessionStatus', () => {
     expect(calls).toBeGreaterThanOrEqual(2);
   });
 
+  it('parses verbatim fields when present', async () => {
+    const sessionWithVerbatim = {
+      ...doneSession,
+      verbatimTranscript: 'um so like I think',
+      verbatimWordCount: 6,
+      divergenceSpans: [
+        { start: 0, end: 2, verbatimText: 'um so', normalizedText: 'So', type: 'insertion', confidence: 0.95 },
+      ],
+      verbatimProvider: 'assemblyai',
+    };
+
+    vi.mocked(fetch).mockImplementation((input) => {
+      if (String(input).includes('/api/sessions/')) return jsonResponse(sessionWithVerbatim);
+      return jsonResponse({}, false, 404);
+    });
+
+    const { result } = renderHook(() => useSessionStatus('sess-v'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.session?.verbatimTranscript).toBe('um so like I think');
+    expect(result.current.session?.verbatimWordCount).toBe(6);
+    expect(result.current.session?.divergenceSpans).toHaveLength(1);
+    expect(result.current.session?.divergenceSpans?.[0]?.type).toBe('insertion');
+    expect(result.current.session?.verbatimProvider).toBe('assemblyai');
+  });
+
+  it('omits verbatim fields when not present', async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      if (String(input).includes('/api/sessions/')) return jsonResponse(doneSession);
+      return jsonResponse({}, false, 404);
+    });
+
+    const { result } = renderHook(() => useSessionStatus('sess-1'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.session?.verbatimTranscript).toBeUndefined();
+    expect(result.current.session?.verbatimWordCount).toBeUndefined();
+    expect(result.current.session?.divergenceSpans).toBeUndefined();
+    expect(result.current.session?.verbatimProvider).toBeUndefined();
+  });
+
   it('reports processing when status is in pipeline', async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,

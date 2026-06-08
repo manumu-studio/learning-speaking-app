@@ -115,6 +115,17 @@ const sessionDetailSchema = z.object({
     suggestion: z.string(),
     corpusEvidence: z.string().nullable(),
   })).nullable().optional(),
+  verbatimTranscript: z.string().nullable().optional(),
+  verbatimWordCount: z.number().nullable().optional(),
+  divergenceSpans: z.array(z.object({
+    start: z.number(),
+    end: z.number(),
+    verbatimText: z.string(),
+    normalizedText: z.string(),
+    type: z.enum(['insertion', 'deletion', 'substitution']),
+    confidence: z.number(),
+  })).nullable().optional(),
+  verbatimProvider: z.string().nullable().optional(),
 }).transform((val): SessionDetail => {
   const result: SessionDetail = {
     id: val.id,
@@ -157,6 +168,18 @@ const sessionDetailSchema = z.object({
   }
   if (val.grammarFlags != null) {
     result.grammarFlags = val.grammarFlags;
+  }
+  if (val.verbatimTranscript != null) {
+    result.verbatimTranscript = val.verbatimTranscript;
+  }
+  if (val.verbatimWordCount != null) {
+    result.verbatimWordCount = val.verbatimWordCount;
+  }
+  if (val.divergenceSpans != null) {
+    result.divergenceSpans = val.divergenceSpans;
+  }
+  if (val.verbatimProvider != null) {
+    result.verbatimProvider = val.verbatimProvider;
   }
   return result;
 });

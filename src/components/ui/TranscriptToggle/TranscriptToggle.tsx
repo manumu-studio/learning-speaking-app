@@ -2,7 +2,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { PhonemeDetail } from '@/components/ui/PhonemeDetail';
 import { TranscriptComparison } from '@/features/session/TranscriptComparison';
 import { useTranscriptToggle } from './useTranscriptToggle';
@@ -81,16 +81,41 @@ interface PronunciationToken {
 
 function buildPronunciationTokens(text: string, words: readonly WordPronunciation[]): PronunciationToken[] {
   const tokens = text.match(TOKEN_PATTERN) ?? [];
-  let cursor = 0;
-  return tokens.map((token) => {
-    const normalized = normalizeWord(token);
-    const current = normalized.length > 0 ? words[cursor] : undefined;
-    if (normalized.length > 0) cursor += 1;
-    if (current === undefined || normalizeWord(current.display ?? current.word) !== normalized) {
-      return { text: token, word: null };
+  const aligned = new Map<number, WordPronunciation>();
+  let pronCursor = 0;
+  const MAX_SCAN = 15;
+
+  for (let i = 0; i < tokens.length && pronCursor < words.length; i += 1) {
+    const normalized = normalizeWord(tokens[i] ?? '');
+    if (normalized.length === 0) continue;
+    for (let scan = 0; scan < MAX_SCAN && pronCursor + scan < words.length; scan += 1) {
+      const candidate = words[pronCursor + scan];
+      if (candidate !== undefined && normalizeWord(candidate.display ?? candidate.word) === normalized) {
+        aligned.set(i, candidate);
+        pronCursor = pronCursor + scan + 1;
+        break;
+      }
     }
-    return { text: token, word: current };
-  });
+  }
+
+  return tokens.map((token, index) => ({
+    text: token,
+    word: aligned.get(index) ?? null,
+  }));
+}
+
+const SCORE_BAND_STYLES: Record<string, string> = {
+  green: 'text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30',
+  amber: 'text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30',
+  red: 'text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30',
+  grayItalic: 'italic text-gray-400 hover:bg-gray-50 dark:text-gray-500 dark:hover:bg-gray-800',
+};
+
+function scoreBandFor(word: WordPronunciation): string {
+  const score = word.accuracyScore;
+  if (score >= 80) return 'green';
+  if (score >= 50) return 'amber';
+  return 'red';
 }
 
 function PronunciationMap({
@@ -101,7 +126,15 @@ function PronunciationMap({
   words: WordPronunciation[];
 }) {
   const [expandedWord, setExpandedWord] = useState<WordPronunciation | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
   const tokens = useMemo(() => buildPronunciationTokens(text, words), [text, words]);
+
+  const handleWordClick = useCallback((word: WordPronunciation) => {
+    setExpandedWord(word);
+    requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }, []);
 
   return (
     <div className="space-y-3">
@@ -110,12 +143,14 @@ function PronunciationMap({
           if (token.word === null) {
             return <span key={`${token.text}-${index}`}>{token.text}</span>;
           }
+          const band = scoreBandFor(token.word);
+          const colorClass = SCORE_BAND_STYLES[band] ?? SCORE_BAND_STYLES.green;
           return (
             <button
               key={`${token.text}-${index}`}
               type="button"
-              className="rounded px-0.5 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30"
-              onClick={() => setExpandedWord(token.word)}
+              className={`rounded px-0.5 ${colorClass}`}
+              onClick={() => handleWordClick(token.word!)}
             >
               {token.text}
             </button>
@@ -123,7 +158,9 @@ function PronunciationMap({
         })}
       </p>
       {expandedWord !== null && (
-        <PhonemeDetail word={expandedWord} onClose={() => setExpandedWord(null)} />
+        <div ref={detailRef}>
+          <PhonemeDetail word={expandedWord} onClose={() => setExpandedWord(null)} />
+        </div>
       )}
     </div>
   );

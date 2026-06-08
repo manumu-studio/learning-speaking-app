@@ -88,13 +88,13 @@ test.describe('session detail with real data', () => {
       authenticatedPage.getByText(/testing strategies with good structural variety/i),
     ).toBeVisible({ timeout: e2eTimeout(15_000) });
 
-    await authenticatedPage.getByRole('button', { name: /Annotated Transcript/i }).click();
+    await authenticatedPage.getByRole('button', { name: /Pronunciation & Intonation/i }).click();
     await expect(
       authenticatedPage.getByText(/test transcript for the e2e seeded session/i),
     ).toBeVisible();
 
     await authenticatedPage.getByRole('button', { name: /Speech Quality/i }).click();
-    await expect(authenticatedPage.getByText('Argument Closure', { exact: true })).toBeVisible({
+    await expect(authenticatedPage.getByText('Grammar')).toBeVisible({
       timeout: e2eTimeout(10_000),
     });
   });
