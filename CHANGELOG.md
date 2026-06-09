@@ -2,6 +2,26 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.71.0] — 2026-06-08
+
+### Added
+- Metric source arbitration — each metric scored from its correct transcript source (Whisper, AssemblyAI verbatim, or Azure)
+- Speaker filtering removes AI coach speech from verbatim transcripts before scoring (heuristic, conservative)
+- Deterministic filler count from verbatim replaces LLM filler estimation (density-to-score mapping)
+- Dual-transcript synthesis prompt with source routing instructions (Whisper for vocabulary/structure, verbatim for register/naturalness)
+- Source-owned metric protection — persistence layer excludes speakingRate and fillerUsage from synthesis writes
+- 89 new test assertions across 7 test files covering all metric source arbitration paths
+
+### Fixed
+- speakingRate no longer overwritten by synthesis output (Azure timing preserved)
+- Grammar pipeline observability — distinguishes "ran clean" (`[]`) from "didn't run" (`null`)
+- Divergence detection and grammar classifier context now use speaker-filtered verbatim instead of raw coach-contaminated text
+
+### Changed
+- Chunked pipeline reordered: verbatim stitch before synthesis (was after)
+- Non-chunked pipeline: deterministic overrides applied in `finally` block after analysis + verbatim complete
+- Grammar classifier uses safeParse with structured error logging
+
 ## [0.70.0] — 2026-06-04
 
 ### Fixed

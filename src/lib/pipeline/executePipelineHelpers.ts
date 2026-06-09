@@ -3,6 +3,7 @@ import { Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import type { Insight, AnalysisResult } from '@/lib/ai/analyze';
+import { isSourceOwned } from '@/lib/pipeline/sourceOwnedMetrics';
 
 type MetricScore = AnalysisResult['metrics'][number];
 
@@ -50,7 +51,7 @@ export async function storeInsights(
   });
 }
 
-/** Persists metric snapshots for a session. In dev mode, deletes existing rows first. */
+/** Persists metric snapshots for a session. Filters out source-owned metrics (speakingRate, fillerUsage). */
 export async function storeMetrics(
   sessionId: string,
   metrics: MetricScore[],
@@ -58,12 +59,17 @@ export async function storeMetrics(
 ): Promise<void> {
   if (metrics.length === 0) return;
 
+  const metricsToWrite = metrics.filter((m) => !isSourceOwned(m.key));
+  const keysToWrite = metricsToWrite.map((m) => m.key);
+
+  if (keysToWrite.length === 0) return;
+
   if (mode === 'dev') {
-    await prisma.metricSnapshot.deleteMany({ where: { sessionId } });
+    await prisma.metricSnapshot.deleteMany({ where: { sessionId, key: { in: keysToWrite } } });
   }
 
   await prisma.metricSnapshot.createMany({
-    data: metrics.map((metric) => ({
+    data: metricsToWrite.map((metric) => ({
       sessionId,
       key: metric.key,
       level: metric.level,
