@@ -8,6 +8,7 @@ import { toPcm16kMonoWav } from '@/lib/audio/transcode';
 import { updatePatternProfile } from '@/features/session/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { startVerbatim, finishVerbatim } from '@/lib/pipeline/runVerbatim';
+import { upsertDeterministicFiller } from '@/lib/pipeline/upsertDeterministicFiller';
 import { runGrammarAnalysis } from '@/lib/pipeline/runGrammarAnalysis';
 import { runAnalysis } from '@/lib/pipeline/runAnalysis';
 import { env } from '@/lib/env';
@@ -212,11 +213,17 @@ export async function executePipeline(
       startTime,
     });
   } finally {
-    // Persist verbatim transcript + divergence spans (ran in parallel above).
-    // In `finally` so completed verbatim data is saved even if scoring/analysis throws.
-    await finishVerbatim(id, userTranscriptText, verbatimPromise);
-    // Grammar analysis — classify divergence spans, override verbAccuracy (best-effort).
-    await runGrammarAnalysis(id, userTranscriptText);
+    const verbatimResult = await finishVerbatim(id, userTranscriptText, verbatimPromise);
+
+    if (verbatimResult) {
+      await upsertDeterministicFiller(id, verbatimResult.filtered.text);
+    }
+
+    await runGrammarAnalysis(
+      id,
+      userTranscriptText,
+      verbatimResult ? { verbatimTranscript: verbatimResult.filtered.text } : undefined,
+    );
     await cleanupSessionAudio(id, audioKey, deleteAudio);
   }
 }

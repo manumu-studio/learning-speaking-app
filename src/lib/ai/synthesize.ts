@@ -13,6 +13,7 @@ export interface ChunkInsightInput {
 
 export interface SynthesisInput {
   stitchedTranscript: string;
+  verbatimTranscript?: string;
   chunks: ChunkInsightInput[];
   focusMetricKey: string | null;
   promptUsed: string | null;
@@ -60,11 +61,26 @@ function buildSynthesisPrompt(input: SynthesisInput): string {
     ? `The user is focusing on improving: ${input.focusMetricKey}. Weight insights related to this metric more heavily.`
     : '';
 
+  const verbatimSection = input.verbatimTranscript
+    ? `
+VERBATIM TRANSCRIPT (AssemblyAI — raw spoken production, speaker-filtered):
+${input.verbatimTranscript}
+
+SOURCE ROUTING INSTRUCTIONS:
+You have TWO transcripts:
+- WHISPER TRANSCRIPT (above): cleaned, normalized, grammar-corrected. Use for: structuralVariety, vocabularyPrecision, lexicalSophistication, argumentClosure.
+- VERBATIM TRANSCRIPT: raw speech with fillers, false starts, self-corrections. Use for: registerPragmatics, naturalness, connectorRepetition (look for actual repeated connectors in speech, not cleaned text).
+
+DO NOT score fillerUsage or speakingRate — these are computed deterministically and your scores will be discarded.
+When the two transcripts diverge, note the divergence in your explanation for the affected metric.
+`
+    : '';
+
   return `You are an English speaking coach synthesising analysis from a multi-chunk recording session.
 
 FULL SESSION TRANSCRIPT:
 ${input.stitchedTranscript}
-
+${verbatimSection}
 PER-CHUNK INSIGHTS (may contain duplicates and boundary artifacts):
 ${chunkSummaries}
 
@@ -73,7 +89,7 @@ YOUR TASK:
 2. Filter out insights that look like transcription boundary artifacts (e.g. a pattern that only appears in one chunk and consists of a sentence fragment).
 3. Detect cross-chunk patterns that are MORE significant because they persist across the full session.
 4. Produce up to 5 final insights covering the full session.
-5. Score all 7 language metrics (connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, lexicalSophistication, registerPragmatics, argumentClosure) and 2 delivery metrics (fillerUsage, speakingRate) using the complete transcript, not per-chunk data.
+5. Score all 7 language metrics (connectorRepetition, structuralVariety, vocabularyPrecision, verbAccuracy, lexicalSophistication, registerPragmatics, argumentClosure) and 2 delivery metrics (fillerUsage, speakingRate) using the complete transcript, not per-chunk data. Note: fillerUsage and speakingRate scores will be overridden by deterministic sources — still return them for schema compatibility, but they will not be persisted.
 6. Write a 1–2 sentence summary of the full session, an intentLabel (3–5 words), and a focusNext recommendation.
 7. Produce a vocabularySuggestions array with exactly 2-3 items. Choose words that are genuinely useful upgrades — not obscure synonyms. Each word should have a meaning and an example sentence showing natural usage.
 
