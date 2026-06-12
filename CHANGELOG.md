@@ -2,6 +2,17 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.72.1] — 2026-06-12
+
+### Fixed
+- Replaced every unsafe `as` cast and non-null assertion flagged by the type audit across ten production files
+- Zod literal union schemas for fluency round number and target minutes fields
+- Type guard predicates for prompt category and filler lexicon membership checks
+- Nullish fallbacks (`?? ''`) for ISO date split patterns in pipeline and training components
+- Null guard in TranscriptToggle onClick callback replaces `token.word!` assertion
+- Destructured loop variables in filterSpeakerUtterances replace `words[i]!` assertions
+- Type guard narrows the decoded `id_token` in federated sign-out instead of casting
+
 ## [0.72.0] — 2026-06-12
 
 ### Security

@@ -8,8 +8,8 @@ import type { FluencyRoundResult, FluencyDeltas } from './FluencyComparison.type
 const POLL_INTERVAL_MS = 5_000;
 
 const fluencyRoundSchema = z.object({
-  roundNumber: z.number(),
-  targetMinutes: z.number(),
+  roundNumber: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  targetMinutes: z.union([z.literal(4), z.literal(3), z.literal(2)]),
   speechRateWpm: z.number().nullable(),
   fillerCount: z.number().nullable(),
   hesitationCount: z.number().nullable(),
@@ -97,8 +97,8 @@ export function useFluencyComparison({
         if (!signal.aborted) {
           setRounds(
             data.rounds.map((r) => ({
-              roundNumber: r.roundNumber as 1 | 2 | 3,
-              targetMinutes: r.targetMinutes as 4 | 3 | 2,
+              roundNumber: r.roundNumber,
+              targetMinutes: r.targetMinutes,
               speechRateWpm: r.speechRateWpm,
               fillerCount: r.fillerCount,
               hesitationCount: r.hesitationCount,

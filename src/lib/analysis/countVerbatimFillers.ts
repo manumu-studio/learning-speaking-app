@@ -12,6 +12,10 @@ const MULTI_WORD_FILLERS = [
   'you know', 'i mean', 'sort of', 'kind of',
 ] as const;
 
+function isSingleWordFiller(word: string): word is typeof SINGLE_WORD_FILLERS[number] {
+  return (SINGLE_WORD_FILLERS as readonly string[]).includes(word);
+}
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -80,7 +84,7 @@ function countFillerLike(words: string[]): number {
     if (i === 0) { count++; continue; }
     const prev = words[i - 1] ?? '';
     const isAfterPause = prev.endsWith(',') || prev === '';
-    const isAfterFiller = SINGLE_WORD_FILLERS.includes(prev.replace(/[.,!?]$/, '') as typeof SINGLE_WORD_FILLERS[number]);
+    const isAfterFiller = isSingleWordFiller(prev.replace(/[.,!?]$/, ''));
     if (isAfterPause || isAfterFiller) count++;
   }
   return count;

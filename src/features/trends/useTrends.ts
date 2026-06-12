@@ -98,7 +98,7 @@ async function extractErrorMessage(response: Response): Promise<string> {
   if (typeof body !== 'object' || body === null || !('error' in body)) {
     return fallback;
   }
-  const { error } = body as { error: unknown };
+  const { error } = body;
   return typeof error === 'string' ? error : fallback;
 }
 

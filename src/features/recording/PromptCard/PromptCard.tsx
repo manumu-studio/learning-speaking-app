@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { PROMPT_CATEGORIES } from '../prompts.config';
+import type { PromptCategory } from '../prompts.config';
 import type { PromptCardProps } from './PromptCard.types';
 import { PromptDropdownMenu } from './PromptDropdownMenu';
 import { PromptTriggerButton } from './PromptTriggerButton';
@@ -19,6 +20,10 @@ const CATEGORY_META: Record<
 
 const LAST_CATEGORY_KEY = 'lsa-last-prompt-category';
 
+function isPromptCategory(value: string): value is PromptCategory {
+  return (PROMPT_CATEGORIES as readonly string[]).includes(value);
+}
+
 export function PromptCard({
   prompt,
   activeCategory,
@@ -34,8 +39,8 @@ export function PromptCard({
   useEffect(() => {
     try {
       const saved = localStorage.getItem(LAST_CATEGORY_KEY);
-      if (saved && PROMPT_CATEGORIES.includes(saved as typeof activeCategory)) {
-        onCategoryChange(saved as typeof activeCategory);
+      if (saved !== null && isPromptCategory(saved)) {
+        onCategoryChange(saved);
       }
     } catch {
       // localStorage unavailable — use default

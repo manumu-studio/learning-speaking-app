@@ -27,7 +27,8 @@ export async function GET() {
         secret: env.NEXTAUTH_SECRET,
         salt: cookieName,
       });
-      idToken = decoded?.idToken as string | undefined;
+      const rawIdToken = decoded?.idToken;
+      idToken = typeof rawIdToken === 'string' ? rawIdToken : undefined;
       break;
     } catch {
       // Try the other cookie name if decode fails
