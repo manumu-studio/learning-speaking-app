@@ -2,6 +2,13 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.72.0] — 2026-06-12
+
+### Security
+- Updated vitest and @vitest/coverage-v8 to 3.2.6 — patches critical CVEs in esbuild chain
+- Removed xlsx from production dependencies — 2 critical CVEs, no upstream fix available;
+  package was only used in a one-time seed script (corpus already seeded in production)
+
 ## [0.71.0] — 2026-06-08
 
 ### Added
@@ -52,7 +59,7 @@ All notable changes to Learning Speaking App are documented here. Versions follo
 - 12 new tests covering DivergenceHighlighter, TranscriptComparison, and Compare tab integration
 
 ### Notes
-- Temporary evaluation feature — removal checklist in `docs/removal/PACKET-50-removal-checklist.md`
+- Transcript comparison remains under extended evaluation before a permanent product decision.
 
 ## [0.68.0] — 2026-06-04
 
