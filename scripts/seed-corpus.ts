@@ -136,8 +136,19 @@ function parseAclWord(raw: string): { lemma: string; pos: string | null } {
 }
 
 async function seedAcl(): Promise<number> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const XLSX = require('xlsx');
+  // xlsx was removed from package.json (critical CVEs, no upstream fix).
+  // To re-seed ACL collocations: npm install xlsx@0.18.5, run this script, then npm uninstall xlsx.
+  // The production corpus is already fully seeded — re-seeding is only needed on a fresh DB.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let XLSX: any;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    XLSX = require('xlsx');
+  } catch {
+    console.warn('seedAcl: skipping — xlsx not installed. See comment above.');
+    return 0;
+  }
+
   const wb = XLSX.readFile(resolve(DATA_DIR, 'acl/Academic_Collocation_List.xlsx'));
   const sheet = wb.Sheets['Academic Collocation List'];
   if (!sheet) return 0;
