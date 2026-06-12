@@ -122,6 +122,7 @@ reports/
 
 # Audit trigger (ephemeral, consumed by Claude Code)
 .audit-trigger
+
 # Sandbox routes (UX iteration copies — never commit)
 src/app/(app)/history2/
 src/app/(app)/*2/
