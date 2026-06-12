@@ -98,6 +98,10 @@ FETCH_HEAD
 /docs/research/
 /docs/api/
 /docs/DEPLOYMENT.md
+/docs/removal/
+
+# Private personal data — interview/recruiter-call transcripts (never push)
+/docs/previous-recordings/
 
 # template
 /_template/
@@ -118,6 +122,7 @@ reports/
 
 # Audit trigger (ephemeral, consumed by Claude Code)
 .audit-trigger
+
 # Sandbox routes (UX iteration copies — never commit)
 src/app/(app)/history2/
 src/app/(app)/*2/
