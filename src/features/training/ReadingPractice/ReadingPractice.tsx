@@ -31,7 +31,7 @@ function groupByDay(sessions: ReadingPracticeSession[]): SessionDayGroup[] {
 
   for (const session of sessions) {
     const date = new Date(session.createdAt);
-    const dateKey = date.toISOString().split('T')[0] as string;
+    const dateKey = date.toISOString().split('T')[0] ?? '';
     const existing = map.get(dateKey);
 
     if (existing !== undefined) {

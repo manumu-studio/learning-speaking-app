@@ -14,6 +14,11 @@ export const metadata = {
   description: 'Practice the 4-3-2 method to boost speech rate and reduce hesitations.',
 };
 
+function toRoundNumber(n: number): 1 | 2 | 3 {
+  if (n === 1 || n === 2 || n === 3) return n;
+  return 1;
+}
+
 export default async function FluencyTrainingPage() {
   const session = await auth();
   if (!session?.user?.externalId) redirect('/');
@@ -38,7 +43,7 @@ export default async function FluencyTrainingPage() {
       status: s.status,
       createdAt: s.createdAt.toISOString(),
       rounds: s.rounds.map((r) => ({
-        roundNumber: r.roundNumber as 1 | 2 | 3,
+        roundNumber: toRoundNumber(r.roundNumber),
         speechRateWpm: r.speechRateWpm,
       })),
     };

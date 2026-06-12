@@ -150,7 +150,10 @@ function PronunciationMap({
               key={`${token.text}-${index}`}
               type="button"
               className={`rounded px-0.5 ${colorClass}`}
-              onClick={() => handleWordClick(token.word!)}
+              onClick={() => {
+                if (token.word === null) return;
+                handleWordClick(token.word);
+              }}
             >
               {token.text}
             </button>

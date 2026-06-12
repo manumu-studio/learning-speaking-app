@@ -155,3 +155,4 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.67.0 | [ENTRY-74](journal/ENTRY-74.md) | 2026-06-03 | Grammar pipeline — divergence classification, evidence-based verbAccuracy |
 | 0.67.0 | [PR-0.67.0](pull-requests/PR-0.67.0.md) | 2026-06-03 | Grammar pipeline, argumentClosure → Language, GrammarSection UI |
 | 0.72.0 | [PR-0.72.0](pull-requests/PR-0.72.0.md) | 2026-06-12 | Dependency security — patched test-runner CVEs, removed unfixable xlsx |
+| 0.72.1 | [PR-0.72.1](pull-requests/PR-0.72.1.md) | 2026-06-12 | Type safety cleanup — removed unsafe casts and non-null assertions |

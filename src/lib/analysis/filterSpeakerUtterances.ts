@@ -87,7 +87,10 @@ function segmentIntoBlocks(words: ReadonlyArray<VerbatimWord>): UtteranceBlock[]
   let blockStart = 0;
 
   for (let i = 1; i < words.length; i++) {
-    const gap = words[i]!.start - words[i - 1]!.end;
+    const current = words[i];
+    const previous = words[i - 1];
+    if (current === undefined || previous === undefined) continue;
+    const gap = current.start - previous.end;
     if (gap >= SILENCE_GAP_MS) {
       blocks.push(buildBlock(words, blockStart, i));
       blockStart = i;

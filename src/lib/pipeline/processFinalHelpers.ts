@@ -126,7 +126,7 @@ export function isJsonArray(value: Prisma.JsonValue | null): value is Prisma.Jso
  */
 export async function invalidateDailySummary(userId: string, sessionCreatedAt: Date): Promise<void> {
   try {
-    const dateStr = sessionCreatedAt.toISOString().split('T')[0] as string;
+    const dateStr = sessionCreatedAt.toISOString().split('T')[0] ?? '';
     await Promise.all([
       prisma.dailySummary.deleteMany({
         where: { userId, date: new Date(`${dateStr}T00:00:00.000Z`) },
