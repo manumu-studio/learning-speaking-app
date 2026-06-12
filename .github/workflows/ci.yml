@@ -41,7 +41,7 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npm run test:coverage
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v7
         with:
           file: ./coverage/lcov.info
           fail_ci_if_error: false
