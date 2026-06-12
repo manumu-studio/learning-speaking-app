@@ -98,6 +98,10 @@ FETCH_HEAD
 /docs/research/
 /docs/api/
 /docs/DEPLOYMENT.md
+/docs/removal/
+
+# Private personal data — interview/recruiter-call transcripts (never push)
+/docs/previous-recordings/
 
 # template
 /_template/
