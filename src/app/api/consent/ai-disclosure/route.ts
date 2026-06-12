@@ -57,5 +57,5 @@ async function postHandler(request: Request) {
   return successResponse({ accepted: true });
 }
 
-export const GET = withObservability(getHandler, { route: 'consent/ai-disclosure' });
-export const POST = withObservability(postHandler, { route: 'consent/ai-disclosure' });
+export const GET = withObservability(getHandler, { route: 'consent/ai-disclosure', getSession: auth });
+export const POST = withObservability(postHandler, { route: 'consent/ai-disclosure', getSession: auth });

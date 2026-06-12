@@ -91,4 +91,4 @@ async function handler(req: Request, { logger }: { logger: pino.Logger; requestI
   }
 }
 
-export const POST = withObservability(handler, { route: 'internal/cancel-session' });
+export const POST = withObservability(handler, { route: 'internal/cancel-session', getSession: auth });

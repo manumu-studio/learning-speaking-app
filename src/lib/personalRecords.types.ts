@@ -1,6 +1,6 @@
 // Type definitions for Personal Records detection
 
-import type { MetricKey } from '@/features/dashboard/dashboard.types';
+import type { MetricKey } from '@/lib/metrics/metrics.types';
 
 export type PRTimeframe = '14-day' | '30-day' | 'all-time';
 

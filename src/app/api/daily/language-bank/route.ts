@@ -27,4 +27,4 @@ async function handler(_req: Request, _ctx: ObservabilityContext): Promise<Respo
   return successResponse({ items, activeTargets });
 }
 
-export const GET = withObservability(handler, { route: 'daily/language-bank' });
+export const GET = withObservability(handler, { route: 'daily/language-bank', getSession: auth });

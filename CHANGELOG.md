@@ -2,6 +2,16 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.72.2] — 2026-06-12
+
+### Changed
+- Eliminated eleven `lib`→`features` dependency inversions — `src/lib/` is now self-contained
+- Moved `MetricKey`, `MetricLevel`, `PronunciationMetricKey`, and `PRONUNCIATION_METRIC_KEYS` to `src/lib/metrics/metrics.types.ts`
+- Moved `PillarKey`, `PillarConfig`, `PILLAR_CONFIG`, `PILLAR_KEYS`, and `METRIC_LABELS` to `src/lib/metrics/pillars.ts`
+- Moved `updatePatternProfile` from `features/session/` to `lib/pipeline/`
+- Decoupled `withObservability` from the auth layer via optional `getSession` injection; route handlers pass `getSession: auth`
+- Feature re-exports preserved for backward compatibility — no consumer changes required
+
 ## [0.72.1] — 2026-06-12
 
 ### Fixed

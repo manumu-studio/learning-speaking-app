@@ -45,4 +45,4 @@ async function handler(req: Request) {
   });
 }
 
-export const GET = withObservability(handler, { route: 'drills/[id]' });
+export const GET = withObservability(handler, { route: 'drills/[id]', getSession: auth });

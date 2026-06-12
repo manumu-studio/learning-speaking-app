@@ -70,4 +70,4 @@ async function handler(req: Request, _ctx: ObservabilityContext): Promise<Respon
   return successResponse({ success: true });
 }
 
-export const POST = withObservability(handler, { route: 'daily/language-bank/feedback' });
+export const POST = withObservability(handler, { route: 'daily/language-bank/feedback', getSession: auth });

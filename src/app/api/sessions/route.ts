@@ -91,7 +91,7 @@ async function postHandler(
   return handleFormDataSession(req, user.id, logger);
 }
 
-export const POST = withObservability(postHandler, { route: 'sessions' });
+export const POST = withObservability(postHandler, { route: 'sessions', getSession: auth });
 
 /**
  * GET /api/sessions
@@ -143,4 +143,4 @@ async function getHandler(
   );
 }
 
-export const GET = withObservability(getHandler, { route: 'sessions' });
+export const GET = withObservability(getHandler, { route: 'sessions', getSession: auth });

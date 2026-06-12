@@ -1,5 +1,5 @@
 // Builds a 200–300 word coaching narrative from a DayEvidenceBundle
-import { METRIC_LABELS } from '@/features/dashboard/pillars';
+import { METRIC_LABELS } from '@/lib/metrics/pillars';
 import type { DayEvidenceBundle } from './buildDayEvidenceBundle';
 
 function ml(key: string): string {

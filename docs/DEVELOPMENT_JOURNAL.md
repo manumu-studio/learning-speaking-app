@@ -156,3 +156,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.67.0 | [PR-0.67.0](pull-requests/PR-0.67.0.md) | 2026-06-03 | Grammar pipeline, argumentClosure → Language, GrammarSection UI |
 | 0.72.0 | [PR-0.72.0](pull-requests/PR-0.72.0.md) | 2026-06-12 | Dependency security — patched test-runner CVEs, removed unfixable xlsx |
 | 0.72.1 | [PR-0.72.1](pull-requests/PR-0.72.1.md) | 2026-06-12 | Type safety cleanup — removed unsafe casts and non-null assertions |
+| 0.72.2 | [ENTRY-81](journal/ENTRY-81.md) | 2026-06-12 | Architecture boundary cleanup — eliminated lib→features dependency inversions |
+| 0.72.2 | [PR-0.72.2](pull-requests/PR-0.72.2.md) | 2026-06-12 | Moved metric types/pillar constants + updatePatternProfile to lib; decoupled withObservability from auth |

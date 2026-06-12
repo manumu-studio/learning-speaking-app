@@ -77,5 +77,5 @@ async function postHandler(
 export const POST = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
   withObservability(
     (r, obsCtx) => postHandler(r, obsCtx, routeCtx),
-    { route: 'users/me/vocabulary/[id]/review' },
+    { route: 'users/me/vocabulary/[id]/review', getSession: auth },
   )(req);

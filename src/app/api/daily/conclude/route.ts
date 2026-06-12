@@ -65,4 +65,4 @@ async function handler(req: Request, _ctx: ObservabilityContext): Promise<Respon
   });
 }
 
-export const POST = withObservability(handler, { route: 'daily/conclude' });
+export const POST = withObservability(handler, { route: 'daily/conclude', getSession: auth });

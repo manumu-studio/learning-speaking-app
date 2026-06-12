@@ -96,5 +96,5 @@ async function postHandler(
 export const POST = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
   withObservability(
     (r, obsCtx) => postHandler(r, obsCtx, routeCtx),
-    { route: 'fluency-sessions/[id]/rounds' },
+    { route: 'fluency-sessions/[id]/rounds', getSession: auth },
   )(req);

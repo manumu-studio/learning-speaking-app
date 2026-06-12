@@ -118,5 +118,5 @@ async function patchHandler(request: Request, { logger }: { logger: pino.Logger;
   }
 }
 
-export const GET = withObservability(getHandler, { route: 'settings' });
-export const PATCH = withObservability(patchHandler, { route: 'settings' });
+export const GET = withObservability(getHandler, { route: 'settings', getSession: auth });
+export const PATCH = withObservability(patchHandler, { route: 'settings', getSession: auth });

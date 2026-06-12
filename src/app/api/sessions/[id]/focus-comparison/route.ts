@@ -99,5 +99,5 @@ async function getHandler(
 export const GET = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
   withObservability(
     (r, obsCtx) => getHandler(r, obsCtx, routeCtx),
-    { route: 'sessions/[id]/focus-comparison' },
+    { route: 'sessions/[id]/focus-comparison', getSession: auth },
   )(req);

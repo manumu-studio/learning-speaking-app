@@ -113,5 +113,5 @@ async function handler(
 export const GET = (req: Request, routeCtx: { params: Promise<{ date: string }> }) =>
   withObservability(
     (r, obsCtx) => handler(r, obsCtx, routeCtx),
-    { route: 'daily/[date]' },
+    { route: 'daily/[date]', getSession: auth },
   )(req);

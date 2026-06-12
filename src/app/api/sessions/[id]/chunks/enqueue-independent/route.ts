@@ -95,5 +95,5 @@ async function postHandler(
 export const POST = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
   withObservability(
     (r, obsCtx) => postHandler(r, obsCtx, routeCtx),
-    { route: 'sessions/[id]/chunks/enqueue-independent' },
+    { route: 'sessions/[id]/chunks/enqueue-independent', getSession: auth },
   )(req);

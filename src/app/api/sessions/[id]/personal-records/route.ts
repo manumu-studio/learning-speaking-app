@@ -73,4 +73,4 @@ async function handler(req: Request) {
   });
 }
 
-export const GET = withObservability(handler, { route: 'sessions/[id]/personal-records' });
+export const GET = withObservability(handler, { route: 'sessions/[id]/personal-records', getSession: auth });

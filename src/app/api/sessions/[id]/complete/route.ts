@@ -80,5 +80,5 @@ async function postHandler(
 export const POST = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
   withObservability(
     (r, obsCtx) => postHandler(r, obsCtx, routeCtx),
-    { route: 'sessions/[id]/complete' },
+    { route: 'sessions/[id]/complete', getSession: auth },
   )(req);

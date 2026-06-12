@@ -1,7 +1,7 @@
 // Personal Records detection — compares session scores against user's historical bests
 
 import { prisma } from '@/lib/prisma';
-import type { MetricKey } from '@/features/dashboard/dashboard.types';
+import type { MetricKey } from '@/lib/metrics/metrics.types';
 import type { PersonalRecord, PRTimeframe } from './personalRecords.types';
 
 const METRIC_LABELS: Record<MetricKey, string> = {

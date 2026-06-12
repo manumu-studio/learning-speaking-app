@@ -79,4 +79,4 @@ async function handler(request: Request) {
   }
 }
 
-export const GET = withObservability(handler, { route: 'metrics/trends' });
+export const GET = withObservability(handler, { route: 'metrics/trends', getSession: auth });

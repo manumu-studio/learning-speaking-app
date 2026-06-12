@@ -41,4 +41,4 @@ async function handler(request: Request) {
   return successResponse({ tips });
 }
 
-export const POST = withObservability(handler, { route: 'pronunciation-tips' });
+export const POST = withObservability(handler, { route: 'pronunciation-tips', getSession: auth });

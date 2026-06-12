@@ -85,7 +85,7 @@ vi.mock('@/lib/ai/synthesize', () => ({
   synthesizeAnalysis: vi.fn(),
 }));
 
-vi.mock('@/features/session/updatePatternProfile', () => ({
+vi.mock('@/lib/pipeline/updatePatternProfile', () => ({
   updatePatternProfile: vi.fn(),
 }));
 

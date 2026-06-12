@@ -86,4 +86,4 @@ async function postHandler(req: Request, { logger }: { logger: pino.Logger; requ
   });
 }
 
-export const POST = withObservability(postHandler, { route: 'internal/backfill-improved-transcripts' });
+export const POST = withObservability(postHandler, { route: 'internal/backfill-improved-transcripts', getSession: auth });

@@ -61,7 +61,7 @@ const GrammarFlagsArraySchema = z.array(GrammarFlagSchema);
 // Pillar metric key mapping (sourced from PILLAR_CONFIG)
 // ---------------------------------------------------------------------------
 
-import { PILLAR_CONFIG } from '@/features/dashboard/pillars';
+import { PILLAR_CONFIG } from '@/lib/metrics/pillars';
 
 const DELIVERY_KEYS = new Set<string>(PILLAR_CONFIG.delivery.metricKeys);
 const LANGUAGE_KEYS = new Set<string>(PILLAR_CONFIG.language.metricKeys);

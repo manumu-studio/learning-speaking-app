@@ -62,5 +62,5 @@ async function postHandler(
 export const POST = (req: Request, routeCtx: { params: Promise<{ flagId: string }> }) =>
   withObservability(
     (r, obsCtx) => postHandler(r, obsCtx, routeCtx),
-    { route: 'naturalness/[flagId]/feedback' },
+    { route: 'naturalness/[flagId]/feedback', getSession: auth },
   )(req);

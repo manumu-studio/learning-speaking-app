@@ -1,32 +1,15 @@
 // Dashboard feature type definitions
+export type {
+  MetricKey,
+  MetricLevel,
+  PronunciationMetricKey,
+} from '@/lib/metrics/metrics.types';
+export { PRONUNCIATION_METRIC_KEYS } from '@/lib/metrics/metrics.types';
+
+import type { MetricKey, MetricLevel } from '@/lib/metrics/metrics.types';
 import type { PersonalRecord } from '@/lib/personalRecords.types';
 import type { CefrEstimate } from '@/lib/cefr/cefr.types';
 import type { RadarScore } from '@/features/dashboard/SkillRadar';
-
-/** One of eleven metric dimensions tracked per session: 8 Claude-scored + 3 Azure-computed (see Prisma `MetricSnapshot.key`). */
-export type MetricKey =
-  | 'connectorRepetition'
-  | 'structuralVariety'
-  | 'vocabularyPrecision'
-  | 'verbAccuracy'
-  | 'argumentClosure'
-  | 'fillerUsage'
-  | 'lexicalSophistication'
-  | 'registerPragmatics'
-  | 'pronunciationAccuracy'
-  | 'prosodyScore'
-  | 'speakingRate';
-
-// Pronunciation metric keys introduced in PACKET-32
-export const PRONUNCIATION_METRIC_KEYS = [
-  'pronunciationAccuracy',
-  'prosodyScore',
-  'speakingRate',
-] as const;
-
-export type PronunciationMetricKey = (typeof PRONUNCIATION_METRIC_KEYS)[number];
-
-export type MetricLevel = 'low' | 'medium' | 'high';
 
 /** One metric dimension with level, numeric score, and short coaching note. */
 export type MetricScore = {

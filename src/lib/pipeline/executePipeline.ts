@@ -5,7 +5,7 @@ import { transcribeAudio } from '@/lib/ai/whisper';
 import { gateSegments } from '@/lib/ai/confidenceGating';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
 import { toPcm16kMonoWav } from '@/lib/audio/transcode';
-import { updatePatternProfile } from '@/features/session/updatePatternProfile';
+import { updatePatternProfile } from '@/lib/pipeline/updatePatternProfile';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { startVerbatim, finishVerbatim } from '@/lib/pipeline/runVerbatim';
 import { upsertDeterministicFiller } from '@/lib/pipeline/upsertDeterministicFiller';
