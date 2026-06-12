@@ -158,3 +158,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.72.1 | [PR-0.72.1](pull-requests/PR-0.72.1.md) | 2026-06-12 | Type safety cleanup — removed unsafe casts and non-null assertions |
 | 0.72.2 | [ENTRY-81](journal/ENTRY-81.md) | 2026-06-12 | Architecture boundary cleanup — eliminated lib→features dependency inversions |
 | 0.72.2 | [PR-0.72.2](pull-requests/PR-0.72.2.md) | 2026-06-12 | Moved metric types/pillar constants + updatePatternProfile to lib; decoupled withObservability from auth |
+| 0.72.3 | [ENTRY-82](journal/ENTRY-82.md) | 2026-06-12 | Code complexity — split four files at/over the 300-line limit |
+| 0.72.3 | [PR-0.72.3](pull-requests/PR-0.72.3.md) | 2026-06-12 | Extracted persistAnalysis, azureSdkMappers, PronunciationMap, FilmGrain |
