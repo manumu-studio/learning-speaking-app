@@ -1,5 +1,5 @@
 // Pure CEFR estimation from metric scores — no DB access, no side effects
-import type { MetricKey } from '@/features/dashboard/dashboard.types';
+import type { MetricKey } from '@/lib/metrics/metrics.types';
 import type { CefrEstimate, CefrLevel, MetricScoreInput, PillarBreakdown } from './cefr.types';
 
 const PILLAR_METRICS: Record<keyof PillarBreakdown, readonly MetricKey[]> = {

@@ -3,7 +3,6 @@ import type pino from 'pino';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { auth } from '@/features/auth/auth';
 import { getRequestId, withRequestId } from './requestId';
 import { setSentryRequestContext } from './sentryContext';
 
@@ -14,6 +13,8 @@ export interface ObservabilityContext {
 
 interface ObservabilityOptions {
   route?: string;
+  /** Optional session resolver — inject from the call site so lib stays auth-agnostic. */
+  getSession?: () => Promise<{ user?: { externalId?: string | undefined } | undefined } | null | undefined>;
 }
 
 /** Route handler type accepted by both call sites: direct export and inline invocation. */
@@ -30,8 +31,12 @@ type RouteHandler = {
  * with `requestId` and `route`) and the `requestId` string. Uncaught errors are sent to
  * Sentry and converted to a generic 500 JSON response.
  *
+ * Pass `getSession: auth` from call sites that have access to the auth function. Routes
+ * that do not call `getSession` will still log and capture errors — Sentry user context
+ * will simply be undefined.
+ *
  * @param handler - The route logic receiving the request and observability context.
- * @param options - Optional `route` override for the Pino/Sentry `route` tag (defaults to `pathname`).
+ * @param options - Optional `route` override and `getSession` callback for Sentry user context.
  * @returns A Next.js-compatible route handler accepting optional `params`.
  */
 export function withObservability(
@@ -45,10 +50,10 @@ export function withObservability(
 
     let userId: string | undefined;
     try {
-      const session = await auth();
+      const session = await options?.getSession?.();
       userId = session?.user?.externalId;
     } catch {
-      // Unauthenticated — OK for public routes
+      // Unauthenticated or getSession not provided — OK for public routes
     }
 
     setSentryRequestContext({ userId, requestId, route });

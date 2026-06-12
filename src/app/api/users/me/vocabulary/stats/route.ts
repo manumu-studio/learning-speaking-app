@@ -58,4 +58,4 @@ async function getHandler(_req: Request, { logger: _logger }: { logger: pino.Log
   });
 }
 
-export const GET = withObservability(getHandler, { route: 'users/me/vocabulary/stats' });
+export const GET = withObservability(getHandler, { route: 'users/me/vocabulary/stats', getSession: auth });

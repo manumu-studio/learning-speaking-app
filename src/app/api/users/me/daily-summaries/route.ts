@@ -103,4 +103,4 @@ async function getHandler(req: Request) {
   });
 }
 
-export const GET = withObservability(getHandler, { route: 'users/me/daily-summaries' });
+export const GET = withObservability(getHandler, { route: 'users/me/daily-summaries', getSession: auth });

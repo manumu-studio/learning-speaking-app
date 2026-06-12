@@ -29,4 +29,4 @@ async function handler() {
   return successResponse(data, 200, { ...DASHBOARD_CACHE });
 }
 
-export const GET = withObservability(handler, { route: 'dashboard' });
+export const GET = withObservability(handler, { route: 'dashboard', getSession: auth });

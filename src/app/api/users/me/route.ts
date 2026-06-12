@@ -54,4 +54,4 @@ async function patchHandler(request: Request) {
   });
 }
 
-export const PATCH = withObservability(patchHandler, { route: 'users/me' });
+export const PATCH = withObservability(patchHandler, { route: 'users/me', getSession: auth });

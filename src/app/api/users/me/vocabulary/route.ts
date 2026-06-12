@@ -44,4 +44,4 @@ async function getHandler(_req: Request, { logger: _logger }: { logger: pino.Log
   return successResponse(serialized);
 }
 
-export const GET = withObservability(getHandler, { route: 'users/me/vocabulary' });
+export const GET = withObservability(getHandler, { route: 'users/me/vocabulary', getSession: auth });

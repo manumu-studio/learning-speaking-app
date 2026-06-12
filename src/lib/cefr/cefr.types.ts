@@ -1,5 +1,5 @@
 // CEFR estimation types — weighted pillar scoring from metric snapshots
-import type { MetricKey } from '@/features/dashboard/dashboard.types';
+import type { MetricKey } from '@/lib/metrics/metrics.types';
 
 export type CefrLevel = 'below-c1' | 'c1-low' | 'c1-mid' | 'c1-high' | 'c2';
 

@@ -3,7 +3,7 @@ import { Prisma, SessionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import type { SynthesisResult } from '@/lib/ai/synthesize';
-import { updatePatternProfile } from '@/features/session/updatePatternProfile';
+import { updatePatternProfile } from '@/lib/pipeline/updatePatternProfile';
 import { persistVocabSuggestions } from '@/lib/pipeline/persistVocabSuggestions';
 import { detectVocabUsage } from '@/lib/pipeline/detectVocabUsage';
 import { rewriteTranscript } from '@/lib/ai/rewriteTranscript';

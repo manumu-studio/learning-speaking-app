@@ -44,5 +44,5 @@ export const GET = (
 ) =>
   withObservability(
     (r, obsCtx) => handler(r, obsCtx, routeCtx),
-    { route: 'logs/session/[id]' },
+    { route: 'logs/session/[id]', getSession: auth },
   )(req);

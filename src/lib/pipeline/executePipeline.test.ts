@@ -24,7 +24,7 @@ vi.mock('@/lib/pipeline/runVerbatim', () => ({
   finishVerbatim: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('@/features/session/updatePatternProfile', () => ({
+vi.mock('@/lib/pipeline/updatePatternProfile', () => ({
   updatePatternProfile: vi.fn(),
 }));
 
@@ -84,7 +84,7 @@ import { transcribeAudio } from '@/lib/ai/whisper';
 import { analyzeTranscript } from '@/lib/ai/analyze';
 import { getAudio, deleteAudio } from '@/lib/storage/r2';
 import { startVerbatim, finishVerbatim } from '@/lib/pipeline/runVerbatim';
-import { updatePatternProfile } from '@/features/session/updatePatternProfile';
+import { updatePatternProfile } from '@/lib/pipeline/updatePatternProfile';
 
 // ---------------------------------------------------------------------------
 // Shared mock data

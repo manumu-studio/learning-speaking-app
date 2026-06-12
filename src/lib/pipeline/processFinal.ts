@@ -7,7 +7,7 @@ import { buildCorpusEvidence } from '@/lib/analysis/buildCorpusEvidence';
 import type { CorpusEvidence } from '@/lib/analysis/analysis.types';
 import { filterTranscriptionArtefacts } from '@/lib/ai/nerFilter';
 import { tagSpanishL1 } from '@/lib/ai/l1Spanish';
-import { updatePatternProfile } from '@/features/session/updatePatternProfile';
+import { updatePatternProfile } from '@/lib/pipeline/updatePatternProfile';
 import { aggregatePronunciation, toPronunciationResult } from '@/lib/pipeline/aggregatePronunciation';
 import type { SessionChunk } from '@prisma/client';
 import { concatenateChunkTranscripts } from '@/lib/pipeline/transcriptDedup';

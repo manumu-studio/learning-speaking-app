@@ -57,4 +57,4 @@ async function getHandler() {
   return successResponse({ history });
 }
 
-export const GET = withObservability(getHandler);
+export const GET = withObservability(getHandler, { getSession: auth });

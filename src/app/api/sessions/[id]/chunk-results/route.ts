@@ -80,5 +80,5 @@ async function getHandler(
 export const GET = (req: Request, routeCtx: { params: Promise<{ id: string }> }) =>
   withObservability(
     (r, obsCtx) => getHandler(r, obsCtx, routeCtx),
-    { route: 'sessions/[id]/chunk-results' },
+    { route: 'sessions/[id]/chunk-results', getSession: auth },
   )(req);

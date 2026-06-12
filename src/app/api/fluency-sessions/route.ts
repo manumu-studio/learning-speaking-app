@@ -69,7 +69,7 @@ async function postHandler(
   );
 }
 
-export const POST = withObservability(postHandler, { route: 'fluency-sessions' });
+export const POST = withObservability(postHandler, { route: 'fluency-sessions', getSession: auth });
 
 // ── GET /api/fluency-sessions ───────────────────────────────────────
 
@@ -133,4 +133,4 @@ async function getHandler(
   return successResponse({ sessions: items, nextCursor });
 }
 
-export const GET = withObservability(getHandler, { route: 'fluency-sessions' });
+export const GET = withObservability(getHandler, { route: 'fluency-sessions', getSession: auth });

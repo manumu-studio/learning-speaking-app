@@ -87,4 +87,4 @@ async function handler(req: Request, { logger }: { logger: pino.Logger; requestI
   }
 }
 
-export const GET = withObservability(handler, { route: 'sessions/[id]/pitch' });
+export const GET = withObservability(handler, { route: 'sessions/[id]/pitch', getSession: auth });

@@ -88,4 +88,4 @@ async function handler(req: Request) {
   return successResponse(payload);
 }
 
-export const GET = withObservability(handler, { route: 'sessions/[id]/pronunciation-history' });
+export const GET = withObservability(handler, { route: 'sessions/[id]/pronunciation-history', getSession: auth });

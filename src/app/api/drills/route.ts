@@ -169,5 +169,5 @@ async function postHandler(request: Request, { logger }: { logger: pino.Logger; 
   }
 }
 
-export const GET = withObservability(getHandler, { route: 'drills' });
-export const POST = withObservability(postHandler, { route: 'drills' });
+export const GET = withObservability(getHandler, { route: 'drills', getSession: auth });
+export const POST = withObservability(postHandler, { route: 'drills', getSession: auth });

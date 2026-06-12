@@ -1,6 +1,6 @@
 // Aggregates a day's sessions into pillar scores, total duration, and intent labels
 
-import { PILLAR_CONFIG, PILLAR_KEYS } from '@/features/dashboard/pillars';
+import { PILLAR_CONFIG, PILLAR_KEYS } from '@/lib/metrics/pillars';
 
 export interface DaySessionData {
   sessionId: string;

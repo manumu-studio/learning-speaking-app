@@ -73,4 +73,4 @@ async function handler(request: Request, { logger }: { logger: pino.Logger; requ
   });
 }
 
-export const POST = withObservability(handler, { route: 'drills/[id]/complete' });
+export const POST = withObservability(handler, { route: 'drills/[id]/complete', getSession: auth });
