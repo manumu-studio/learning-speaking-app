@@ -2,6 +2,16 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.72.4] — 2026-06-12
+
+### Security
+- Upgraded the test DOM environment to resolve three CVEs including a remote code execution advisory
+- The full dependency tree is now audited for critical vulnerabilities on every CI run
+- Added secret scanning to the CI pipeline to detect accidentally committed credentials
+
+### Changed
+- CI and the pre-commit hook now type-check via the pinned `npm run typecheck` script instead of a bare `npx tsc`
+
 ## [0.72.3] — 2026-06-12
 
 ### Changed

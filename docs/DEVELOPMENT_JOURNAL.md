@@ -160,3 +160,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.72.2 | [PR-0.72.2](pull-requests/PR-0.72.2.md) | 2026-06-12 | Moved metric types/pillar constants + updatePatternProfile to lib; decoupled withObservability from auth |
 | 0.72.3 | [ENTRY-82](journal/ENTRY-82.md) | 2026-06-12 | Code complexity — split four files at/over the 300-line limit |
 | 0.72.3 | [PR-0.72.3](pull-requests/PR-0.72.3.md) | 2026-06-12 | Extracted persistAnalysis, azureSdkMappers, PronunciationMap, FilmGrain |
+| 0.72.4 | [ENTRY-83](journal/ENTRY-83.md) | 2026-06-12 | Dev toolchain hardening — happy-dom 17→20, full-tree critical CI gate, gitleaks |
+| 0.72.4 | [PR-0.72.4](pull-requests/PR-0.72.4.md) | 2026-06-12 | happy-dom CVE fix + CI critical audit + secret scanning + pinned typecheck |
