@@ -13,6 +13,7 @@ vi.mock('@/lib/ai/client', () => ({
 
 vi.mock('@/lib/ai/analysisCache', () => ({
   hashTranscript: vi.fn(() => 'mock-hash'),
+  hashPrompt: vi.fn(() => 'mock-prompt-hash'),
   getCachedAnalysis: vi.fn(),
   setCachedAnalysis: vi.fn(),
 }));
@@ -335,7 +336,7 @@ describe('analyzeTranscript', () => {
 
     const result = await analyzeTranscript({ transcript: 'cached transcript' });
 
-    expect(result).toEqual(cached);
+    expect(result).toEqual({ ...cached, promptHash: 'mock-prompt-hash', modelPin: 'claude-haiku-4-5-20251001' });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -349,10 +350,42 @@ describe('analyzeTranscript', () => {
     const result = await analyzeTranscript({ transcript: 'fresh transcript' });
 
     expect(mockCreate).toHaveBeenCalled();
-    expect(setCachedAnalysis).toHaveBeenCalledWith('mock-hash', expect.objectContaining({
-      focusNext: claudeResponse.focusNext,
-    }));
+    expect(setCachedAnalysis).toHaveBeenCalledWith(
+      'mock-hash',
+      'mock-prompt-hash',
+      'claude-haiku-4-5-20251001',
+      expect.objectContaining({ focusNext: claudeResponse.focusNext }),
+    );
     expect(result.focusNext).toBe(claudeResponse.focusNext);
+  });
+
+  it('skips the cache read and write when skipCache is true', async () => {
+    // A cached value exists, but skipCache must ignore it and call Claude fresh.
+    const stale = { ...baseValidResult, ...enrichedFields };
+    vi.mocked(getCachedAnalysis).mockResolvedValue(stale);
+    const claudeResponse = { ...baseValidResult, ...enrichedFields, focusNext: 'fresh-not-stale' };
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify(claudeResponse) }],
+    });
+
+    const result = await analyzeTranscript({ transcript: 'skip cache transcript', skipCache: true });
+
+    expect(getCachedAnalysis).not.toHaveBeenCalled();
+    expect(mockCreate).toHaveBeenCalled();
+    expect(setCachedAnalysis).not.toHaveBeenCalled();
+    expect(result.focusNext).toBe('fresh-not-stale');
+  });
+
+  it('reads and writes the cache when skipCache is omitted (default false)', async () => {
+    vi.mocked(getCachedAnalysis).mockResolvedValue(null);
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify(baseValidResult) }],
+    });
+
+    await analyzeTranscript({ transcript: 'default transcript' });
+
+    expect(getCachedAnalysis).toHaveBeenCalledWith('mock-hash', 'mock-prompt-hash', 'claude-haiku-4-5-20251001');
+    expect(setCachedAnalysis).toHaveBeenCalled();
   });
 
   it('uses a top-level system prompt and single user message', async () => {

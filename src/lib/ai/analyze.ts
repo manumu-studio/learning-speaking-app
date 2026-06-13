@@ -151,6 +151,9 @@ export type PronunciationSummary = {
   prosodyScore: number;
 };
 
+/** Model pin for the judge — defined once so the cache key and the Anthropic call never drift apart. */
+const JUDGE_MODEL = 'claude-haiku-4-5-20251001' as const;
+
 // Match ⟨?...?⟩ markers — [^⟩]* allows question marks inside suspect transcript text
 const SUSPECT_MARKER_PATTERN = /⟨\?[^⟩]*\?⟩/;
 
@@ -202,7 +205,7 @@ export function applyInsightGuardrails(insights: Insight[]): Insight[] {
 /**
  * Analyzes a speech transcript with Claude Haiku and returns structured coaching data.
  *
- * Results are cached in Redis (keyed by SHA-256 hash of the transcript) with a 7-day TTL.
+ * Results are cached in Redis (keyed by SHA-256 of transcript + prompt + model) with a 7-day TTL.
  * On cache hit the Claude call is skipped entirely. Post-parse guardrails are applied via
  * {@link applyInsightGuardrails} before the result is returned or persisted.
  *
@@ -211,26 +214,31 @@ export function applyInsightGuardrails(insights: Insight[]): Insight[] {
  */
 export async function analyzeTranscript(
   options: AnalyzeTranscriptOptions,
-): Promise<AnalysisResult> {
-  const { transcript, focusMetricKey, pronunciationSummary, promptUsed, corpusEvidence } = options;
+): Promise<AnalysisResult & { promptHash: string; modelPin: string }> {
+  const { transcript, focusMetricKey, pronunciationSummary, promptUsed, corpusEvidence, skipCache = false } = options;
 
-  const { hashTranscript, getCachedAnalysis, setCachedAnalysis } = await import(
+  const { hashTranscript, hashPrompt, getCachedAnalysis, setCachedAnalysis } = await import(
     '@/lib/ai/analysisCache'
   );
 
-  const transcriptHash = hashTranscript(transcript);
-
-  const cached = await getCachedAnalysis(transcriptHash);
-  if (cached !== null) {
-    return cached;
-  }
-
-  const client = getAnthropicClient();
   const systemPrompt = buildSystemPrompt();
   const userPrompt = buildUserPrompt({ transcript, focusMetricKey, pronunciationSummary, promptUsed, corpusEvidence });
 
+  const transcriptHash = hashTranscript(transcript);
+  const judgePromptHash = hashPrompt(systemPrompt + userPrompt);
+  const modelPin = JUDGE_MODEL;
+
+  if (!skipCache) {
+    const cached = await getCachedAnalysis(transcriptHash, judgePromptHash, modelPin);
+    if (cached !== null) {
+      return { ...cached, promptHash: judgePromptHash, modelPin };
+    }
+  }
+
+  const client = getAnthropicClient();
+
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: JUDGE_MODEL,
     max_tokens: 3072,
     system: systemPrompt,
     messages: [
@@ -258,7 +266,9 @@ export async function analyzeTranscript(
     insights: applyInsightGuardrails(validated.insights),
   };
 
-  void setCachedAnalysis(transcriptHash, result);
+  if (!skipCache) {
+    void setCachedAnalysis(transcriptHash, judgePromptHash, modelPin, result);
+  }
 
-  return result;
+  return { ...result, promptHash: judgePromptHash, modelPin };
 }

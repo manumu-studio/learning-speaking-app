@@ -62,7 +62,7 @@ describe('getCachedAnalysis', () => {
     }));
 
     const { getCachedAnalysis } = await import('./analysisCache');
-    await expect(getCachedAnalysis('abc123')).resolves.toBeNull();
+    await expect(getCachedAnalysis('abc123', 'phash', 'model')).resolves.toBeNull();
   });
 
   it('returns null on cache miss', async () => {
@@ -75,7 +75,7 @@ describe('getCachedAnalysis', () => {
     mockGet.mockResolvedValue(null);
 
     const { getCachedAnalysis } = await import('./analysisCache');
-    await expect(getCachedAnalysis('abc123')).resolves.toBeNull();
+    await expect(getCachedAnalysis('abc123', 'phash', 'model')).resolves.toBeNull();
   });
 
   it('returns the result field on cache hit with valid data', async () => {
@@ -102,7 +102,7 @@ describe('getCachedAnalysis', () => {
     );
 
     const { getCachedAnalysis } = await import('./analysisCache');
-    await expect(getCachedAnalysis('abc123')).resolves.toEqual(cachedResult);
+    await expect(getCachedAnalysis('abc123', 'phash', 'model')).resolves.toEqual(cachedResult);
   });
 
   it('returns null when cached data fails Zod validation', async () => {
@@ -121,7 +121,7 @@ describe('getCachedAnalysis', () => {
     );
 
     const { getCachedAnalysis } = await import('./analysisCache');
-    await expect(getCachedAnalysis('abc123')).resolves.toBeNull();
+    await expect(getCachedAnalysis('abc123', 'phash', 'model')).resolves.toBeNull();
   });
 });
 
@@ -150,7 +150,7 @@ describe('setCachedAnalysis', () => {
     }));
 
     const { setCachedAnalysis } = await import('./analysisCache');
-    await expect(setCachedAnalysis('abc123', sampleResult)).resolves.toBeUndefined();
+    await expect(setCachedAnalysis('abc123', 'phash', 'model', sampleResult)).resolves.toBeUndefined();
   });
 
   it('does not rethrow when Redis set fails', async () => {
@@ -163,7 +163,7 @@ describe('setCachedAnalysis', () => {
     mockSet.mockRejectedValue(new Error('Redis unavailable'));
 
     const { setCachedAnalysis } = await import('./analysisCache');
-    await expect(setCachedAnalysis('abc123', sampleResult)).resolves.toBeUndefined();
+    await expect(setCachedAnalysis('abc123', 'phash', 'model', sampleResult)).resolves.toBeUndefined();
   });
 
   it('writes to Redis with versioned key and 7-day TTL', async () => {
@@ -176,10 +176,10 @@ describe('setCachedAnalysis', () => {
     mockSet.mockResolvedValue('OK');
 
     const { setCachedAnalysis } = await import('./analysisCache');
-    await setCachedAnalysis('deadbeef', sampleResult);
+    await setCachedAnalysis('deadbeef', 'phash', 'model', sampleResult);
 
     expect(mockSet).toHaveBeenCalledWith(
-      'lsa:analysis:v1:deadbeef',
+      'lsa:analysis:v2:deadbeef:phash:model',
       expect.stringContaining('"focusNext":"Practice connectors."'),
       { ex: 604800 },
     );

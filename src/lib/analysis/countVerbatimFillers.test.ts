@@ -249,3 +249,64 @@ describe('countVerbatimFillers', () => {
     expect(result.note).toBe('No fillers detected in verbatim transcript');
   });
 });
+
+// ---------------------------------------------------------------------------
+// 12. Snapshot - full density-to-score mapping table (regression lock)
+// ---------------------------------------------------------------------------
+
+describe('densityToScore snapshot - regression lock', () => {
+  // Helper: build a text with exactly `fillerCount` fillers in `totalWords` total words.
+  function buildText(fillerCount: number, totalWords: number): string {
+    const fillers = Array.from({ length: fillerCount }, () => 'um').join(' ');
+    const padding = Array.from(
+      { length: totalWords - fillerCount },
+      () => 'word',
+    ).join(' ');
+    return fillerCount === 0 ? padding : `${fillers} ${padding}`;
+  }
+
+  it.each([
+    // fillerCount, totalWords, expectedScore, expectedLevel
+    // Exactly at threshold boundaries (DENSITY_THRESHOLDS = [1,2,3,4,5,6,8,10,15])
+    [1, 100, 10, 'excellent'],   // 1.0% <= 1  -> score 10
+    [2, 100, 9, 'excellent'],    // 2.0% <= 2  -> score 9
+    [3, 100, 8, 'good'],         // 3.0% <= 3  -> score 8
+    [4, 100, 7, 'good'],         // 4.0% <= 4  -> score 7
+    [5, 100, 6, 'developing'],   // 5.0% <= 5  -> score 6
+    [6, 100, 5, 'developing'],   // 6.0% <= 6  -> score 5
+    [8, 100, 4, 'needs_work'],   // 8.0% <= 8  -> score 4
+    [10, 100, 3, 'needs_work'],  // 10.0% <= 10 -> score 3
+    [15, 100, 2, 'critical'],    // 15.0% <= 15 -> score 2
+    [16, 100, 1, 'critical'],    // 16.0% > 15  -> score 1
+  ] as const)(
+    '%i fillers / %i words -> score %i (%s)',
+    (fillerCount, totalWords, expectedScore, expectedLevel) => {
+      const text = buildText(fillerCount, totalWords);
+      const result = countVerbatimFillers(text);
+      expect(result.score).toBe(expectedScore);
+      expect(result.level).toBe(expectedLevel);
+    },
+  );
+
+  it('empty string always yields score 10 regardless of threshold table', () => {
+    expect(countVerbatimFillers('').score).toBe(10);
+  });
+
+  it('density exactly at a threshold is inclusive (<=) not exclusive', () => {
+    // 1 filler in 100 words = exactly 1.00% - must score 10, not 9
+    const result = countVerbatimFillers(buildText(1, 100));
+    expect(result.score).toBe(10);
+
+    // 2 fillers in 100 words = exactly 2.00% - must score 9, not 8
+    const result2 = countVerbatimFillers(buildText(2, 100));
+    expect(result2.score).toBe(9);
+  });
+
+  it('score just above each boundary drops by exactly 1', () => {
+    // 2 fillers in 100 words = 2.0% (threshold 2) -> score 9
+    // 3 fillers in 100 words = 3.0% (threshold 3) -> score 8 - one point lower
+    const at2 = countVerbatimFillers(buildText(2, 100));
+    const at3 = countVerbatimFillers(buildText(3, 100));
+    expect(at2.score - at3.score).toBe(1);
+  });
+});

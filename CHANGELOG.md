@@ -2,6 +2,19 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.73.0] — 2026-06-13
+
+### Added
+- Offline evaluation harness for the seven LLM-judged language metrics (connector repetition, structural variety, vocabulary precision, verb accuracy, argument closure, lexical sophistication, register & pragmatics). Re-runs the judge on a frozen set of human-labelled sessions and reports per-metric agreement — MAE, within-1%, Spearman correlation, and banded QWK — each with a bootstrap 95% confidence interval and the intra-rater ceiling beside it
+- Frozen golden-set data model (golden sessions, human labels, judge runs) — a denormalized snapshot that stays replayable even if the source session is later deleted
+- Interactive CLI tools to freeze sessions into the golden set and to capture human scores (with a blind re-test mode), plus anchored 1–10 rubrics for every judged metric
+- Developer report view at `/dev/evals` that renders the latest report and flags any metric whose error exceeds the intra-rater ceiling, with an explicit caveat about sample size and single-rater limitations
+- Snapshot/tolerance regression tests that lock the deterministic metric mappings (filler density-to-score, words-per-minute, and the Azure-to-1-10 curve) at every threshold boundary
+- `eval:run` and `eval:report` scripts
+
+### Fixed
+- The analysis cache key now includes a hash of the prompt and the model pin, so a shipped prompt or model change no longer serves a stale score for the 7-day cache lifetime
+
 ## [0.72.4] — 2026-06-12
 
 ### Security

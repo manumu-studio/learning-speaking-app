@@ -59,6 +59,9 @@ function scoreToLevel(score: number): 'low' | 'medium' | 'high' {
 // SDK version constant — kept as a literal to avoid dynamic require in Next.js edge runtime.
 export const AZURE_SDK_VERSION = '1.42.0';
 
+// Internal helpers exported for testing only — underscore prefix signals non-public API.
+export { mapAzureScore as _mapAzureScore, mapSpeakingRate as _mapSpeakingRate };
+
 /** Atomically writes PronunciationReport, WordPronunciation rows, and the three pronunciation MetricSnapshots for a session. */
 export async function persistPronunciation(
   sessionId: string,

@@ -510,7 +510,7 @@ model NaturalnessFlag {
   @@map("naturalness_flags")
 }
 
-// ─── Corpus Reference Tables (PACKET-57) ────────────────────────────
+// ─── Corpus Reference Tables ────────────────────────────
 
 // Single-word frequency + CEFR level from NGSL, NAWL, SUBTLEX, CEFR-J, Octanove
 model Lexeme {
@@ -568,4 +568,61 @@ model MultiWordExpression {
   @@index([lemmaKey])
   @@index([canonical])
   @@map("multi_word_expressions")
+}
+
+// ─── Evals Pipeline ───────────────────────────────────
+
+// Frozen snapshot of a session used as a golden evaluation example.
+// sourceSessionId is a plain String (no FK) so golden rows survive session deletion.
+model GoldenSession {
+  id                   String        @id @default(cuid())
+  sourceSessionId      String?
+  cleanTranscript      String        @db.Text
+  verbatimTranscript   String?       @db.Text
+  pronunciationSummary String?       @db.Text
+  azureRawJson         Json?
+  promptUsed           String?       @db.Text
+  focusMetricKey       String?
+  stratum              String
+  rubricVersion        String
+  createdAt            DateTime      @default(now())
+  labels               GoldenLabel[]
+  judgeRuns            JudgeRun[]
+
+  @@index([stratum])
+  @@map("golden_sessions")
+}
+
+// Human-annotated score for one metric on one golden session.
+model GoldenLabel {
+  id            String        @id @default(cuid())
+  goldenId      String
+  golden        GoldenSession @relation(fields: [goldenId], references: [id], onDelete: Cascade)
+  metric        String
+  humanScore    Int
+  rationale     String        @db.Text
+  raterId       String
+  isRetest      Boolean       @default(false)
+  rubricVersion String
+  createdAt     DateTime      @default(now())
+
+  @@index([goldenId, metric])
+  @@map("golden_labels")
+}
+
+// A single AI judge pass: one score per metric per model+prompt combination.
+model JudgeRun {
+  id          String        @id @default(cuid())
+  goldenId    String
+  golden      GoldenSession @relation(fields: [goldenId], references: [id], onDelete: Cascade)
+  metric      String
+  aiScore     Int
+  modelPin    String
+  promptHash  String
+  temperature Float
+  runIndex    Int           @default(0)
+  createdAt   DateTime      @default(now())
+
+  @@index([goldenId, metric, modelPin, promptHash])
+  @@map("judge_runs")
 }

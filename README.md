@@ -63,10 +63,11 @@ Intelligence ← Phoneme patterns + vocab SRS (suggest → detect adoption → s
 9. **Daily Conclusion** — The current day stays open until the 10pm local cutoff so live sessions remain visible. Closed days use a daily meta-session read model that combines completed sessions into Sessions, Speech Quality, Pronunciation & Intonation, General Feedback, and Transcript sections. The cached AI conclusion provides the topic sentence and coaching narrative while the detail view stays grounded in scoped session data
 10. **Evidence Logs** — Every score and insight traces back to real DB data. The Logs page (`/logs/session/[id]`, `/logs/day/[date]`) shows the evidence register: metric snapshots, transcript spans, grammar flags, pronunciation scores, naturalness flags, corpus matches, and pipeline metadata — with source system attribution (Whisper, AssemblyAI, Azure, Claude, corpus, grammar pipeline)
 11. **Privacy** — Audio is deleted from R2 immediately after processing; no audio is retained
+12. **Eval Pipeline** — An offline accuracy harness for the seven LLM-judged language metrics. A frozen, human-labelled golden set is replayed through the judge (the analysis cache can be bypassed so a prompt change produces a fresh score), and a stats module reports per-metric MAE, within-1%, Spearman correlation, and banded QWK — each shown with a bootstrap 95% confidence interval and the rater's intra-rater ceiling. Results are written to `eval/REPORT-latest.json` and viewable at `/dev/evals`, where any metric whose error exceeds the intra-rater ceiling is flagged, alongside an explicit caveat about sample size and single-rater limitations. The judge run is driven by Promptfoo; the statistics are graded in Vitest
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md) — Version history (75 releases)
+- [Changelog](CHANGELOG.md) — Version history (76 releases)
 - [Architecture](docs/architecture/SYSTEM_DIAGRAM.md) — System diagrams and data flow
 - [System Spec](docs/architecture/SYSTEM_SPEC.md) — Detailed behaviour and constraints
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment and troubleshooting
@@ -121,6 +122,7 @@ src/
 ├── features/         # Feature modules
 │   ├── auth/         # Authentication hooks and helpers
 │   ├── dashboard/    # Dashboard data fetching, metric cards, CEFR badge, skill radar, types
+│   ├── eval/         # Eval report table (EvalReportTable)
 │   ├── insights/     # Session insight display
 │   ├── fluency/      # 4-3-2 timed fluency training (TimedRecording, FluencyComparison, FluencySessionList)
 │   ├── prompts/      # Prompt library UI (60+ prompts, multi-filter, format badges)
@@ -130,16 +132,22 @@ src/
 │   ├── session/      # Session status polling, display, register/pragmatics feedback, naturalness
 │   ├── training/     # Drill generation, evaluation, drill UI, reading practice
 │   └── vocabulary/   # Vocabulary SRS review queue, collocations, stats UI
-├── lib/              # Shared utilities (AI, analysis, analysis/divergence, analysis/grammar, assemblyai, auth, CEFR, corpus, evidence, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily/dayDetail)
+├── lib/              # Shared utilities (AI, analysis, analysis/divergence, analysis/grammar, assemblyai, auth, CEFR, corpus, eval, evidence, prompts, queue, storage, pipeline, pronunciation, srs, logger, naturalness, daily/dayDetail)
 ├── config/           # App configuration
 └── middleware.ts     # JWT validation + route protection + CSP headers
 docs/
 ├── architecture/     # System spec and diagrams
 ├── decisions/        # Architecture Decision Records (ADRs)
+├── eval/             # Eval rubrics and methodology
 └── roadmap/          # Development roadmap
 prisma/
 ├── schema.prisma     # Database schema
 └── migrations/       # Prisma migrations
+scripts/
+└── eval/             # Eval tooling — snapshot, label, run, and report scripts
+eval/
+├── promptfooconfig.yaml  # Eval runner config + custom judge provider
+└── REPORT-latest.json    # Generated per-metric accuracy report (gitignored)
 ```
 
 ## License

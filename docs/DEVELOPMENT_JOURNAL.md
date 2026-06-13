@@ -162,3 +162,5 @@ A chronological record of feature development for the Learning Speaking App.
 | 0.72.3 | [PR-0.72.3](pull-requests/PR-0.72.3.md) | 2026-06-12 | Extracted persistAnalysis, azureSdkMappers, PronunciationMap, FilmGrain |
 | 0.72.4 | [ENTRY-83](journal/ENTRY-83.md) | 2026-06-12 | Dev toolchain hardening — happy-dom 17→20, full-tree critical CI gate, gitleaks |
 | 0.72.4 | [PR-0.72.4](pull-requests/PR-0.72.4.md) | 2026-06-12 | happy-dom CVE fix + CI critical audit + secret scanning + pinned typecheck |
+| 0.73.0 | [ENTRY-84](journal/ENTRY-84.md) | 2026-06-13 | AI evals pipeline — offline accuracy harness, frozen golden set, re-runnable judge |
+| 0.73.0 | [PR-0.73.0](pull-requests/PR-0.73.0-ai-evals-pipeline.md) | 2026-06-13 | skipCache + prompt/model cache key, golden-set schema, Promptfoo run + Vitest stats, /dev/evals |
