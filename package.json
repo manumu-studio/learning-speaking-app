@@ -108,7 +108,7 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --max-warnings 0",
-      "bash -c 'npx tsc -p tsconfig.build.json --noEmit'"
+      "bash -c 'npm run typecheck'"
     ]
   }
 }
