@@ -34,6 +34,35 @@ export function buildPronunciationSummary(
   };
 }
 
+/**
+ * Rebuilds a `PronunciationSummary` from persisted `PronunciationReport` + `WordPronunciation`
+ * rows, mirroring {@link buildPronunciationSummary} but sourced from the database instead of a
+ * live `PronunciationResult`. Lets eval tooling replay the exact pronunciation context the judge
+ * originally saw, without re-running Azure. Same weak-phoneme threshold (<60) and 5-item cap.
+ */
+export function buildPronunciationSummaryFromRows(
+  report: { accuracyScore: number; prosodyScore: number },
+  wordRows: ReadonlyArray<{
+    phonemes: ReadonlyArray<{ phoneme: string; accuracyScore: number }>;
+    l1Tags: readonly string[];
+  }>,
+): PronunciationSummary {
+  const topWeakPhonemes = wordRows
+    .flatMap((w) => [...w.phonemes])
+    .filter((p) => p.accuracyScore < 60)
+    .map((p) => p.phoneme)
+    .slice(0, 5);
+
+  const l1Tags = [...new Set(wordRows.flatMap((w) => [...w.l1Tags]))];
+
+  return {
+    topWeakPhonemes,
+    l1Tags,
+    accuracyScore: report.accuracyScore,
+    prosodyScore: report.prosodyScore,
+  };
+}
+
 interface AzureContext {
   sessionId: string;
   userId: string;

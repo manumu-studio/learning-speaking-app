@@ -137,3 +137,8 @@ test-results/
 
 # Corpus source datasets (large — seeded via scripts/seed-corpus.ts)
 /data/
+
+# Eval pipeline generated artifacts (config + provider are committed; outputs are not)
+/eval/REPORT-latest.json
+/eval/testcases.json
+/eval/promptfoo-results.json

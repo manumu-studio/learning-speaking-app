@@ -4,7 +4,7 @@ import { prismaMock } from '@/__mocks__/prisma';
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 
-import { persistPronunciation } from './persistPronunciation';
+import { persistPronunciation, _mapAzureScore, _mapSpeakingRate } from './persistPronunciation';
 import type { PronunciationResult } from '@/lib/ai/azurePronunciation.types';
 
 // ---------------------------------------------------------------------------
@@ -98,9 +98,10 @@ describe('persistPronunciation', () => {
     });
     const deleteOrder = prismaMock.wordPronunciation.deleteMany.mock.invocationCallOrder[0];
     const createOrder = prismaMock.wordPronunciation.createMany.mock.invocationCallOrder[0];
-    expect(deleteOrder).toBeDefined();
-    expect(createOrder).toBeDefined();
-    expect(deleteOrder!).toBeLessThan(createOrder!);
+    if (deleteOrder === undefined || createOrder === undefined) {
+      throw new Error('expected both deleteMany and createMany to be called');
+    }
+    expect(deleteOrder).toBeLessThan(createOrder);
   });
 
   it('maps word fields correctly including prosodyFeedback extraction', async () => {
@@ -154,8 +155,8 @@ describe('persistPronunciation', () => {
     const accuracyCall = prismaMock.metricSnapshot.upsert.mock.calls.find(
       ([args]) => (args as { where: { sessionId_key: { key: string } } }).where.sessionId_key.key === 'pronunciationAccuracy',
     );
-    expect(accuracyCall).toBeDefined();
-    const create = (accuracyCall![0] as { create: { level: string } }).create;
+    if (accuracyCall === undefined) throw new Error('pronunciationAccuracy upsert not called');
+    const create = (accuracyCall[0] as { create: { level: string } }).create;
     expect(create.level).toBe('high');
   });
 
@@ -166,7 +167,8 @@ describe('persistPronunciation', () => {
     const accuracyCall = prismaMock.metricSnapshot.upsert.mock.calls.find(
       ([args]) => (args as { where: { sessionId_key: { key: string } } }).where.sessionId_key.key === 'pronunciationAccuracy',
     );
-    const create = (accuracyCall![0] as { create: { level: string } }).create;
+    if (accuracyCall === undefined) throw new Error('pronunciationAccuracy upsert not called');
+    const create = (accuracyCall[0] as { create: { level: string } }).create;
     expect(create.level).toBe('low');
   });
 
@@ -187,7 +189,8 @@ describe('persistPronunciation', () => {
       ([args]) => (args as { where: { sessionId_key: { key: string } } }).where.sessionId_key.key === 'speakingRate',
     );
     // 2 valid words / (1000ms / 60000) = 120 WPM → score 9 → level 'high'
-    const create = (rateCall![0] as { create: { score: number; level: string } }).create;
+    if (rateCall === undefined) throw new Error('speakingRate upsert not called');
+    const create = (rateCall[0] as { create: { score: number; level: string } }).create;
     expect(create.score).toBe(9);
     expect(create.level).toBe('high');
   });
@@ -204,7 +207,8 @@ describe('persistPronunciation', () => {
     const rateCall = prismaMock.metricSnapshot.upsert.mock.calls.find(
       ([args]) => (args as { where: { sessionId_key: { key: string } } }).where.sessionId_key.key === 'speakingRate',
     );
-    const create = (rateCall![0] as { create: { score: number } }).create;
+    if (rateCall === undefined) throw new Error('speakingRate upsert not called');
+    const create = (rateCall[0] as { create: { score: number } }).create;
     expect(create.score).toBe(1); // 0 WPM → mapSpeakingRate(0) = 1
   });
 
@@ -223,5 +227,90 @@ describe('persistPronunciation', () => {
       create: { speakingRateWpm: number };
     };
     expect(reportCreate.create.speakingRateWpm).toBeCloseTo(120, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mapSpeakingRate snapshot - regression lock on WPM-to-score mapping
+// ---------------------------------------------------------------------------
+
+describe('mapSpeakingRate snapshot - all WPM bands', () => {
+  // Tests the exported _mapSpeakingRate directly — no DB mocks needed.
+  // Bands derived from persistPronunciation.ts:
+  //   110-140 -> 9 (optimal learner range)
+  //   95-<110 or 140-160 -> 7
+  //   80-<95 or 160-180 -> 5
+  //   60-<80 -> 3
+  //   >180 -> 4 (too fast but fluent)
+  //   <60 or 0 -> 1 (very halting)
+
+  it.each([
+    [120, 9],  // midpoint of 110-140 band -> 9
+    [110, 9],  // lower boundary of 9-band (inclusive) -> 9
+    [140, 9],  // upper boundary of 9-band (inclusive) -> 9
+    [100, 7],  // 95-<110 band -> 7
+    [95, 7],   // lower boundary of 95-110 sub-band (inclusive) -> 7
+    [150, 7],  // 140-160 band -> 7
+    [160, 7],  // upper boundary of 140-160 band (inclusive) -> 7
+    [85, 5],   // 80-<95 band -> 5
+    [80, 5],   // lower boundary of 80-95 band (inclusive) -> 5
+    [170, 5],  // 160-<180 band -> 5
+    [180, 5],  // upper boundary of 160-180 band (inclusive) -> 5
+    [70, 3],   // 60-<80 band -> 3
+    [60, 3],   // lower boundary of 60-80 band (inclusive) -> 3
+    [200, 4],  // >180 -> 4 (too fast, but fluent)
+    [181, 4],  // smallest value >180 -> 4
+    [0, 1],    // 0 WPM -> 1 (< 60)
+    [50, 1],   // below 60 WPM -> 1
+    [59, 1],   // just below 60 boundary -> 1
+  ] as const)('WPM %i -> score %i', (wpm, expectedScore) => {
+    expect(_mapSpeakingRate(wpm)).toBe(expectedScore);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mapAzureScore tolerance tests - 4-band piecewise curve
+// ---------------------------------------------------------------------------
+
+describe('mapAzureScore tolerance tests - pronunciationAccuracy + prosodyScore', () => {
+  // 4-band non-linear curve (see persistPronunciation.ts):
+  //   [0-40]   -> 1 + (x/40)*2          (output range 1.0-3.0)
+  //   [40-60]  -> 3 + ((x-40)/20)*2     (output range 3.0-5.0)
+  //   [60-80]  -> 6 + ((x-60)/20)*2     (output range 6.0-8.0, meaningful jump)
+  //   [80-100] -> 8 + ((x-80)/20)*2     (output range 8.0-10.0)
+  // All values after Math.round().
+
+  it.each([
+    [0, 1],    // floor of band 1 -> round(1.0) = 1
+    [20, 2],   // midpoint band 1 -> round(1 + (20/40)*2) = round(2.0) = 2
+    [40, 3],   // band 1/2 boundary -> round(1 + (40/40)*2) = round(3.0) = 3
+    [50, 4],   // midpoint band 2 -> round(3 + (10/20)*2) = round(4.0) = 4
+    [60, 5],   // band 2/3 boundary -> round(3 + (20/20)*2) = round(5.0) = 5
+    [70, 7],   // midpoint band 3 -> round(6 + (10/20)*2) = round(7.0) = 7
+    [80, 8],   // band 3/4 boundary -> round(6 + (20/20)*2) = round(8.0) = 8
+    [90, 9],   // midpoint band 4 -> round(8 + (10/20)*2) = round(9.0) = 9
+    [100, 10], // ceiling -> round(8 + (20/20)*2) = round(10.0) = 10
+  ] as const)(
+    'Azure %i -> app score %i (after Math.round)',
+    (azureScore, expectedScore) => {
+      expect(Math.round(_mapAzureScore(azureScore))).toBe(expectedScore);
+    },
+  );
+
+  it('prosodyScore uses the same curve — Azure 80 maps to app score 8', () => {
+    // Confirms both metrics share mapAzureScore; 80 sits at the band 3/4 boundary
+    expect(Math.round(_mapAzureScore(80))).toBe(8);
+  });
+
+  it('band 3 (60-80) has a discontinuity at Azure 60 — score jumps from 5 to 6', () => {
+    // Azure 59: 3 + ((59-40)/20)*2 = 3 + 1.9 = 4.9 -> rounds to 5
+    // Azure 61: 6 + ((61-60)/20)*2 = 6 + 0.1 = 6.1 -> rounds to 6
+    expect(Math.round(_mapAzureScore(59))).toBe(5);
+    expect(Math.round(_mapAzureScore(61))).toBe(6);
+  });
+
+  it('band 2/3 boundary (Azure 60) maps to exactly 5 not 6', () => {
+    // Azure 60 hits the `azureScore <= 60` branch: 3 + (20/20)*2 = 5.0 -> 5
+    expect(Math.round(_mapAzureScore(60))).toBe(5);
   });
 });

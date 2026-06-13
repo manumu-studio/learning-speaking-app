@@ -1,0 +1,48 @@
+# eval/promptfooconfig.yaml
+# Promptfoo evaluation config - drives the AI judge pipeline for the 7 scored metrics.
+# Run with: npm run eval:run
+# Docs: https://www.promptfoo.dev/docs/configuration/guide/
+
+# description is shown in the Promptfoo web UI and CLI output header
+description: "AI judge eval - 7 coached metrics vs. human golden labels"
+
+# providers: list of custom API providers Promptfoo will call for each test case.
+# file:// tells Promptfoo to require() this TypeScript file and call its callApi() method.
+providers:
+  - id: "file://eval/judgeProvider.ts"
+    # label appears in the results table alongside each run
+    label: "analyzeTranscript-judge"
+
+# prompts: Promptfoo requires at least one prompt entry.
+# We pass an empty string here because our provider ignores the prompt argument
+# and builds its own input from the test-case vars directly.
+prompts:
+  - ""
+
+# tests: path to the generated test-case file produced by scripts/eval/export-testcases.ts
+# Each entry has a `vars` block matching the GoldenSession inputs the provider expects.
+tests: "eval/testcases.json"
+
+# defaultTest: applied to every test case unless overridden.
+# The assertions here are structural guards - they verify the output shape before
+# the stats module grades the numeric accuracy.
+defaultTest:
+  assert:
+    # output must be a valid JSON object (the provider returns a JSON string)
+    - type: is-json
+      description: "Provider output must be valid JSON"
+    # every one of the 7 judged metrics must be present as a key
+    - type: javascript
+      value: |
+        const scores = JSON.parse(output);
+        const required = [
+          'connectorRepetition', 'structuralVariety', 'vocabularyPrecision',
+          'verbAccuracy', 'argumentClosure', 'lexicalSophistication', 'registerPragmatics'
+        ];
+        return required.every(k => typeof scores[k] === 'number' && scores[k] >= 1 && scores[k] <= 10);
+      description: "All 7 metric scores must be integers 1-10"
+
+# outputPath: where Promptfoo writes the structured results JSON after a run.
+# The report script reads JudgeRun rows (written by the provider) rather than this file,
+# but having the raw Promptfoo output is useful for debugging.
+outputPath: "eval/promptfoo-results.json"

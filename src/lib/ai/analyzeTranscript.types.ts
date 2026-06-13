@@ -9,6 +9,12 @@ export interface AnalyzeTranscriptOptions {
   readonly pronunciationSummary?: PronunciationSummary | null | undefined;
   readonly promptUsed?: string | null | undefined;
   readonly corpusEvidence?: CorpusEvidence | null | undefined;
+  /**
+   * When true, skips both the cache read and cache write for this call.
+   * Intended for eval/dev tooling only — never pass true in the production pipeline.
+   * Defaults to false; omitting the field is identical to passing false.
+   */
+  readonly skipCache?: boolean | undefined;
 }
 
 /** Options for buildUserPrompt — replaces the 4-param positional signature. */
