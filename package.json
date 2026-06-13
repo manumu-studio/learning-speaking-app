@@ -1,6 +1,6 @@
 {
   "name": "learning-speaking-app",
-  "version": "0.72.3",
+  "version": "0.72.4",
   "private": true,
   "engines": {
     "node": ">=20.0.0"
@@ -88,7 +88,7 @@
     "autoprefixer": "^10.4.24",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
-    "happy-dom": "^17.6.1",
+    "happy-dom": "20.10.2",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
     "jsdom": "^26.1.0",
@@ -108,7 +108,7 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --max-warnings 0",
-      "bash -c 'npx tsc -p tsconfig.build.json --noEmit'"
+      "bash -c 'npm run typecheck'"
     ]
   }
 }
