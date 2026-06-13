@@ -2,6 +2,15 @@
 
 All notable changes to Learning Speaking App are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.72.3] — 2026-06-12
+
+### Changed
+- Split `processFinal.ts`: extracted the DB persistence worker into `persistAnalysis.ts`
+- Split `azurePronunciation.ts`: extracted SDK type definitions and mapper functions into `azureSdkMappers.ts`
+- Split `TranscriptToggle.tsx`: extracted the `PronunciationMap` component into `PronunciationMap.tsx`
+- Split `heroCanvasUtils.ts`: extracted the `FilmGrain` class into `FilmGrain.ts`
+- All four source files now comply with the 300-line `max-lines` limit — no behavior or public API changes
+
 ## [0.72.2] — 2026-06-12
 
 ### Changed
